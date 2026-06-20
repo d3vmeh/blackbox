@@ -10,6 +10,7 @@ dependencies = [
     "sse-starlette>=2.1",
     "redis>=5.0",
     "anthropic>=0.34",
+    "networkx>=3.0",
     "langgraph>=0.2",
     "langchain-core>=0.3",
     # tracing

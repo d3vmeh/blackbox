@@ -1,16 +1,58 @@
 """P2 — Per-step LLM node-judge (Claude Haiku), run in parallel.
 
-Each judge sees ONLY one step's inputs and output and answers: does this output
-follow correctly from these inputs? It must NOT see downstream steps or the final
-outcome — that isolation is what makes the verdict a local correctness signal
-rather than hindsight. Cheap model, many concurrent calls.
+Each judge sees ONLY one step's inputs and output — nothing downstream,
+no final outcome, no other steps. That isolation makes the verdict a
+local correctness signal rather than hindsight.
 """
-
 from __future__ import annotations
 
-from shared.schema import Step
+import asyncio
+import json
+
+import anthropic
+
+from shared.schema import Step, Trace
+
+_client = anthropic.AsyncAnthropic()
+_MODEL = "claude-haiku-4-5-20251001"
+
+_SYSTEM = (
+    "You are a judge evaluating one step in an AI agent pipeline in isolation. "
+    "You see only this step's inputs and output — nothing downstream, "
+    "no final outcome, no other steps. Judge only local correctness."
+)
 
 
-def judge_step(step: Step) -> tuple[bool, str]:
+async def judge_step(step: Step) -> float:
     """Return (is_output_correct_given_inputs, short_reason)."""
-    raise NotImplementedError("P2: Haiku node-judge")
+    node_name = step.raw.get("node", step.id)
+    user_msg = (
+        f"Step name: {node_name}\n"
+        f"Inputs: {json.dumps(step.inputs, indent=2)}\n"
+        f"Output: {json.dumps(step.output, indent=2)}\n\n"
+        "Does this output correctly and accurately follow from these inputs?\n"
+        "Reply with a single float between 0.0 and 1.0 ONLY.\n"
+        "0.0 = clearly wrong given the inputs\n"
+        "1.0 = clearly correct given the inputs\n"
+        "No explanation. No text. Just the number."
+    )
+    try:
+        msg = await _client.messages.create(
+            model=_MODEL,
+            max_tokens=16,
+            system=_SYSTEM,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        text = msg.content[0].text.strip()
+        score = float(text)
+        return max(0.0, min(1.0, score))
+    except (ValueError, IndexError, anthropic.APIError):
+        return 0.5
+
+
+async def judge_all_suspects(suspects: set[str], trace: Trace) -> dict[str, float]:
+    """Run judge_step concurrently for all suspect step ids."""
+    step_map = {s.id: s for s in trace.steps}
+    ids = [sid for sid in suspects if sid in step_map]
+    scores = await asyncio.gather(*[judge_step(step_map[sid]) for sid in ids])
+    return dict(zip(ids, scores))
