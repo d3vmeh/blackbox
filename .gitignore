@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Jupyter / HTML prototyping
+html_outputs/
+.ipynb_checkpoints/
