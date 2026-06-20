@@ -19,16 +19,27 @@ from attribution.rationale import generate_rationale
 PASSIVE_KINDS = {"tool_result"}
 
 
+def _is_passive(step) -> bool:
+    """A step that cannot itself be the reasoning fault.
+
+    A ``tool_result`` is passive ONLY when it has no inputs of its own — a raw
+    external return the agent didn't reason about (e.g. a flight-search payload,
+    whose step-level inputs are empty). Those are scored 0.00 by the judge (empty
+    inputs look wrong) yet are never the fault. But a ``tool_result`` that *consumed*
+    inputs is an active step — an extraction/OCR-style agent that interpreted those
+    inputs and can introduce the fault — so it stays a suspect."""
+    return step.kind in PASSIVE_KINDS and not step.inputs
+
+
 def filter_active_suspects(suspects: set[str], trace: Trace) -> set[str]:
     """Remove passive steps that cannot introduce reasoning errors.
 
-    tool_result steps only receive data from external tools — they are
-    scored 0.00 by the judge (empty inputs look wrong) but are never the fault."""
-    return {
-        sid for sid in suspects
-        if next(s for s in trace.steps if s.id == sid).kind
-        not in PASSIVE_KINDS
-    }
+    Empty-input ``tool_result`` steps (raw external returns) are dropped; a
+    ``tool_result`` that consumed inputs stays in. Without this, a multi-agent
+    system whose extractor is labeled ``tool_result`` could never be localized to
+    that extractor — see agent/converge_ap.py."""
+    step_map = {s.id: s for s in trace.steps}
+    return {sid for sid in suspects if not _is_passive(step_map[sid])}
 
 
 def position_score(step_id: str, trace: Trace) -> float:
