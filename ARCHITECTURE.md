@@ -600,4 +600,87 @@ drift (per AGENTS.md / DESIGN.md Maintenance rules):
   animation in Motion beat 1; a neutral **rejected/non-flip** treatment (never
   `--blast`/`--pass`); and sequence the confirm choreography (trust+verdict flip =
   focal moment, chain-heal after).
+
+---
+
+## 18. ACP proxy (stretch integration)
+
+> **Decision: Option A** — the ACP proxy is a *secondary* capture/control surface
+> bolted onto the multi-agent core, **not** a pivot to a single-agent product. It is
+> a **stretch tier**: the AP prove-by-replay demo must stand alone without it.
+
+Blackbox can run as a transparent **Agent Client Protocol (ACP)** proxy — a
+man-in-the-middle on the editor↔agent JSON-RPC stream — giving **zero-instrumentation
+live capture** and a **real channel to inject the replay-proven fix back to the
+agent**.
+
+### What ACP is (verified 2026-06 against agentclientprotocol.com)
+
+ACP standardizes communication between **code editors/IDEs (the client)** and
+**coding agents (the service)** — *LSP, but for agents*. Transport: **JSON-RPC over
+stdio** for local agents (run as an editor subprocess); **HTTP/WebSocket** for remote
+agents (work-in-progress). Representative methods: `initialize`, `session/new`,
+`session/load`, `session/prompt`, `session/update` (streaming notifications),
+`session/request_permission`, `tool/call`, `fs/read_text_file`, `terminal/execute`,
+and — notably — `session/fork`. (See the §16 guardrail on `session/fork` below.)
+
+### The proxy
+
 ```
+  EDITOR (ACP client, e.g. Zed)  ⇄  [ blackbox ACP proxy ]  ⇄  AGENT (ACP server)
+                                        │ tees every JSON-RPC message → to_trace()
+                                        │ exposes inject(message) for the escalate/auto-apply path
+```
+
+### The honest seam (do not overclaim)
+
+ACP is **editor ↔ ONE agent**. It does **not** carry **agent ↔ agent** hand-offs —
+those stay internal to the AP runtime (the cross-agent attribution in §2/§9 does not
+ride ACP). So the proxy is the **human/editor ↔ system surface** and a **per-agent
+session recorder**; it **complements, does not replace,** the multi-agent story.
+Never claim ACP transports the AP hand-offs.
+
+### What Option A buys
+
+1. **Zero-instrumentation live capture.** Sit on the wire and record `session/prompt`
+   / `tool/call` / `session/update` traffic into canonical `Step`s (agent identity via
+   `raw["agent"]`) — no SDK wrapping, no code change to the agent. The cleanest
+   possible ingestion path, alongside the OTel-span contract (§16).
+2. **A real injection channel.** §3's escalate ("a human messages the responsible
+   agent") and the auto-apply both become an **injected/rewritten ACP message** sent
+   back through the proxy — the proxy is where the supervisor *acts*. The injected
+   value still originates from re-derivation or the human's structured form (§11), not
+   from the proxy inventing it.
+3. **"Runs inside a real editor" credibility.** Demoing blackbox as a proxy inside a
+   real ACP client (e.g. Zed) is a strong "plugs into your actual tools" beat and a
+   possible editor/track angle. (The team's earlier plan listed ACP as "don't build /
+   stretch," so shipping it is a differentiator, not table stakes.)
+
+### Contracts (additive, zero schema change)
+
+ACP messages map to the canonical `Trace` through a **new capture adapter** — no new
+contract: `session/prompt`, `tool/call`, and `session/update` become `Step`s; agent
+membership rides `raw["agent"]`; the injection reuses the existing corrected-value
+path. Mirrors the §16 "ingestion contract is OTel spans" philosophy — ACP is just a
+second adapter.
+
+### Guardrails
+
+- **Replay stays on LangGraph checkpoints — NOT ACP `session/fork`.** ACP exposes a
+  `session/fork`, but our deterministic fork→inject→re-run is the checkpoint mechanism
+  (§10). The proxy is **observe + inject only**; do not route the replay flip through a
+  live ACP session (reintroduces on-stage nondeterminism).
+- **Stretch tier, recorded fallback.** Like Browserbase (§5/§16): demo live if solid,
+  else play a recorded "blackbox proxying an ACP agent in Zed" clip to earn the
+  credibility/track without risking the core flip.
+- **Moat stays prove-by-replay.** The failure mode is the demo becoming "we built an
+  ACP thing." ACP is the substrate; intervention-confirmed causality is the headline.
+
+### Additive seam / ownership
+
+`agent/acp_proxy.py` (P1/P4) — a thin JSON-RPC MITM that spawns/bridges the agent
+(stdio subprocess locally; HTTP/WS for remote), tees traffic to `to_trace()`, and
+exposes `inject(message)` for the escalate/auto-apply path. No contract change; rides
+`raw` + `to_trace`. Out of scope for the core demo; build only after the AP
+prove-by-replay loop is solid.
+
