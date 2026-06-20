@@ -4,6 +4,7 @@
     python -m agent.run --live                # Claude reasoning (needs ANTHROPIC_API_KEY)
     python -m agent.run --browserbase         # real Browserbase web tool (needs BROWSERBASE_* keys)
     python -m agent.run --live --browserbase  # full real run
+    python -m agent.run --otel                # also emit OpenTelemetry spans to Phoenix (Arize track)
 
 Produces a real failing Trace via programmed fault injection (perturb a successful run),
 saves it, and confirms the root cause by replay — the full P1 loop end to end.
@@ -16,7 +17,7 @@ from shared.schema import Trace
 from .faults import inject_fault
 from .instrument import TraceRecorder
 from .llm import make_think
-from .subject_agent import NODES, RunContext
+from .subject_agent import NODES, RunContext, is_correct
 from .tools import browserbase_search, mock_browserbase_search
 
 
@@ -29,8 +30,7 @@ def run_agent(task: str, *, use_real_llm: bool = False, use_browserbase: bool = 
     ctx.state.update(dest=dest, date=date)
     for node in NODES:
         node(ctx)
-    departure = ctx.state["departure"]
-    return rec.finish(final_output=ctx.state["final_output"], success=(departure == date))
+    return rec.finish(final_output=ctx.state["final_output"], success=is_correct(ctx.state))
 
 
 def make_failing_trace(use_real_llm: bool = False, use_browserbase: bool = False) -> Trace:
@@ -58,6 +58,9 @@ def main() -> None:
 
     trace = make_failing_trace(use_real_llm=live, use_browserbase=bb)
     save_trace(trace)
+    if "--otel" in sys.argv:
+        from .otel import emit_trace
+        emit_trace(trace)
     tools = f"LLM={'claude' if live else 'mock'}, web={'browserbase' if bb else 'mock'}"
     print(f"Captured failing trace {trace.id!r} ({tools}): {len(trace.steps)} steps, success={trace.success}")
     print(f"  final: {trace.final_output}")

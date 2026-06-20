@@ -16,9 +16,12 @@ langchain-core>=0.3
 browserbase>=1.0
 playwright>=1.40
 
-# --- API + tracing (P4; P1 emits spans) ---
+# --- API (P4) ---
 fastapi>=0.115
 uvicorn>=0.30
-# arize-phoenix>=5.0
-# openinference-instrumentation-langchain>=0.1
-# opentelemetry-sdk>=1.27
+
+# --- tracing for the Arize track: P1 emits spans, view in Phoenix ---
+# Optional — `agent/otel.py` no-ops gracefully if these are absent.
+opentelemetry-sdk>=1.27
+opentelemetry-exporter-otlp-proto-http>=1.27
+arize-phoenix>=5.0        # run `phoenix serve`, open http://localhost:6006

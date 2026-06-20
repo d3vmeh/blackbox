@@ -9,6 +9,7 @@ agent/run.py) AND can be wrapped into a checkpointed LangGraph later for live re
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -68,6 +69,8 @@ def parse_date(ctx: RunContext) -> None:
 def select_flight(ctx: RunContext) -> None:
     cheapest = min(ctx.state["results"], key=lambda r: r["price"])
     ctx.state["chosen"] = cheapest
+    ctx.state["selected_flight"] = cheapest["flight"]
+    ctx.state["selected_price"] = cheapest["price"]
     out = f"selected {cheapest['flight']} @ ${cheapest['price']} for {ctx.state['departure']}"
     _rec(ctx, "select_flight", kind=StepKind.llm,
          inputs={"departure": ctx.state["departure"], "candidates": [f"{r['flight']} @ ${r['price']}" for r in ctx.state["results"]]},
@@ -86,20 +89,21 @@ def check_budget(ctx: RunContext) -> None:
 
 
 def book(ctx: RunContext) -> None:
-    c = ctx.state["chosen"]
-    booking = {"booking": "BK-90X", "date": ctx.state["departure"], "status": "confirmed"}
+    flight = ctx.state["selected_flight"]
+    booking = {"booking": "BK-90X", "flight": flight, "date": ctx.state["departure"], "status": "confirmed"}
     ctx.state["booking"] = booking
     _rec(ctx, "book_flight", kind=StepKind.tool_call,
-         inputs={"flight": c["flight"], "date": ctx.state["departure"]}, output=booking,
+         inputs={"flight": flight, "date": ctx.state["departure"]}, output=booking,
          parent_ids=[ctx.last_id["select_flight"], ctx.last_id["check_budget_result"]])
 
 
 def compose_email(ctx: RunContext) -> None:
     date = ctx.state["departure"]
+    ctx.state["email_date"] = date
     out = ctx.think(
-        "Draft a one-line itinerary email subject line.",
+        "Draft a one-line itinerary email subject line that includes the departure date.",
         f"Booking {ctx.state['booking']['booking']} departs {date}.",
-    ) or f"Subject: Austin offsite — see you on {date}! Flight {ctx.state['chosen']['flight']}."
+    ) or f"Subject: Austin offsite — depart {date}, flight {ctx.state['selected_flight']}."
     ctx.state["email"] = out
     _rec(ctx, "compose_email", kind=StepKind.llm,
          inputs={"booking": ctx.state["booking"]["booking"], "date": date},
@@ -119,28 +123,44 @@ NODES = [plan, search, parse_date, select_flight, check_budget, book, compose_em
 
 DEFAULT_TASK = "Find the cheapest flight to Austin departing Jul 12 under $500 and email the team."
 INTENDED_DATE = "2026-07-12"
+CAP = 500
 
-# Which nodes can be intervened on for replay, and how to map a recorded step output
-# back to the state value it controls. extract("departure = 2026-07-12") -> "2026-07-12".
-#   node name -> (state_key, extract_fn)
+
+def _date(s: Any) -> str:
+    m = re.search(r"\d{4}-\d{2}-\d{2}", str(s))
+    return m.group(0) if m else str(s).strip()
+
+
+def is_correct(state: dict) -> bool:
+    """The agent succeeded iff the booked date, the chosen flight (the cheapest), the price,
+    and the date written into the email are all right. Multiple fields => multiple fault sites."""
+    results = state.get("results") or []
+    cheapest = min(results, key=lambda r: r["price"])["flight"] if results else None
+    return bool(
+        state.get("departure") == INTENDED_DATE
+        and state.get("email_date") == INTENDED_DATE
+        and (cheapest is None or state.get("selected_flight") == cheapest)
+        and state.get("selected_price", 10 ** 9) < CAP
+    )
+
+
+# node name -> (state_key, extract_fn): how to map a recorded step output back to the state
+# value that node controls, so replay can force it (good value or bad value).
 REPLAYABLE: dict = {
-    "parse_date": ("departure", lambda out: str(out).split("=")[-1].strip()),
+    "parse_date":    ("departure",       _date),
+    "select_flight": ("selected_flight", lambda out: str(out).split()[1] if len(str(out).split()) > 1 else str(out)),
+    "compose_email": ("email_date",      _date),
 }
 
 
 def replay_run(fork_node: str, state_override: dict, *,
                use_real_llm: bool = False, use_browserbase: bool = False,
-               correct_date: str = INTENDED_DATE,
-               dest: str = "AUS", date: str = INTENDED_DATE) -> "Trace":
-    """Re-execute the agent, forcing `state_override` right after `fork_node` runs.
-
-    This is the real counterfactual: the prefix runs normally, the fork node's effect is
-    replaced with the injected value, and every downstream node recomputes from it. Returns
-    the resulting Trace with `success` judged against the intended correct date.
-    """
+               dest: str = "AUS", date: str = INTENDED_DATE):
+    """Re-execute the agent, forcing `state_override` right after `fork_node` runs — the real
+    counterfactual. The prefix runs normally, the fork node's effect is replaced, and every
+    downstream node recomputes from it. Returns the resulting Trace (success via is_correct)."""
     from .llm import make_think
     from .tools import browserbase_search, mock_browserbase_search
-    from shared.schema import Trace  # noqa: F401 — for the return annotation at runtime
 
     search_tool = browserbase_search if use_browserbase else mock_browserbase_search
     rec = TraceRecorder(trace_id="flight_replay", task=DEFAULT_TASK)
@@ -150,11 +170,8 @@ def replay_run(fork_node: str, state_override: dict, *,
         node(ctx)
         if node.__name__ == fork_node:
             ctx.state.update(state_override)   # do(state = v*) at the fork point
-    departure = ctx.state["departure"]
-    return rec.finish(final_output=f"SENT — itinerary dated {departure}",
-                      success=(departure == correct_date))
+    return rec.finish(final_output=ctx.state.get("final_output", ""), success=is_correct(ctx.state))
 
 
-# Upgrade path: a checkpointed LangGraph StateGraph would let replay reuse the unchanged
-# prefix instead of re-running it — needed once prefix steps are slow or non-replayable
-# (irreversible side effects). The sequential re-execution above is the honest baseline.
+# Upgrade path: a checkpointed LangGraph StateGraph would reuse the unchanged prefix instead
+# of re-running it — needed once prefix steps are slow or non-replayable (real side effects).

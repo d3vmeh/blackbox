@@ -1,0 +1,152 @@
+[
+  {
+    "id": "bench_parse_00",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_01",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_02",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_03",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_04",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_05",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_06",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_07",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_08",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_09",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_10",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_parse_11",
+    "gold_root_step_id": 4,
+    "gold_root_name": "parse_date"
+  },
+  {
+    "id": "bench_select_00",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_01",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_02",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_03",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_04",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_05",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_06",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_07",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_08",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_select_09",
+    "gold_root_step_id": 5,
+    "gold_root_name": "select_flight"
+  },
+  {
+    "id": "bench_email_00",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_01",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_02",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_03",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_04",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_05",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_06",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  },
+  {
+    "id": "bench_email_07",
+    "gold_root_step_id": 9,
+    "gold_root_name": "compose_email"
+  }
+]

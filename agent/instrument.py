@@ -60,5 +60,6 @@ class TraceRecorder:
         )
 
 
-# TODO(P1): a LangGraph callback / stream-event adapter that calls recorder.record(...)
-# for each node + tool. Also emit OpenInference/OTel spans here for the Arize track.
+# OTel/Phoenix span emission for the Arize track lives in agent/otel.py (post-hoc from a
+# Trace). TODO(P1): a LangGraph callback adapter that calls recorder.record(...) live, once
+# the agent is wrapped in a checkpointed StateGraph for replay.
