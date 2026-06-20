@@ -117,6 +117,44 @@ def finalize(ctx: RunContext) -> None:
 # The pipeline, in execution order. run.py runs these sequentially.
 NODES = [plan, search, parse_date, select_flight, check_budget, book, compose_email, finalize]
 
+DEFAULT_TASK = "Find the cheapest flight to Austin departing Jul 12 under $500 and email the team."
+INTENDED_DATE = "2026-07-12"
 
-# TODO(P1 → handoff to replay/): wrap NODES in a checkpointed LangGraph StateGraph so
-# replay/ can fork before a node, inject a corrected value, and re-run downstream.
+# Which nodes can be intervened on for replay, and how to map a recorded step output
+# back to the state value it controls. extract("departure = 2026-07-12") -> "2026-07-12".
+#   node name -> (state_key, extract_fn)
+REPLAYABLE: dict = {
+    "parse_date": ("departure", lambda out: str(out).split("=")[-1].strip()),
+}
+
+
+def replay_run(fork_node: str, state_override: dict, *,
+               use_real_llm: bool = False, use_browserbase: bool = False,
+               correct_date: str = INTENDED_DATE,
+               dest: str = "AUS", date: str = INTENDED_DATE) -> "Trace":
+    """Re-execute the agent, forcing `state_override` right after `fork_node` runs.
+
+    This is the real counterfactual: the prefix runs normally, the fork node's effect is
+    replaced with the injected value, and every downstream node recomputes from it. Returns
+    the resulting Trace with `success` judged against the intended correct date.
+    """
+    from .llm import make_think
+    from .tools import browserbase_search, mock_browserbase_search
+    from shared.schema import Trace  # noqa: F401 — for the return annotation at runtime
+
+    search_tool = browserbase_search if use_browserbase else mock_browserbase_search
+    rec = TraceRecorder(trace_id="flight_replay", task=DEFAULT_TASK)
+    ctx = RunContext(task=DEFAULT_TASK, think=make_think(use_real_llm), search=search_tool, recorder=rec)
+    ctx.state.update(dest=dest, date=date)
+    for node in NODES:
+        node(ctx)
+        if node.__name__ == fork_node:
+            ctx.state.update(state_override)   # do(state = v*) at the fork point
+    departure = ctx.state["departure"]
+    return rec.finish(final_output=f"SENT — itinerary dated {departure}",
+                      success=(departure == correct_date))
+
+
+# Upgrade path: a checkpointed LangGraph StateGraph would let replay reuse the unchanged
+# prefix instead of re-running it — needed once prefix steps are slow or non-replayable
+# (irreversible side effects). The sequential re-execution above is the honest baseline.
