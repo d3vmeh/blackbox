@@ -16,6 +16,20 @@ from attribution.provenance import backward_slice, blast_radius, build_provenanc
 from attribution.judges import judge_all_suspects
 from attribution.rationale import generate_rationale
 
+PASSIVE_KINDS = {"tool_result"}
+
+
+def filter_active_suspects(suspects: set[str], trace: Trace) -> set[str]:
+    """Remove passive steps that cannot introduce reasoning errors.
+
+    tool_result steps only receive data from external tools — they are
+    scored 0.00 by the judge (empty inputs look wrong) but are never the fault."""
+    return {
+        sid for sid in suspects
+        if next(s for s in trace.steps if s.id == sid).kind
+        not in PASSIVE_KINDS
+    }
+
 
 def position_score(step_id: str, trace: Trace) -> float:
     """Earlier steps get higher suspicion weight. Uses step.index, not list position."""
@@ -52,11 +66,12 @@ async def attribute(trace: Trace) -> Attribution:
         trace.steps[-1].id,
     )
 
-    # 2-4. graph → slice → judge → rank
+    # 2-4. graph → slice → filter passives → judge → rank
     G = build_provenance_graph(trace)
     suspects = backward_slice(G, failing_step_id)
-    judge_scores = await judge_all_suspects(suspects, trace)
-    candidates = rank_suspects(suspects, judge_scores, trace)
+    active_suspects = filter_active_suspects(suspects, trace)
+    judge_scores = await judge_all_suspects(active_suspects, trace)
+    candidates = rank_suspects(active_suspects, judge_scores, trace)
 
     # 5-7. root → blast → rationale
     root_step_id = candidates[0].step_id
