@@ -41,3 +41,7 @@ venv/
 # Jupyter / HTML prototyping
 html_outputs/
 .ipynb_checkpoints/
+
+# Local agent skills (reinstall via npx skills add Arize-ai/arize-skills)
+.agents/
+skills-lock.json

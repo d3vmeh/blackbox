@@ -14,8 +14,11 @@ dependencies = [
     "langchain-core>=0.3",
     # tracing
     "openinference-instrumentation-langchain>=0.1",
+    "openinference-instrumentation-anthropic>=0.1",
+    "arize-otel>=0.8",
     "arize-phoenix>=4.0",
     "opentelemetry-sdk>=1.25",
+    "python-dotenv>=1.0",
     # web agent
     "stagehand-py>=0.1; python_version >= '3.11'",
     # error surface
