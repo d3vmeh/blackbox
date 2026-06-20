@@ -1,0 +1,431 @@
+{
+  "id": "bench_parse_11",
+  "task": "Find the cheapest flight to Austin departing Jul 12 under $500 and email the team.",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "reason",
+      "inputs": {
+        "task": "Find the cheapest flight to Austin departing Jul 12 under $500 and email the team."
+      },
+      "output": "Plan: search AUS flights for the date, filter < $500, pick cheapest, book, email.",
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12"
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "plan"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "tool_call",
+      "inputs": {
+        "dest": "AUS",
+        "date": "2026-07-12"
+      },
+      "output": "search_flights(dest=AUS, date=2026-07-12)",
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12"
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": "search_flights",
+      "raw": {
+        "node": "search_flights"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "tool_result",
+      "inputs": {},
+      "output": {
+        "flight": "UA-441",
+        "depart": "2026-07-12",
+        "price": 412
+      },
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ]
+      },
+      "parents": [
+        "s2"
+      ],
+      "tool_name": "search_flights",
+      "raw": {
+        "node": "search_flights_result"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "reason",
+      "inputs": {
+        "raw_depart": "2026-07-12"
+      },
+      "output": "departure = 2026-09-12",
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12"
+      },
+      "parents": [
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "parse_date"
+      },
+      "is_injected_fault": true,
+      "correct_output": "departure = 2026-07-12"
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "kind": "decision",
+      "inputs": {
+        "departure": "2026-07-12"
+      },
+      "output": "selected UA-441 @ $412 for 2026-09-12",
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12",
+        "selected_flight": "UA-441",
+        "selected_price": 412
+      },
+      "parents": [
+        "s4",
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "select_flight"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s6",
+      "index": 5,
+      "kind": "tool_call",
+      "inputs": {
+        "price": 412,
+        "cap": 500
+      },
+      "output": "check_budget(412, cap=500)",
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12",
+        "selected_flight": "UA-441",
+        "selected_price": 412
+      },
+      "parents": [
+        "s5"
+      ],
+      "tool_name": "check_budget",
+      "raw": {
+        "node": "check_budget"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s7",
+      "index": 6,
+      "kind": "tool_result",
+      "inputs": {},
+      "output": {
+        "ok": true
+      },
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12",
+        "selected_flight": "UA-441",
+        "selected_price": 412,
+        "budget_ok": true
+      },
+      "parents": [
+        "s6"
+      ],
+      "tool_name": "check_budget",
+      "raw": {
+        "node": "check_budget_result"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s8",
+      "index": 7,
+      "kind": "tool_call",
+      "inputs": {
+        "flight": "UA-441",
+        "date": "2026-07-12"
+      },
+      "output": {
+        "booking": "BK-90X",
+        "flight": "UA-441",
+        "date": "2026-09-12",
+        "status": "confirmed"
+      },
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12",
+        "selected_flight": "UA-441",
+        "selected_price": 412,
+        "budget_ok": true,
+        "booking": {
+          "booking": "BK-90X",
+          "flight": "UA-441",
+          "date": "2026-07-12",
+          "status": "confirmed"
+        }
+      },
+      "parents": [
+        "s5",
+        "s7"
+      ],
+      "tool_name": "book_flight",
+      "raw": {
+        "node": "book_flight"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s9",
+      "index": 8,
+      "kind": "reason",
+      "inputs": {
+        "date": "2026-07-12"
+      },
+      "output": "Subject: Austin offsite — depart 2026-09-12, flight UA-441.",
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12",
+        "selected_flight": "UA-441",
+        "selected_price": 412,
+        "budget_ok": true,
+        "booking": {
+          "booking": "BK-90X",
+          "flight": "UA-441",
+          "date": "2026-07-12",
+          "status": "confirmed"
+        },
+        "email_date": "2026-07-12"
+      },
+      "parents": [
+        "s8"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "compose_email"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    },
+    {
+      "id": "s10",
+      "index": 9,
+      "kind": "final",
+      "inputs": {
+        "recipients": 6
+      },
+      "output": {
+        "date": "2026-09-12",
+        "flight": "UA-441",
+        "email_date": "2026-09-12"
+      },
+      "state": {
+        "dest": "AUS",
+        "date": "2026-07-12",
+        "results": [
+          {
+            "flight": "UA-441",
+            "depart": "2026-07-12",
+            "price": 412
+          },
+          {
+            "flight": "AA-218",
+            "depart": "2026-07-12",
+            "price": 455
+          },
+          {
+            "flight": "DL-077",
+            "depart": "2026-07-12",
+            "price": 503
+          }
+        ],
+        "departure": "2026-07-12",
+        "selected_flight": "UA-441",
+        "selected_price": 412,
+        "budget_ok": true,
+        "booking": {
+          "booking": "BK-90X",
+          "flight": "UA-441",
+          "date": "2026-07-12",
+          "status": "confirmed"
+        },
+        "email_date": "2026-07-12",
+        "final_output": {
+          "date": "2026-07-12",
+          "flight": "UA-441",
+          "email_date": "2026-07-12"
+        }
+      },
+      "parents": [
+        "s9"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "send_itinerary"
+      },
+      "is_injected_fault": false,
+      "correct_output": null
+    }
+  ],
+  "final_output": {
+    "date": "2026-09-12",
+    "flight": "UA-441",
+    "email_date": "2026-09-12"
+  },
+  "success": false,
+  "gold_root_step_id": "s4"
+}

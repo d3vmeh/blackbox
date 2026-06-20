@@ -33,6 +33,10 @@ class Step(BaseModel):
     tool_name: Optional[str] = None
     raw: dict[str, Any] = Field(default_factory=dict)  # original span/checkpoint payload
 
+    # --- ground-truth labels (P1/eval): present only in fixtures / fault-injected runs ---
+    is_injected_fault: bool = False
+    correct_output: Optional[Any] = None   # what this step SHOULD have produced
+
 
 class Trace(BaseModel):
     """A full recorded run. `success` is None until the oracle evaluates it."""
@@ -42,6 +46,9 @@ class Trace(BaseModel):
     steps: list[Step]
     final_output: Any
     success: Optional[bool] = None   # set by eval/oracle.evaluate()
+
+    # --- ground-truth label (P1/eval): the true root-cause step id, fixtures only ---
+    gold_root_step_id: Optional[str] = None
 
 
 class Candidate(BaseModel):
