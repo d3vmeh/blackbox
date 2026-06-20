@@ -25,7 +25,6 @@ contract everyone depends on; change it only by quick team agreement, never sile
 
 ## 3. Commit rules
 
-- **Do NOT add a `Co-Authored-By` trailer** to commits.
 - **Keep planning/spec/research docs OUT of this repo.** They live outside it. This repo is code only.
 - Small, frequent commits on your branch; open a PR to integrate.
 

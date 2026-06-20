@@ -1,0 +1,61 @@
+{
+  "id": "flight_fail_001",
+  "task": "Find the cheapest flight to Austin departing Jul 12 under $500 and email the team the itinerary.",
+  "success": false,
+  "final_output": "Itinerary emailed to 6 recipients — flight UA-441 on 2026-12-07 (WRONG: should be 2026-07-12).",
+  "gold_root_step_id": 4,
+  "steps": [
+    {
+      "id": 1, "kind": "llm", "name": "plan", "parent_ids": [], "ts": 0,
+      "inputs": {"task": "book cheapest AUS flight, depart Jul 12, < $500, email team"},
+      "output": "Plan: search AUS flights for 2026-07-12, filter < $500, pick cheapest, book, email."
+    },
+    {
+      "id": 2, "kind": "tool_call", "name": "search_flights", "parent_ids": [1], "ts": 1,
+      "inputs": {"dest": "AUS", "date": "2026-07-12"},
+      "output": "called search_flights(dest=AUS, date=2026-07-12)"
+    },
+    {
+      "id": 3, "kind": "tool_result", "name": "search_flights_result", "parent_ids": [2], "ts": 2,
+      "inputs": {},
+      "output": {"flight": "UA-441", "depart": "2026-07-12", "price": "$412"}
+    },
+    {
+      "id": 4, "kind": "llm", "name": "parse_date", "parent_ids": [3], "ts": 3,
+      "inputs": {"raw_depart": "2026-07-12"},
+      "output": "departure = 2026-12-07",
+      "is_injected_fault": true,
+      "correct_output": "departure = 2026-07-12"
+    },
+    {
+      "id": 5, "kind": "llm", "name": "select_flight", "parent_ids": [4, 3], "ts": 4,
+      "inputs": {"departure": "2026-12-07", "candidates": ["UA-441 @ $412"]},
+      "output": "selected UA-441 @ $412 for 2026-12-07"
+    },
+    {
+      "id": 6, "kind": "tool_call", "name": "check_budget", "parent_ids": [5], "ts": 5,
+      "inputs": {"price": 412, "cap": 500},
+      "output": "called check_budget(412, cap=500)"
+    },
+    {
+      "id": 7, "kind": "tool_result", "name": "check_budget_result", "parent_ids": [6], "ts": 6,
+      "inputs": {},
+      "output": {"ok": true, "note": "$412 < $500"}
+    },
+    {
+      "id": 8, "kind": "tool_call", "name": "book_flight", "parent_ids": [5, 7], "ts": 7,
+      "inputs": {"flight": "UA-441", "date": "2026-12-07"},
+      "output": {"booking": "BK-90X", "date": "2026-12-07", "status": "confirmed"}
+    },
+    {
+      "id": 9, "kind": "llm", "name": "compose_email", "parent_ids": [8], "ts": 8,
+      "inputs": {"booking": "BK-90X", "date": "2026-12-07"},
+      "output": "Subject: Austin offsite — see you on December 7! Flight UA-441."
+    },
+    {
+      "id": 10, "kind": "output", "name": "send_itinerary", "parent_ids": [9], "ts": 9,
+      "inputs": {"recipients": 6},
+      "output": "SENT — itinerary dated 2026-12-07 (should be 2026-07-12)"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+# Blackbox backend (P1/P2/P4). Frontend deps live in package.json.
+# Create a venv and: pip install -r requirements.txt
+
+# --- core (everyone) ---
+pydantic>=2.6
+
+# --- agent + replay (P1) ---
+langgraph>=0.2
+langchain-core>=0.3
+langchain-anthropic>=0.2
+redis>=5.0
+python-dotenv>=1.0
+
+# Browserbase-powered web tool (P1) — install when wiring the live agent:
+# browserbase>=1.0
+# playwright>=1.40
+
+# --- API + tracing (P4; P1 emits spans) ---
+fastapi>=0.115
+uvicorn>=0.30
+# arize-phoenix>=5.0
+# openinference-instrumentation-langchain>=0.1
+# opentelemetry-sdk>=1.27
