@@ -76,3 +76,19 @@ def investigate(trace: Trace, n: int = 5) -> Verdict:
     return Verdict(failed=True, root_agent=agent, root_step_id=step.id,
                    wrong_value=wrong, correct_value=correct,
                    replay_confirmed=rate >= 0.5, confirmation_rate=rate, outcomes=outcomes)
+
+
+def auto_heal(verdict: Verdict, n: int = 5) -> Optional[Trace]:
+    """Self-heal: the monitor applies the fix — but ONLY after replay has confirmed it.
+    An unconfirmed fix is never applied. Returns the healed (now-passing) run, or None."""
+    if not (verdict.failed and verdict.replay_confirmed and verdict.root_agent):
+        return None
+    key = ap_graph.REPLAYABLE_AP[verdict.root_agent]
+    return ap_graph.heal_ap(verdict.root_agent, {key: verdict.correct_value})
+
+
+def human_fix(agent: str, corrected_value: Any) -> Trace:
+    """Human-in-the-loop: a person messages a specific agent with the right value; we re-run
+    the system with that correction applied at that agent. Same mechanism replay proves."""
+    key = ap_graph.REPLAYABLE_AP[agent]
+    return ap_graph.heal_ap(agent, {key: corrected_value}, trace_id="ap_human")

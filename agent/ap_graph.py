@@ -4,6 +4,7 @@ Four agents pass an invoice down the line as structured hand-offs:
 
     EXTRACTOR ──▶ MATCHER ─┐
                   FRAUD  ──┴▶ APPROVER ──▶ PAYMENT
+                  (run concurrently)
 
 A controlled fault makes EXTRACTOR misread the invoice amount (a decimal slip:
 $4,200.00 → $42,000.00). The wrong number is trusted by every downstream agent and
@@ -11,12 +12,16 @@ the company pays the wrong bill (oracle FAIL). The monitoring agent (agent/monit
 localizes the earliest corrupted hand-off and PROVES the fix by counterfactual replay.
 
 Deterministic by design — no LLM/network — so the on-stage FAIL→PASS flip is reliable.
+MATCHER and FRAUD genuinely run in parallel (threads); the trace is still recorded in a
+fixed order so step ids stay stable for replay.
 """
 
 from __future__ import annotations
 
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from eval.ap_oracle import evaluate_ap
 from shared.schema import Trace
@@ -35,6 +40,7 @@ PO_BOOK = {"PO-7781": {"vendor": "Acme Corp", "amount": 4200.00}}
 APPROVAL_LIMIT = 50000.0            # auto-approve under this; the bad $42,000 slips under it
 VENDOR_ALLOWLIST = {"Acme Corp", "Globex", "Initech"}
 BUG_AMOUNT = 42000.00              # the misread amount
+WORK_DELAY = 0.25                  # simulated agent work (live runs only) — makes parallelism visible
 
 TASK = "Pay invoice PO-7781 (Acme Corp) the correct amount by the due date."
 
@@ -48,7 +54,7 @@ class APContext:
     state: dict = field(default_factory=dict)
     last: dict = field(default_factory=dict)        # agent -> recorded step id
     inject_bug: bool = True
-    replay_mode: bool = False                       # True → stub the payment side effect
+    replay_mode: bool = False                       # True → stub side effects + skip work delays
 
 
 def _rec(ctx: APContext, agent: str, kind: str, output: Any, parents: list[str],
@@ -60,9 +66,15 @@ def _rec(ctx: APContext, agent: str, kind: str, output: Any, parents: list[str],
     return sid
 
 
-# --- the agents (each appends one Step, tagged with its agent) ---------------
+def _work(ctx: APContext) -> None:
+    if not ctx.replay_mode:
+        time.sleep(WORK_DELAY)
+
+
+# --- the agents -------------------------------------------------------------
 def extractor(ctx: APContext) -> None:
     """Reads the raw invoice → structured fields. FAULT SITE: the `amount`."""
+    _work(ctx)
     amount = BUG_AMOUNT if ctx.inject_bug else TRUE["amount"]
     out = {"vendor": TRUE["vendor"], "amount": amount,
            "due_date": TRUE["due_date"], "po": TRUE["po"]}
@@ -73,29 +85,43 @@ def extractor(ctx: APContext) -> None:
          fault=ctx.inject_bug)
 
 
-def matcher(ctx: APContext) -> None:
-    """Matches the invoice to a purchase order by PO number + vendor (not amount)."""
+def _matcher_compute(ctx: APContext) -> dict:
+    """Matches the invoice to a PO by number + vendor (not amount). Pure → thread-safe."""
+    _work(ctx)
     ex = ctx.state["extraction"]
     po = PO_BOOK.get(ex["po"])
-    vendor_ok = bool(po and po["vendor"] == ex["vendor"])
-    out = {"po": ex["po"], "vendor_ok": vendor_ok, "amount": ex["amount"]}
-    ctx.state["match"] = out
-    _rec(ctx, "matcher", "decision", out, parents=[ctx.last["extractor"]],
-         inputs={"po": ex["po"], "vendor": ex["vendor"]})
+    return {"po": ex["po"], "vendor_ok": bool(po and po["vendor"] == ex["vendor"]),
+            "amount": ex["amount"]}
 
 
-def fraud(ctx: APContext) -> None:
-    """Runs alongside the matcher: flags vendors that aren't on the allowlist."""
+def _fraud_compute(ctx: APContext) -> dict:
+    """Flags vendors not on the allowlist. Pure → thread-safe."""
+    _work(ctx)
     ex = ctx.state["extraction"]
-    risk = "low" if ex["vendor"] in VENDOR_ALLOWLIST else "high"
-    out = {"vendor": ex["vendor"], "risk": risk}
-    ctx.state["fraud"] = out
-    _rec(ctx, "fraud", "decision", out, parents=[ctx.last["extractor"]],
-         inputs={"vendor": ex["vendor"]})
+    return {"vendor": ex["vendor"], "risk": "low" if ex["vendor"] in VENDOR_ALLOWLIST else "high"}
+
+
+def _matcher_fraud_parallel(ctx: APContext) -> float:
+    """Run MATCHER ∥ FRAUD concurrently (real threads), then record in fixed order.
+    Returns wall-clock seconds the concurrent pair took."""
+    t0 = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fm = pool.submit(_matcher_compute, ctx)
+        ff = pool.submit(_fraud_compute, ctx)
+        m_out, f_out = fm.result(), ff.result()
+    elapsed = time.perf_counter() - t0
+    ctx.state["match"] = m_out
+    _rec(ctx, "matcher", "decision", m_out, parents=[ctx.last["extractor"]],
+         inputs={"po": m_out["po"]})
+    ctx.state["fraud"] = f_out
+    _rec(ctx, "fraud", "decision", f_out, parents=[ctx.last["extractor"]],
+         inputs={"vendor": f_out["vendor"]})
+    return elapsed
 
 
 def approver(ctx: APContext) -> None:
     """Approves when the amount is under the auto-approval limit and checks pass."""
+    _work(ctx)
     m, f = ctx.state["match"], ctx.state["fraud"]
     amount = m["amount"]
     approved = amount < APPROVAL_LIMIT and m["vendor_ok"] and f["risk"] == "low"
@@ -119,21 +145,21 @@ def payment(ctx: APContext) -> None:
          inputs={"amount": appr["amount"]})
 
 
-AGENTS: list[Callable[[APContext], None]] = [extractor, matcher, fraud, approver, payment]
-
-
 def _run(ctx: APContext, trace_id: str, *, fork_agent: Optional[str] = None,
          override: Optional[dict] = None) -> Trace:
-    for agent_fn in AGENTS:
-        agent_fn(ctx)
-        # inject the corrected value right after the forked agent records its (bad) step,
-        # so downstream agents read the fix — do(extraction = v*) at the fork point.
-        if fork_agent and agent_fn.__name__ == fork_agent and override:
-            ctx.state["extraction"].update(override)
+    extractor(ctx)
+    # inject a correction right after the forked agent records its (bad) step, so downstream
+    # agents read the fix — do(extraction = v*) at the fork point.
+    if fork_agent == "extractor" and override:
+        ctx.state["extraction"].update(override)
+    ctx.state["parallel_s"] = _matcher_fraud_parallel(ctx)   # MATCHER ∥ FRAUD
+    approver(ctx)
+    payment(ctx)
     final = ctx.state["final_output"]
     return ctx.rec.finish(final_output=final, success=evaluate_ap(final))
 
 
+# --- entry points -----------------------------------------------------------
 def run_ap(*, inject_bug: bool = True, trace_id: str = "ap_live") -> Trace:
     """One full run of the AP system. inject_bug=True → the misread amount → FAIL."""
     return _run(APContext(rec=Recorder(trace_id, TASK), inject_bug=inject_bug), trace_id)
@@ -141,10 +167,17 @@ def run_ap(*, inject_bug: bool = True, trace_id: str = "ap_live") -> Trace:
 
 def replay_ap(fork_agent: str, override: Optional[dict] = None, *,
               trace_id: str = "ap_replay") -> Trace:
-    """Re-run with the bug present, optionally injecting a correction right after `fork_agent`.
-    override=None → baseline (still broken); override={'amount': v} → the counterfactual fix.
-    Payment side effect is stubbed (replay runs N times)."""
+    """Counterfactual: re-run with the bug present, optionally injecting a correction right
+    after `fork_agent`. override=None → baseline (still broken); override={'amount': v} → the
+    fix. Side effects stubbed + work delays skipped (replay runs N times)."""
     ctx = APContext(rec=Recorder(trace_id, TASK), inject_bug=True, replay_mode=True)
+    return _run(ctx, trace_id, fork_agent=fork_agent, override=override)
+
+
+def heal_ap(fork_agent: str, override: dict, *, trace_id: str = "ap_healed") -> Trace:
+    """A REAL corrected run (side effects live) — used by self-heal and human-in-the-loop
+    once the fix is replay-confirmed."""
+    ctx = APContext(rec=Recorder(trace_id, TASK), inject_bug=True, replay_mode=False)
     return _run(ctx, trace_id, fork_agent=fork_agent, override=override)
 
 
