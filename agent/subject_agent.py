@@ -26,6 +26,7 @@ class RunContext:
     recorder: TraceRecorder
     state: dict = field(default_factory=dict)
     last_id: dict = field(default_factory=dict)   # node name -> recorded step id
+    replay_mode: bool = False                     # True during replay -> stub side effects
 
 
 def _rec(ctx: RunContext, name: str, **kw) -> int:
@@ -90,7 +91,13 @@ def check_budget(ctx: RunContext) -> None:
 
 def book(ctx: RunContext) -> None:
     flight = ctx.state["selected_flight"]
-    booking = {"booking": "BK-90X", "flight": flight, "date": ctx.state["departure"], "status": "confirmed"}
+    # book_flight is a real side effect. During counterfactual replay we must NOT re-execute
+    # it (replay runs N times -> would book N flights) — serve a stub instead.
+    if ctx.replay_mode:
+        booking = {"booking": "BK-STUB", "flight": flight, "date": ctx.state["departure"], "status": "stubbed"}
+    else:
+        booking = {"booking": "BK-90X", "flight": flight, "date": ctx.state["departure"], "status": "confirmed"}
+        # TODO(P1): when this becomes a real booking API/Browserbase action, call it HERE only.
     ctx.state["booking"] = booking
     _rec(ctx, "book_flight", kind=StepKind.tool_call,
          inputs={"flight": flight, "date": ctx.state["departure"]}, output=booking,
@@ -152,6 +159,21 @@ REPLAYABLE: dict = {
     "compose_email": ("email_date",      _date),
 }
 
+# Replayability taxonomy — how each node behaves under counterfactual replay:
+#   faithful    — pure reasoning/computation; safe to re-run exactly
+#   stub        — external read; re-runnable but served from cache/mock in replay (no quota/latency)
+#   side_effect — irreversible action; must NOT re-execute in replay (stubbed via replay_mode)
+REPLAYABILITY: dict = {
+    "plan":           "faithful",
+    "search_flights": "stub",
+    "parse_date":     "faithful",
+    "select_flight":  "faithful",
+    "check_budget":   "faithful",
+    "book_flight":    "side_effect",
+    "compose_email":  "faithful",
+    "send_itinerary": "side_effect",
+}
+
 
 def replay_run(fork_node: str, state_override: dict, *,
                use_real_llm: bool = False, use_browserbase: bool = False,
@@ -164,7 +186,8 @@ def replay_run(fork_node: str, state_override: dict, *,
 
     search_tool = browserbase_search if use_browserbase else mock_browserbase_search
     rec = TraceRecorder(trace_id="flight_replay", task=DEFAULT_TASK)
-    ctx = RunContext(task=DEFAULT_TASK, think=make_think(use_real_llm), search=search_tool, recorder=rec)
+    ctx = RunContext(task=DEFAULT_TASK, think=make_think(use_real_llm), search=search_tool,
+                     recorder=rec, replay_mode=True)   # replay_mode -> side-effect nodes are stubbed
     ctx.state.update(dest=dest, date=date)
     for node in NODES:
         node(ctx)
