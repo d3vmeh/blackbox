@@ -10,17 +10,35 @@
 > (intervention-confirmed causality). Pending team sign-off; integrate via PR.
 
 > ## STATUS — target vs current (read first)
-> This document describes the **target** system. As of **2026-06-20** much of it is
-> not yet built; do not read present-tense prose as "done":
-> - **Built/real today:** the single-agent **flight** demo UI in `web/src/landing`,
->   the `flight_fail.json` fixture, and the contracts in `shared/schema.py` /
->   `web/src/types.ts`.
-> - **Not yet on disk:** `shared/fixtures/ap_fail.json`, `agent/ap_graph.py`,
->   `agent/monitor.py`, `eval/ap_oracle.py`, and the multi-agent dashboard. Every
->   backend module (`replay.py`, `localize.py`, `judges.py`, `provenance.py`)
->   currently raises `NotImplementedError`.
-> - A capability marked **REAL** below means *intended end state*, not shipped. The
->   §11 table carries explicit maturity labels.
+> This document describes the **target** system; parts of the present-tense prose
+> below are now **behind the as-built code**. Reconciled **2026-06-20** against `main`:
+> - **Built & tested (backend):** `agent/ap_graph.py` (5-agent AP runtime,
+>   MATCHER∥FRAUD), `agent/ap_scenarios.py` (10 labeled scenarios — faults injectable
+>   at **any** agent), `agent/monitor.py`, `eval/ap_oracle.py`, `replay/replay.py`,
+>   and all of `attribution/` (`localize.py` / `judges.py` / `provenance.py` /
+>   `regression.py`). **None raise `NotImplementedError`.** The flight benchmark
+>   (`shared/fixtures/benchmark/`, 30 labeled traces) scores **30/30** attribution
+>   (the "~14%" comparison stat). `agent/converge_ap.py` shows the monitor localizes
+>   **10/10 vs gold** across all five fault sites, P2 `attribute()` proven-convergent
+>   (live node-judges need `ANTHROPIC_API_KEY`).
+> - **Not yet built:** the **multi-agent dashboard** — `web/src/` is the basic landing
+>   page and **`web/src/types.ts` does not exist yet**, so §7's frontend edits
+>   (`'handoff'` in `StepKind`, `MonitorDecision`) are unstarted — and `agent/acp_proxy.py`
+>   (§18, stretch).
+> - **As-built divergences from the target prose below — do not be misled by present tense:**
+>   - **Injection is generalized to ANY agent** (10 scenarios), not EXTRACTOR-only.
+>     §2/§10/§12's "scope to EXTRACTOR / 'inject at any agent is a rabbit hole'" is
+>     **superseded** — it ships deterministically, monitor 10/10.
+>   - **The monitor is `investigate(trace, scn) -> Verdict`** using a **deterministic**
+>     node-judge (`ap_graph.COMPUTE`) + `ap_graph.replay_ap` — **not** §3/§13's
+>     `supervise() -> MonitorDecision` calling `attribute()`/`replay()`. This keeps the
+>     loop deterministic (§10/§14); P2's `attribute()` is the **general** method, proven
+>     to *converge* with the monitor (`converge_ap.py`), not the live localizer.
+>   - No `kind="handoff"` steps, and no single `ap_fail.json` / `flight_fail.json`
+>     fixtures: the AP path generates traces from `ap_scenarios.py`; flight uses
+>     `shared/fixtures/benchmark/`. §6/§7/§12 references to those files are aspirational.
+> - A capability marked **REAL** below means *intended end state*, not shipped; the §11
+>   table carries explicit maturity labels.
 
 ---
 
