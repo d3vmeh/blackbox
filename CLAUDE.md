@@ -33,3 +33,8 @@ contract everyone depends on; change it only by quick team agreement, never sile
 
 Before committing: confirm the current branch is **not** `main` (`git rev-parse --abbrev-ref HEAD`).
 If it is, switch to the user's branch first. Do not push to `main` or to anyone else's branch.
+
+## Project docs
+
+@AGENTS.md
+@DESIGN.md

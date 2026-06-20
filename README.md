@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# Blackbox
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**A causal debugger for AI agents.** When a long-running agent fails, one early
+mistake silently poisons every later step and the final answer is confidently
+wrong. Blackbox records the run, **localizes the earliest wrong step** (not where
+the symptom surfaced), shows the forward **blast radius** of poisoned steps, and
+**proves the root cause by replay** — fork the run at that step, inject the
+corrected value, re-run, and watch the outcome flip fail→pass.
 
-Currently, two official plugins are available:
+> We don't *guess* the cause — we localize it on a graph and *confirm* it by replay.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Docs
 
-## React Compiler
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — system design, tech stack, contracts,
+  build order, the demo.
+- [DESIGN.md](./DESIGN.md) — the visual design system (forensic-instrument UI).
+- [AGENTS.md](./AGENTS.md) — repo conventions and the frontend/backend boundary.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Layout (monorepo)
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+shared/      contracts (schema.py) + fixtures        api/ eval/   FastAPI/SSE + oracle
+agent/       LangGraph subject + trace capture       web/         Vite + React SPA
+attribution/ provenance graph + localization         replay/      fork + inject + confirm
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Quickstart
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# Frontend
+cd web && npm install && npm run dev      # http://localhost:5173
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Backend (from repo root, in a venv)
+pip install -e ".[dev]"
+uvicorn api.main:app --reload             # http://localhost:8000
 ```
+
+Status: scaffold + contracts in place. Next: the `flight_fail.json` fixture, then
+the four workstreams build against it in parallel (see ARCHITECTURE.md §9).
