@@ -23,13 +23,17 @@ class Recorder:
 
     def record(self, *, node: str, kind: str, inputs: dict[str, Any], output: Any,
                state: dict[str, Any], parents: list[str], tool_name: Optional[str] = None,
-               is_injected_fault: bool = False, correct_output: Any = None) -> str:
+               is_injected_fault: bool = False, correct_output: Any = None,
+               agent: Optional[str] = None) -> str:
         idx = len(self._steps)
         sid = f"s{idx + 1}"
+        raw: dict[str, Any] = {"node": node}
+        if agent is not None:          # multi-agent runs tag which agent owns the step
+            raw["agent"] = agent
         self._steps.append(Step(
             id=sid, index=idx, kind=kind, inputs=inputs, output=output,
             state=copy.deepcopy(state), parents=parents, tool_name=tool_name,
-            raw={"node": node}, is_injected_fault=is_injected_fault, correct_output=correct_output,
+            raw=raw, is_injected_fault=is_injected_fault, correct_output=correct_output,
         ))
         return sid
 
