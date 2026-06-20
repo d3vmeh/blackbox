@@ -5,11 +5,11 @@
 pydantic>=2.6
 
 # --- agent + replay (P1) ---
-langgraph>=0.2
-langchain-core>=0.3
-langchain-anthropic>=0.2
-redis>=5.0
+anthropic>=0.40           # subject agent's reasoning nodes (claude-opus-4-8)
 python-dotenv>=1.0
+redis>=5.0
+langgraph>=0.2            # for the checkpointed replay path (Owner C)
+langchain-core>=0.3
 
 # Browserbase-powered web tool (P1) — install when wiring the live agent:
 # browserbase>=1.0

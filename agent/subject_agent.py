@@ -1,85 +1,122 @@
-"""The SUBJECT agent we debug.
+"""The SUBJECT agent we debug — a multi-step flight-booking task.
 
-A LangGraph agent that performs a multi-step web task (flight research) using a
-Browserbase-powered browser tool. Checkpointed so `replay/` can fork + re-run it.
+Reasoning steps call Claude (via agent/llm.py); the web step uses the mock Browserbase
+tool (agent/tools.py). Each node records itself into a TraceRecorder, so a run produces a
+canonical `Trace` for P2/P3/P4. The node graph mirrors shared/fixtures/flight_fail.json.
 
-SKELETON: node logic + the Browserbase tool are TODOs. The graph shape deliberately
-mirrors `shared/fixtures/flight_fail.json`, so P2/P3/P4 can build against the fixture
-while this gets fleshed out.
+The nodes are plain functions over a RunContext so they run sequentially today (see
+agent/run.py) AND can be wrapped into a checkpointed LangGraph later for live replay.
 """
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from dataclasses import dataclass, field
+from typing import Any
 
-try:
-    from langgraph.graph import END, StateGraph
-    from langgraph.checkpoint.memory import MemorySaver
-    _HAS_LANGGRAPH = True
-except Exception:  # langgraph not installed yet
-    _HAS_LANGGRAPH = False
+from shared.schema import StepKind
+from .instrument import TraceRecorder
+from .llm import Think
 
 
-class AgentState(TypedDict, total=False):
+@dataclass
+class RunContext:
     task: str
-    search_results: list[dict]
-    departure_date: str
-    chosen_flight: dict
-    booking: dict
-    email: str
-    final_output: str
+    think: Think
+    search: Any                      # (dest, date) -> list[dict]
+    recorder: TraceRecorder
+    state: dict = field(default_factory=dict)
+    last_id: dict = field(default_factory=dict)   # node name -> recorded step id
 
 
-# --- Browserbase web tool -----------------------------------------------------
-def browserbase_search(query: str, date: str) -> list[dict]:
-    """TODO(P1): drive a Browserbase/Stagehand session to run the search and return
-    structured results. Until then, callers should use a recorded fixture."""
-    raise NotImplementedError("Wire Browserbase/Stagehand here (see .env.example for keys)")
+def _rec(ctx: RunContext, name: str, **kw) -> int:
+    sid = ctx.recorder.record(name=name, **kw)
+    ctx.last_id[name] = sid
+    return sid
 
 
-# --- nodes (skeletons; one per fixture step) ---------------------------------
-def plan(state: AgentState) -> AgentState:          # step 1
-    raise NotImplementedError("TODO(P1): ask the LLM to draft the plan")
+def plan(ctx: RunContext) -> None:
+    out = ctx.think(
+        "You are a travel agent. Draft a one-sentence plan for the task.",
+        ctx.task,
+    ) or "Plan: search AUS flights for the requested date, filter < $500, pick cheapest, book, email."
+    _rec(ctx, "plan", kind=StepKind.llm, inputs={"task": ctx.task}, output=out, parent_ids=[])
 
 
-def search(state: AgentState) -> AgentState:        # steps 2-3 (tool call + result)
-    raise NotImplementedError("TODO(P1): call browserbase_search(...)")
+def search(ctx: RunContext) -> None:
+    dest, date = ctx.state["dest"], ctx.state["date"]
+    call = _rec(ctx, "search_flights", kind=StepKind.tool_call,
+                inputs={"dest": dest, "date": date},
+                output=f"called search_flights(dest={dest}, date={date})",
+                parent_ids=[ctx.last_id["plan"]])
+    results = ctx.search(dest, date)
+    ctx.state["results"] = results
+    _rec(ctx, "search_flights_result", kind=StepKind.tool_result,
+         output=results[0], parent_ids=[call])
 
 
-def parse_date(state: AgentState) -> AgentState:    # step 4  <- the fault site
-    raise NotImplementedError("TODO(P1): extract the departure date from the result")
+def parse_date(ctx: RunContext) -> None:
+    """The fault site: extract the departure date from the tool result."""
+    raw = ctx.state["results"][0]["depart"]
+    out = ctx.think(
+        "Extract the departure date from the payload as YYYY-MM-DD.",
+        f"payload depart field: {raw}",
+    ) or raw
+    ctx.state["departure"] = out
+    _rec(ctx, "parse_date", kind=StepKind.llm, inputs={"raw_depart": raw},
+         output=f"departure = {out}", parent_ids=[ctx.last_id["search_flights_result"]])
 
 
-def select_flight(state: AgentState) -> AgentState:  # step 5
-    raise NotImplementedError("TODO(P1): pick the cheapest matching flight")
+def select_flight(ctx: RunContext) -> None:
+    cheapest = min(ctx.state["results"], key=lambda r: r["price"])
+    ctx.state["chosen"] = cheapest
+    out = f"selected {cheapest['flight']} @ ${cheapest['price']} for {ctx.state['departure']}"
+    _rec(ctx, "select_flight", kind=StepKind.llm,
+         inputs={"departure": ctx.state["departure"], "candidates": [f"{r['flight']} @ ${r['price']}" for r in ctx.state["results"]]},
+         output=out, parent_ids=[ctx.last_id["parse_date"], ctx.last_id["search_flights_result"]])
 
 
-def check_budget(state: AgentState) -> AgentState:  # steps 6-7
-    raise NotImplementedError("TODO(P1): verify price under cap")
+def check_budget(ctx: RunContext) -> None:
+    price, cap = ctx.state["chosen"]["price"], 500
+    call = _rec(ctx, "check_budget", kind=StepKind.tool_call,
+                inputs={"price": price, "cap": cap},
+                output=f"called check_budget({price}, cap={cap})",
+                parent_ids=[ctx.last_id["select_flight"]])
+    ok = price < cap
+    _rec(ctx, "check_budget_result", kind=StepKind.tool_result,
+         output={"ok": ok, "note": f"${price} {'<' if ok else '>='} ${cap}"}, parent_ids=[call])
 
 
-def book(state: AgentState) -> AgentState:          # step 8
-    raise NotImplementedError("TODO(P1): book the flight (mock the side effect for replay)")
+def book(ctx: RunContext) -> None:
+    c = ctx.state["chosen"]
+    booking = {"booking": "BK-90X", "date": ctx.state["departure"], "status": "confirmed"}
+    ctx.state["booking"] = booking
+    _rec(ctx, "book_flight", kind=StepKind.tool_call,
+         inputs={"flight": c["flight"], "date": ctx.state["departure"]}, output=booking,
+         parent_ids=[ctx.last_id["select_flight"], ctx.last_id["check_budget_result"]])
 
 
-def compose_email(state: AgentState) -> AgentState:  # steps 9-10
-    raise NotImplementedError("TODO(P1): draft + 'send' the itinerary email")
+def compose_email(ctx: RunContext) -> None:
+    date = ctx.state["departure"]
+    out = ctx.think(
+        "Draft a one-line itinerary email subject line.",
+        f"Booking {ctx.state['booking']['booking']} departs {date}.",
+    ) or f"Subject: Austin offsite — see you on {date}! Flight {ctx.state['chosen']['flight']}."
+    ctx.state["email"] = out
+    _rec(ctx, "compose_email", kind=StepKind.llm,
+         inputs={"booking": ctx.state["booking"]["booking"], "date": date},
+         output=out, parent_ids=[ctx.last_id["book_flight"]])
 
 
-def build_agent():
-    """Compile the LangGraph agent with a checkpointer (required for replay)."""
-    if not _HAS_LANGGRAPH:
-        raise RuntimeError("Install deps first: pip install -r requirements.txt")
-    g = StateGraph(AgentState)
-    nodes = [
-        ("plan", plan), ("search", search), ("parse_date", parse_date),
-        ("select_flight", select_flight), ("check_budget", check_budget),
-        ("book", book), ("compose_email", compose_email),
-    ]
-    for name, fn in nodes:
-        g.add_node(name, fn)
-    g.set_entry_point("plan")
-    for (a, _), (b, _) in zip(nodes, nodes[1:]):
-        g.add_edge(a, b)
-    g.add_edge("compose_email", END)
-    # MemorySaver gives us checkpoints to fork from in replay/.
-    return g.compile(checkpointer=MemorySaver())
+def finalize(ctx: RunContext) -> None:
+    date = ctx.state["departure"]
+    out = f"SENT — itinerary dated {date}"
+    ctx.state["final_output"] = out
+    _rec(ctx, "send_itinerary", kind=StepKind.output, inputs={"recipients": 6},
+         output=out, parent_ids=[ctx.last_id["compose_email"]])
+
+
+# The pipeline, in execution order. run.py runs these sequentially.
+NODES = [plan, search, parse_date, select_flight, check_budget, book, compose_email, finalize]
+
+
+# TODO(P1 → handoff to replay/): wrap NODES in a checkpointed LangGraph StateGraph so
+# replay/ can fork before a node, inject a corrected value, and re-run downstream.
