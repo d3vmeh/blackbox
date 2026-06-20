@@ -1,7 +1,9 @@
 """Run the subject agent and produce a captured Trace.
 
-    python -m agent.run            # mock mode (no API key) — runs the agent + injects the date fault
-    python -m agent.run --live     # uses Claude (needs ANTHROPIC_API_KEY in .env)
+    python -m agent.run                       # offline: mock LLM + mock web (no keys)
+    python -m agent.run --live                # Claude reasoning (needs ANTHROPIC_API_KEY)
+    python -m agent.run --browserbase         # real Browserbase web tool (needs BROWSERBASE_* keys)
+    python -m agent.run --live --browserbase  # full real run
 
 Produces a real failing Trace via programmed fault injection (perturb a successful run),
 saves it, and confirms the root cause by replay — the full P1 loop end to end.
@@ -15,29 +17,29 @@ from .faults import inject_fault
 from .instrument import TraceRecorder
 from .llm import make_think
 from .subject_agent import NODES, RunContext
-from .tools import mock_browserbase_search
+from .tools import browserbase_search, mock_browserbase_search
 
 
-def run_agent(task: str, *, use_real_llm: bool = False,
+def run_agent(task: str, *, use_real_llm: bool = False, use_browserbase: bool = False,
               dest: str = "AUS", date: str = "2026-07-12") -> Trace:
     """Run the agent once and return the captured (successful) Trace."""
+    search = browserbase_search if use_browserbase else mock_browserbase_search
     rec = TraceRecorder(trace_id="flight_live", task=task)
-    ctx = RunContext(task=task, think=make_think(use_real_llm), search=mock_browserbase_search, recorder=rec)
+    ctx = RunContext(task=task, think=make_think(use_real_llm), search=search, recorder=rec)
     ctx.state.update(dest=dest, date=date)
     for node in NODES:
         node(ctx)
     departure = ctx.state["departure"]
-    return rec.finish(final_output=ctx.state["final_output"],
-                      success=(departure == date))
+    return rec.finish(final_output=ctx.state["final_output"], success=(departure == date))
 
 
-def make_failing_trace(use_real_llm: bool = False) -> Trace:
+def make_failing_trace(use_real_llm: bool = False, use_browserbase: bool = False) -> Trace:
     """Run the agent, then inject the classic date-misread fault at parse_date."""
     correct = "2026-07-12"
     bad = "2026-12-07"
     trace = run_agent(
         "Find the cheapest flight to Austin departing Jul 12 under $500 and email the team.",
-        use_real_llm=use_real_llm, date=correct,
+        use_real_llm=use_real_llm, use_browserbase=use_browserbase, date=correct,
     )
     parse_step = next(s for s in trace.steps if s.name == "parse_date")
     return inject_fault(
@@ -50,13 +52,14 @@ def make_failing_trace(use_real_llm: bool = False) -> Trace:
 
 def main() -> None:
     live = "--live" in sys.argv
-    from replay import confirm  # local import to keep module load light
+    bb = "--browserbase" in sys.argv
+    from replay import confirm
     from .store import save_trace
 
-    trace = make_failing_trace(use_real_llm=live)
+    trace = make_failing_trace(use_real_llm=live, use_browserbase=bb)
     save_trace(trace)
-    print(f"Captured failing trace {trace.id!r} ({'live Claude' if live else 'mock'}): "
-          f"{len(trace.steps)} steps, success={trace.success}")
+    tools = f"LLM={'claude' if live else 'mock'}, web={'browserbase' if bb else 'mock'}"
+    print(f"Captured failing trace {trace.id!r} ({tools}): {len(trace.steps)} steps, success={trace.success}")
     print(f"  final: {trace.final_output}")
     print(f"  gold root cause: step {trace.gold_root_step_id} (parse_date)\n")
 

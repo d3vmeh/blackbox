@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-# Per Anthropic guidance, default to the most capable model. Switch to
-# "claude-haiku-4-5" for cheap, high-volume eval/benchmark runs.
-SUBJECT_MODEL = "claude-opus-4-8"
+# Default to Sonnet for cost (Opus is too expensive for this project). Switch to
+# "claude-haiku-4-5" for even cheaper, high-volume eval/benchmark runs.
+SUBJECT_MODEL = "claude-sonnet-4-6"
 
 # think(system, user) -> text, or None in mock mode.
 Think = Callable[[str, str], Optional[str]]

@@ -11,9 +11,10 @@ redis>=5.0
 langgraph>=0.2            # for the checkpointed replay path (Owner C)
 langchain-core>=0.3
 
-# Browserbase-powered web tool (P1) — install when wiring the live agent:
-# browserbase>=1.0
-# playwright>=1.40
+# Browserbase-powered web tool (P1). Connects to the REMOTE browser over CDP,
+# so you do NOT need `playwright install` — the python package is enough.
+browserbase>=1.0
+playwright>=1.40
 
 # --- API + tracing (P4; P1 emits spans) ---
 fastapi>=0.115
