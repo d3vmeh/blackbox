@@ -517,6 +517,47 @@ agent/monitor.py:         supervise(trace: Trace) -> MonitorDecision   # localiz
 eval/ap_oracle.py:        evaluate(final_output, task) -> bool         # additive; demo path's Trace.success
 ```
 
+### 13.1 Public API / SDK + CLI surface
+
+> What the **package and the landing page** expose (the seams above are *internal*).
+> **LangGraph-scoped today** — replay forks via checkpoints; broader frameworks are
+> roadmap via OTel-span ingestion + the ACP proxy (§18). The public `supervise()`
+> runtime wrapper is **distinct from** the internal `monitor.supervise(trace)`
+> analysis (§13) — do not conflate the two names.
+
+**SDK — `supervise()` (runtime capture context manager).**
+```python
+from blackbox import supervise
+
+with supervise(team) as run:      # team = a LangGraph graph
+    team.run(invoice)             # agents run unchanged; every hand-off recorded
+```
+Mechanics: on enter, ensure `team` is compiled with a **checkpointer**, start
+**OTel/OpenInference tracing**, mint a `run_id`. During the run, spans + per-node
+checkpoints feed **`to_trace()`**; agent→agent hand-offs become `kind="handoff"`
+steps tagged via `raw["agent"]`. On exit, **`ap_oracle.evaluate()`** sets
+`Trace.success` and the trace is persisted under `run_id`; on FAIL it may
+auto-trigger the monitor. This is pure **capture orchestration** — it reuses
+`to_trace()`, the checkpointer, and the oracle; **no new attribution logic.**
+
+**CLI — `blackbox replay <run_id> [--confirm]` (the monitor loop, headless).**
+```
+$ blackbox replay ap_7c2 --confirm
+```
+Loads the stored `Trace` → `attribute()` → walks candidates **earliest-first**,
+calling `replay(trace, step_id, corrected_value, n)` → the **earliest candidate
+whose injection flips FAIL→PASS = confirmed root** → prints the `MonitorDecision`
+(root, `confirmation_rate`, `trusted`, `auto_apply`/`escalate`) and files the Sentry
+incident. `--confirm` runs the replay proof; without it, **localize-only (dry)**. On
+the demo, replay reads the **value-conditioned pre-captured trace** (§10) — real
+control flow + oracle, canned re-execution. The dashboard streams this *same*
+pipeline over SSE; the CLI is the headless path.
+
+**Honest scope:** both require a checkpointed **LangGraph** team — "any framework,
+unchanged" is roadmap, not today (§14). Package name TBD (`blackbox` may be taken on
+PyPI). The landing-page comment "your agents, unchanged" means *no logic rewrite of
+your LangGraph team*, not zero instrumentation.
+
 ---
 
 ## 14. Guardrails / non-goals (do NOT gold-plate)
