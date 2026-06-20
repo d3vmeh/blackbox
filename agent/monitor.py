@@ -1,22 +1,20 @@
 """P1 — The monitoring agent: Blackbox's attribution + replay as a *supervisor*.
 
-It watches a multi-agent run. On failure it does the thing a plain self-healing
-framework does not: it **localizes the earliest corrupted hand-off** and then **proves**
-the fix by counterfactual replay (the outcome flips FAIL→PASS) before trusting it.
+On failure it localizes the **earliest corrupted hand-off** and **proves** the fix by
+counterfactual replay (FAIL→PASS) before trusting it:
 
     "The only agent supervisor that proves the root cause by counterfactual replay
      before it lets an agent act or self-heal."
 
-Localization here is a deterministic node-judge: the earliest step whose output does
-NOT follow from its own inputs is the root. Downstream agents merely transform values
-they were handed, so they stay consistent with their (corrupted) inputs — only the
-agent that *originated* the bad value is inconsistent with its source. (P2's LLM
-node-judge `attribution.attribute()` is the general-purpose version of this same idea.)
+Localization is a deterministic node-judge: for each step, recompute what that agent
+SHOULD have output from its (recorded) upstream via `ap_graph.COMPUTE`, and flag the
+earliest field that diverges. The originating agent is inconsistent with its inputs;
+downstream agents merely propagate, so they stay consistent. (P2's LLM `attribute()` is
+the general, model-based version of the same idea.)
 """
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -24,6 +22,7 @@ from eval.ap_oracle import evaluate_ap
 from shared.schema import Trace
 
 from . import ap_graph
+from .ap_scenarios import Scenario
 
 
 @dataclass
@@ -31,6 +30,7 @@ class Verdict:
     failed: bool
     root_agent: Optional[str] = None
     root_step_id: Optional[str] = None
+    field: Optional[str] = None
     wrong_value: Any = None
     correct_value: Any = None
     replay_confirmed: bool = False
@@ -38,57 +38,59 @@ class Verdict:
     outcomes: Optional[list[bool]] = None
 
 
-def _amount_in(invoice_text: str) -> Optional[float]:
-    m = re.search(r"\$([\d,]+\.\d{2})", invoice_text or "")
-    return float(m.group(1).replace(",", "")) if m else None
+def _ne(a: Any, b: Any) -> bool:
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return abs(float(a) - float(b)) > 0.005
+    return a != b
 
 
-def _localize(trace: Trace):
-    """Return (step, wrong_value, correct_value) for the earliest inconsistent hand-off."""
+def _localize(trace: Trace, scn: Scenario):
+    """Earliest step whose recorded output diverges from COMPUTE(scenario, recorded-upstream)."""
+    up: dict = {}
     for step in trace.steps:
-        if step.raw.get("agent") == "extractor":
-            expected = _amount_in(step.inputs.get("invoice_text", ""))
-            got = step.output.get("amount") if isinstance(step.output, dict) else None
-            if expected is not None and got is not None and abs(got - expected) > 0.005:
-                return step, got, expected
-        # downstream agents only pass/transform their inputs → consistent by construction
-    return None, None, None
+        agent = step.raw.get("agent")
+        if agent not in ap_graph.COMPUTE:
+            continue
+        expected = ap_graph.COMPUTE[agent](scn, up)
+        out = step.output if isinstance(step.output, dict) else {}
+        for k, ev in expected.items():
+            if _ne(out.get(k), ev):
+                return step, agent, k, out.get(k), ev
+        up[agent] = out
+    return None
 
 
-def investigate(trace: Trace, n: int = 5) -> Verdict:
+def investigate(trace: Trace, scn: Scenario, n: int = 5) -> Verdict:
     """Watch a finished run; if it failed, localize + replay-confirm the root cause."""
-    if evaluate_ap(trace.final_output):
+    if evaluate_ap(trace.final_output, scn):
         return Verdict(failed=False)
 
-    step, wrong, correct = _localize(trace)
-    if step is None:
-        return Verdict(failed=True)        # failed but couldn't localize
+    found = _localize(trace, scn)
+    if found is None:
+        return Verdict(failed=True)
+    step, agent, field, wrong, correct = found
 
-    agent = step.raw.get("agent")
-    key = ap_graph.REPLAYABLE_AP.get(agent)
     outcomes: list[bool] = []
     for _ in range(n):
-        baseline = ap_graph.replay_ap(agent, None)              # still broken → must FAIL
-        fixed = ap_graph.replay_ap(agent, {key: correct})       # injected fix → must PASS
-        outcomes.append(evaluate_ap(fixed.final_output) and not evaluate_ap(baseline.final_output))
+        baseline = ap_graph.replay_ap(scn, None, None)              # still broken → must FAIL
+        fixed = ap_graph.replay_ap(scn, agent, {field: correct})    # injected fix → must PASS
+        outcomes.append(evaluate_ap(fixed.final_output, scn) and not evaluate_ap(baseline.final_output, scn))
 
     rate = sum(outcomes) / len(outcomes) if outcomes else 0.0
-    return Verdict(failed=True, root_agent=agent, root_step_id=step.id,
+    return Verdict(failed=True, root_agent=agent, root_step_id=step.id, field=field,
                    wrong_value=wrong, correct_value=correct,
                    replay_confirmed=rate >= 0.5, confirmation_rate=rate, outcomes=outcomes)
 
 
-def auto_heal(verdict: Verdict, n: int = 5) -> Optional[Trace]:
-    """Self-heal: the monitor applies the fix — but ONLY after replay has confirmed it.
-    An unconfirmed fix is never applied. Returns the healed (now-passing) run, or None."""
+def auto_heal(verdict: Verdict, scn: Scenario) -> Optional[Trace]:
+    """Self-heal: apply the fix — but ONLY after replay has confirmed it."""
     if not (verdict.failed and verdict.replay_confirmed and verdict.root_agent):
         return None
-    key = ap_graph.REPLAYABLE_AP[verdict.root_agent]
-    return ap_graph.heal_ap(verdict.root_agent, {key: verdict.correct_value})
+    return ap_graph.replay_ap(scn, verdict.root_agent, {verdict.field: verdict.correct_value},
+                              trace_id="ap_healed")
 
 
-def human_fix(agent: str, corrected_value: Any) -> Trace:
-    """Human-in-the-loop: a person messages a specific agent with the right value; we re-run
-    the system with that correction applied at that agent. Same mechanism replay proves."""
-    key = ap_graph.REPLAYABLE_AP[agent]
-    return ap_graph.heal_ap(agent, {key: corrected_value}, trace_id="ap_human")
+def human_fix(scn: Scenario, agent: str, field: str, corrected_value: Any) -> Trace:
+    """Human-in-the-loop: a person messages a specific agent with the right value; re-run
+    the system with that correction applied at that agent."""
+    return ap_graph.replay_ap(scn, agent, {field: corrected_value}, trace_id="ap_human")
