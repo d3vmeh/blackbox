@@ -44,6 +44,8 @@
   --overlay:      #21262F;  /* modals / the confirm replay layer */
   --line:         #1E232C;  /* hairline border, 1px */
   --line-hi:      rgba(255,255,255,0.06); /* top-edge highlight on raised */
+  --edge:         #283039;  /* graph connector stroke (neutral, non-signal) */
+  --grid:         rgba(255,255,255,0.022); /* faint graph-paper backdrop */
 
   /* ---- Text tiers (high / med / low emphasis) ---- */
   --text-bright:  #EAEEF3;  /* focused / selected (~87%) */
@@ -51,13 +53,14 @@
   --text-dim:     #59636F;  /* ORDINARY step text — deliberately quiet (~45%) */
   --text-faint:   #39414B;  /* disabled / scaffolding (~30%) */
 
-  /* ---- Three reserved signals (warm → warm → cool) — nothing else uses these ---- */
-  --root:         #FF9D2E;  /* ROOT CAUSE    hot amber beacon (origin, brightest) */
-  --blast:        #FF4361;  /* BLAST RADIUS  crimson (the poison spreading) */
-  --pass:         #34E3A0;  /* CONFIRMED FIX mint/emerald (the heal / relief) */
-  --root-glow:    #FF9D2E26;
-  --blast-glow:   #FF436126;
-  --pass-glow:    #34E3A026;
+  /* ---- Three reserved signals (warm → warm → cool) — nothing else uses these ----
+     Desaturated for a calm instrument read; bright neon flooding looks "AI". */
+  --root:         #D9954A;  /* ROOT CAUSE    muted amber/ochre (origin) */
+  --blast:        #D75C6C;  /* BLAST RADIUS  dusty rose-red (the poison spreading) */
+  --pass:         #4FB98C;  /* CONFIRMED FIX sage emerald (the heal / relief) */
+  --root-glow:    #D9954A1F;
+  --blast-glow:   #D75C6C1F;
+  --pass-glow:    #4FB98C1F;
 
   /* ---- Spacing (4/8pt grid) ---- */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
@@ -79,7 +82,7 @@
   --z-base: 0; --z-trace: 10; --z-inspector: 20; --z-overlay: 100; --z-toast: 1000;
 
   /* ---- Type ---- */
-  --font-display: "Archivo", sans-serif;            /* +"Archivo Expanded" for verdicts */
+  --font-display: "Archivo Variable", sans-serif;   /* verdicts: font-stretch:125% = Expanded */
   --font-mono:    "IBM Plex Mono", monospace;       /* all data/trace */
   /* size scale, ratio ~1.2, 13px UI workhorse */
   --t-label:   11px; --t-step: 13px; --t-body: 15px; --t-h3: 20px;
@@ -110,17 +113,23 @@ to ≥1024px. Not a mobile product — don't spend effort below 1024px.
 
 ## Typography craft
 
+Calm and engineered, not shouty. Refined weights beat 900-everywhere; a big bold
+two-tone headline reads as generic AI marketing.
+
 | Role | Font | Size / weight | Line-h | Tracking |
 |---|---|---|---|---|
-| Verdict (FAIL/PASS) | Archivo Expanded | `--t-verdict` / 900 | `--lh-tight` | `--track-verdict` |
-| Run headline / H2 | Archivo | `--t-h2` / 800 | `--lh-tight` | `--track-display` |
+| Verdict (FAIL/PASS) | Archivo (normal width) | 24px / 700 | `--lh-tight` | `--track-verdict` |
+| Hero headline | Archivo | clamp ~32–46px / 700, **monochrome** | `--lh-tight` | `--track-display` |
+| Run headline / H2 | Archivo | `--t-h2` / 700 | `--lh-tight` | `--track-display` |
 | Section eyebrow | IBM Plex Mono | `--t-label` / 600 **UPPERCASE** | `--lh-data` | `--track-upper` |
 | Step rows / data | IBM Plex Mono | `--t-step` / 400–500 | `--lh-data` | normal |
 | Inspector body | IBM Plex Mono | `--t-body` / 400 | `--lh-body` | normal |
 
+- **No color-swapped words in headings.** Let the product/instrument carry color;
+  headlines stay one neutral color. Don't use Archivo *Expanded* — normal width.
 - **All numeric/data:** `font-variant-numeric: tabular-nums slashed-zero;` so digits
   share width and don't jump as values update; right-align numeric columns.
-- **Weights are restrained:** 400 read · 500 emphasis · 600 label · 800/900 display only.
+- **Weights are restrained:** 400 read · 500 emphasis · 600 label · 700 display.
 - Banned faces: Inter, Roboto, Open Sans, Arial, system-ui, Space Grotesk.
 - Self-host both fonts (no Google CDN) — fits the static SPA + instrument feel.
 
@@ -133,6 +142,12 @@ neutral (`--text-dim`). Mapping:
 - `--root` → exactly one step: the localized root cause.
 - `--blast` → only downstream steps poisoned by the root cause.
 - `--pass` → only the confirmed-fix / fail→pass state.
+
+**Restraint — signal with edge + text, not full fills.** Mark a signalled step with a
+thin colored left-edge bar (`box-shadow: inset 2–3px 0 0 <hue>`) + colored text +
+marker, on an otherwise neutral row. Do **not** flood rows with tinted backgrounds —
+that neon-on-black look reads as generic AI. Only the single root step earns a faint
+glow/tint as the lone focal accent. Ordinary steps stay fully neutral.
 
 Dark-UI rules: elevation reads via **lighter surfaces** (`--inset`→`--overlay`), not
 bigger shadows; accents already desaturated to sit calm; hairlines are low-alpha white
@@ -155,6 +170,19 @@ bigger shadows; accents already desaturated to sit calm; hairlines are low-alpha
   inspector. Prefer surface-step / spacing for separation before reaching for a border.
 - Background: `--bg` + a very faint graph-paper grid + soft central radial vignette →
   "instrument readout." Quiet enough that trace + accents dominate.
+
+## Patterns
+
+Validated against dark AI dev-tool landing pages (Linear, Modal, Braintrust, Langfuse).
+
+- **Two-tone verdict.** In the readout bar, color **only** the verdict word
+  (`FAIL` → `--blast`, `PASS` → `--pass`); the rest of the line stays neutral
+  (`--text` / `--text-dim`). The verdict is the single saturated word on screen —
+  the eye lands on it. Never color the surrounding labels.
+- **Keyboard-shortcut chips.** blackbox is keyboard-driven (e.g. `j`/`k` to move
+  between steps, `↵` to inspect, `r` to replay). Surface the keys as small chips:
+  `--font-mono`, `--t-label`, `--text-dim` on `--inset`, `--r-1`, 1px `--line`.
+  Shows "serious instrument," not a toy. Chips are affordance only — never a signal hue.
 
 ## Motion — framer-motion, three beats only
 
