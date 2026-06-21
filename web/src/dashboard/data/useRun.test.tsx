@@ -3,9 +3,12 @@ import { renderHook, act } from '@testing-library/react'
 import { useRun } from './useRun'
 
 describe('useRun', () => {
-  it('first paint shows the static fallback run + derived graph', () => {
+  it('first paint shows the claims fallback run + derived graph', () => {
     const { result } = renderHook(() => useRun())
-    expect(result.current.data.trace.id).toBe('code_run')
+    expect(result.current.data.trace.id).toBe('claim_run')
+    expect(result.current.data.meta.runtime).toBe('multi-agent')
+    expect(result.current.data.meta.domain).toBe('insurance-claims')
+    expect(result.current.data.monitor.decision).toBe('auto_apply')
     expect(result.current.data.attribution.root_step_id).toBe('s1')
     expect(result.current.data.graph.nodes.length).toBeGreaterThanOrEqual(4)
     expect(result.current.loading).toBe(false)
@@ -16,7 +19,7 @@ describe('useRun', () => {
     let root!: Awaited<ReturnType<typeof result.current.replay>>
     let decoy!: Awaited<ReturnType<typeof result.current.replay>>
     await act(async () => { root = await result.current.replay('s1', null) })
-    await act(async () => { decoy = await result.current.replay('s3', null) })
+    await act(async () => { decoy = await result.current.replay('s4', null) })
     expect(root.flipped).toBe(true)
     expect(decoy.flipped).toBe(false)
   })

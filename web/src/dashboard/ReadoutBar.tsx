@@ -1,12 +1,23 @@
 import { AnimatePresence, motion } from 'motion/react'
 import './dashboard.css'
 
-export function ReadoutBar({ runId, task, verdict, meta }: {
+export function ReadoutBar({ runId, task, verdict, meta, runtime, monitorDecision }: {
   runId: string; task: string; verdict: 'FAIL' | 'PASS'; meta: string
+  runtime?: string
+  monitorDecision?: 'auto_apply' | 'escalate' | null
 }) {
   return (
     <div className="rb">
-      <span className="rb__id"><b>{runId}</b> · {task}</span>
+      <span className="rb__id">
+        <b>{runId}</b> · {task}
+        {runtime && <span className="rb__runtime">{runtime}</span>}
+        {monitorDecision === 'auto_apply' && (
+          <span className="rb__trust rb__trust--apply">trust gate · auto_apply</span>
+        )}
+        {monitorDecision === 'escalate' && (
+          <span className="rb__trust rb__trust--escalate">trust gate · escalate</span>
+        )}
+      </span>
       <span className="rb__meta">{meta}</span>
       <span className="rb__spacer" />
       <span className="rb__eyebrow">oracle</span>

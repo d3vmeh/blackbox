@@ -14,12 +14,13 @@ const LEGEND = [
   { tone: 'pass', label: 'confirmed fix' },
 ] as const
 
-function fadeOut(
+/** Hold full opacity at scroll 0, fade out, then stay at 0 — reverses cleanly on scroll up. */
+function scrollFade(
   progress: ReturnType<typeof useScroll>['scrollYProgress'],
-  start: number,
-  end: number,
+  fadeStart: number,
+  fadeEnd: number,
 ) {
-  return useTransform(progress, [start, end], [1, 0], { clamp: true })
+  return useTransform(progress, [0, fadeStart, fadeEnd, 1], [1, 1, 0, 0], { clamp: true })
 }
 
 export function HeroShowcase() {
@@ -31,11 +32,9 @@ export function HeroShowcase() {
     offset: ['start start', 'end end'],
   })
 
-  /* Need tall scroll track so progress 0→1 while sticky pin holds the copy. */
-  const headlineY = useTransform(scrollYProgress, [0, 0.55], [0, -32], { clamp: true })
-  const restOpacity = fadeOut(scrollYProgress, 0.04, 0.32)
-  const headlineOpacity = fadeOut(scrollYProgress, 0.18, 0.48)
-  const hintOpacity = fadeOut(scrollYProgress, 0, 0.12)
+  /* Tall scroll track while sticky pin holds copy; opacity only (no Y shift — avoids pop on scroll up). */
+  const hintOpacity = scrollFade(scrollYProgress, 0.02, 0.12)
+  const copyOpacity = scrollFade(scrollYProgress, 0.08, 0.48)
 
   if (reduce) {
     return (
@@ -55,19 +54,19 @@ export function HeroShowcase() {
       <section ref={stageRef} className="hero-stage hero-stage--text" aria-label="Introduction">
         <div className="hero-stage__pin">
           <header className="hero hero--stage">
-            <div className="hero__copy">
-              <motion.div className="hero__headlines" style={{ y: headlineY, opacity: headlineOpacity }}>
+            <motion.div className="hero__copy" style={{ opacity: copyOpacity }}>
+              <div className="hero__headlines">
                 <p className="eyebrow">Causal supervisor · flight recorder for multi-agent systems</p>
                 <h1 className="hero__title">
-                  <span className="nowrap">The payment was wrong.</span>{' '}
-                  <span className="nowrap">The mistake was three agents upstream.</span>
+                  <span className="hero__title-line">The payout was wrong.</span>
+                  <span className="hero__title-line">The mistake was at INTAKE —</span>
+                  <span className="hero__title-line">three agents upstream of the symptom.</span>
                 </h1>
-              </motion.div>
-
-              <motion.div className="hero__rest" style={{ opacity: restOpacity }}>
+              </div>
+              <div className="hero__rest">
                 <HeroRest />
-              </motion.div>
-            </div>
+              </div>
+            </motion.div>
           </header>
 
           <motion.div className="hero-stage__hint eyebrow" style={{ opacity: hintOpacity }} aria-hidden="true">
@@ -87,8 +86,9 @@ function HeroCopy() {
     <>
       <p className="eyebrow">Causal supervisor · flight recorder for multi-agent systems</p>
       <h1 className="hero__title">
-        <span className="nowrap">The payment was wrong.</span>{' '}
-        <span className="nowrap">The mistake was three agents upstream.</span>
+        <span className="hero__title-line">The payout was wrong.</span>
+        <span className="hero__title-line">The mistake was at INTAKE —</span>
+        <span className="hero__title-line">three agents upstream of the symptom.</span>
       </h1>
       <HeroRest />
     </>
@@ -106,8 +106,8 @@ function HeroRest() {
         intervention, not by asking an LLM who’s to blame.
       </p>
       <div className="hero__actions">
-        <button className="btn btn--solid btn--lg" type="button">Start free</button>
-        <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
+        <a className="btn btn--solid btn--lg" href="#dashboard">Open dashboard</a>
+        <a className="btn btn--ghost btn--lg" href="#how">How it works</a>
       </div>
       <p className="hero__note">Open source · self-host in 5 minutes · no credit card</p>
     </>
@@ -118,7 +118,7 @@ function ProductShowcase() {
   return (
     <section className="showcase showcase--persist" id="demo" aria-label="Product demo">
       <div className="showcase__glow" aria-hidden="true" />
-      <BrowserFrame url="app.blackbox.dev/runs/ap_7c2">
+      <BrowserFrame url="app.blackbox.dev/runs/claim_run">
         <Dashboard />
       </BrowserFrame>
       <div className="legend">

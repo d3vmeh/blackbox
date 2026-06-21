@@ -40,7 +40,7 @@ def replay(trace: Trace, step_id: str, injected_value: Any, n: int = 5,
 
 def _counterfactual(trace: Trace, step_id: str, injected_value: Any, n: int) -> list[bool]:
     try:
-        from agent.graph import REPLAYABLE, replay_run
+        from agent.flight.graph import REPLAYABLE, replay_run
         from eval.oracle import evaluate
 
         step = next((s for s in trace.steps if s.id == step_id), None)

@@ -11,7 +11,7 @@ import './dashboard.css'
 
 export function Dashboard() {
   const { data, scenarios, loading, error, run, replay } = useRun()
-  const [picked, setPicked] = useState<string>('parse_duration_units')
+  const [picked, setPicked] = useState<string>('acme_amount')
   const reduce = useReducedMotion()
   // First paint lands on the WHY: select the root-cause node so the inspector is never empty.
   const rootNodeId = useMemo(
@@ -44,6 +44,7 @@ export function Dashboard() {
   )
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
   const verdict = data.trace.success ? 'PASS' : phase === 'confirm' ? 'PASS' : 'FAIL'
+  const monitorLabel = phase === 'confirm' ? data.monitor.decision : null
 
   const onReplay = async (stepId: string) => {
     // The corrected value comes from the pre-generated replay result, keyed by step.
@@ -68,7 +69,9 @@ export function Dashboard() {
         runId={data.trace.id}
         task={picked}
         verdict={verdict}
-        meta={`${data.trace.steps.length} steps · ${PHASE_STATUS[phase]}`}
+        runtime={data.meta.domain ?? data.meta.runtime}
+        monitorDecision={monitorLabel}
+        meta={`${data.trace.steps.length} agents · ${data.meta.engine} · ${PHASE_STATUS[phase]}`}
       />
       <div className="dash__body">
         <section className="dash__graph">
@@ -85,6 +88,8 @@ export function Dashboard() {
             node={selectedNode}
             steps={data.trace.steps}
             attribution={data.attribution}
+            runMeta={data.meta}
+            monitor={data.monitor}
             onReplay={onReplay}
             replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
           />

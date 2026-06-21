@@ -1,11 +1,10 @@
-import type { Attribution, Json, ReplayResult, Step } from '../../types'
+import type { Attribution, Json, MonitorDecision, ReplayResult, Step } from '../../types'
 import type { ActionNode } from '../types'
+import type { RunMeta } from '../data/loadMeta'
 import { CodeBlock } from './CodeBlock'
 import { Field, RawPayload, Section } from './sections'
 import '../dashboard.css'
 
-// After a replay, spell out exactly WHAT was changed (field: bad → good, or the
-// corrected code) and whether the outcome flipped — so the proof is legible, not implicit.
 function ReplayOutcome({ result, agent, output }: {
   result: ReplayResult; agent: string; output: Json
 }) {
@@ -56,9 +55,6 @@ function previewInputs(inputs: Record<string, Json>): string {
     .join('  ·  ')
 }
 
-// Render an agent's output legibly: multi-line string fields (code, tests) as
-// syntax-highlighted blocks; scalars as key/value rows; the raw JSON stays one
-// click away (a <details> toggle) so nothing is hidden.
 function ProducedOutput({ output }: { output: Json }) {
   if (output === null || typeof output !== 'object' || Array.isArray(output)) {
     return <RawPayload value={output} />
@@ -86,10 +82,12 @@ function ProducedOutput({ output }: { output: Json }) {
 
 const VERDICT_LABEL = { root: '● ROOT CAUSE', blast: '● AFFECTED', ok: 'OK' } as const
 
-export function Inspector({ node, steps, attribution, onReplay, replayResult }: {
+export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay, replayResult }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
+  runMeta: RunMeta
+  monitor: MonitorDecision
   onReplay: (stepId: string) => void
   replayResult?: ReplayResult | null
 }) {
@@ -97,7 +95,7 @@ export function Inspector({ node, steps, attribution, onReplay, replayResult }: 
     return <div className="insp insp--empty">Select a node to inspect its telemetry.</div>
   }
   const byId = new Map(steps.map((s) => [s.id, s]))
-  const focusId = node.stepIds[node.stepIds.length - 1] // the result step
+  const focusId = node.stepIds[node.stepIds.length - 1]
   const step = byId.get(focusId)
   if (!step) return <div className="insp insp--empty">Step {focusId} not found.</div>
 
@@ -113,7 +111,6 @@ export function Inspector({ node, steps, attribution, onReplay, replayResult }: 
         <span className={`insp__pill insp__pill--${verdict}`}>{VERDICT_LABEL[verdict]}</span>
       </div>
 
-      {/* The WHY — pulled straight from localization, in plain English. */}
       {isRoot && candidate && (
         <div className="insp__call insp__call--root">
           <div className="insp__callk">What went wrong</div>
@@ -132,6 +129,33 @@ export function Inspector({ node, steps, attribution, onReplay, replayResult }: 
         </div>
       )}
 
+      {runMeta.runtime === 'langgraph' && (
+        <Section title="LangGraph" aside={runMeta.engine}>
+          <Field k="apis" v={(runMeta.apis ?? []).join(' · ')} />
+          <Field k="checkpoints" v={`${runMeta.checkpoints ?? 0} saved`} />
+          <Field k="capture" v={runMeta.capture_path ?? '—'} />
+          {isRoot && runMeta.fork_node && (
+            <Field
+              k="fork replay"
+              v={`update_state(as_node=${runMeta.fork_node}) → invoke`}
+              tone="good"
+            />
+          )}
+        </Section>
+      )}
+
+      {runMeta.runtime === 'multi-agent' && (
+        <Section title="multi-agent hand-off" aside={runMeta.engine}>
+          <Field k="agent" v={String(step.raw.display ?? step.raw.agent ?? '—')} />
+          {runMeta.parallel_agents && (
+            <Field k="parallel" v={runMeta.parallel_agents.join(' ∥ ')} />
+          )}
+          {isRoot && runMeta.fork_agent && (
+            <Field k="fork replay" v={`inject at ${runMeta.fork_agent} → re-run pipeline`} tone="good" />
+          )}
+        </Section>
+      )}
+
       <Section title="what it produced" aside="output">
         <ProducedOutput output={step.output} />
       </Section>
@@ -140,9 +164,15 @@ export function Inspector({ node, steps, attribution, onReplay, replayResult }: 
         <div className="insp__diff">{previewInputs(step.inputs) || '—'}</div>
       </Section>
 
+      {isRoot && (
+        <Section title="supervise · trust gate" aside={monitor.decision}>
+          <Field k="trusted" v={monitor.trusted ? 'yes' : 'no'} tone={monitor.trusted ? 'good' : undefined} />
+          <Field k="decision" v={monitor.decision} tone={monitor.trusted ? 'good' : undefined} />
+          <Field k="confirmation" v={`${Math.round(monitor.replay.confirmation_rate * 100)}% over n=${monitor.replay.n}`} />
+        </Section>
+      )}
+
       <div className="insp__actions">
-        {/* Replay the FOCUSED step: the true root flips FAIL→PASS; a decoy candidate
-            does not — that non-flip is the proof it was not the cause. */}
         <button type="button" className="insp__btn insp__btn--primary"
           onClick={() => onReplay(focusId)}>
           {isRoot ? '↻ Replay with fix' : '↻ Replay candidate'}

@@ -1,0 +1,245 @@
+{
+  "id": "claim_run",
+  "task": "claims-adjudication",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "tool_result",
+      "inputs": {
+        "invoice_text": "INVOICE \u2014 Acme Corp\nPO: PO-7781\nAmount due: $4,200.00\nDue date: 2026-07-15\n"
+      },
+      "output": {
+        "vendor": "Acme Corp",
+        "amount": 42000.0,
+        "due_date": "2026-07-15",
+        "po": "PO-7781"
+      },
+      "state": {
+        "up": {}
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "extractor",
+        "agent": "extractor",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "INTAKE"
+      },
+      "is_injected_fault": true,
+      "correct_output": {
+        "vendor": "Acme Corp",
+        "amount": 4200.0,
+        "due_date": "2026-07-15",
+        "po": "PO-7781"
+      }
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "extractor"
+        ]
+      },
+      "output": {
+        "po": "PO-7781",
+        "vendor_ok": true,
+        "amount": 42000.0
+      },
+      "state": {
+        "up": {
+          "extractor": {
+            "vendor": "Acme Corp",
+            "amount": 42000.0,
+            "due_date": "2026-07-15",
+            "po": "PO-7781"
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "matcher",
+        "agent": "matcher",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "COVERAGE"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "po": "PO-7781",
+        "vendor_ok": true,
+        "amount": 42000.0
+      }
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "extractor"
+        ]
+      },
+      "output": {
+        "vendor": "Acme Corp",
+        "risk": "low"
+      },
+      "state": {
+        "up": {
+          "extractor": {
+            "vendor": "Acme Corp",
+            "amount": 42000.0,
+            "due_date": "2026-07-15",
+            "po": "PO-7781"
+          },
+          "matcher": {
+            "po": "PO-7781",
+            "vendor_ok": true,
+            "amount": 42000.0
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "fraud",
+        "agent": "fraud",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "FRAUD"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "vendor": "Acme Corp",
+        "risk": "low"
+      }
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "matcher",
+          "fraud"
+        ]
+      },
+      "output": {
+        "approved": true,
+        "amount": 42000.0
+      },
+      "state": {
+        "up": {
+          "extractor": {
+            "vendor": "Acme Corp",
+            "amount": 42000.0,
+            "due_date": "2026-07-15",
+            "po": "PO-7781"
+          },
+          "matcher": {
+            "po": "PO-7781",
+            "vendor_ok": true,
+            "amount": 42000.0
+          },
+          "fraud": {
+            "vendor": "Acme Corp",
+            "risk": "low"
+          }
+        }
+      },
+      "parents": [
+        "s2",
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "approver",
+        "agent": "approver",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "ADJUDICATOR"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "approved": true,
+        "amount": 42000.0
+      }
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "kind": "final",
+      "inputs": {
+        "from": [
+          "approver"
+        ]
+      },
+      "output": {
+        "vendor": "Acme Corp",
+        "amount_paid": 42000.0,
+        "due_date": "2026-07-15",
+        "po": "PO-7781",
+        "status": "paid"
+      },
+      "state": {
+        "up": {
+          "extractor": {
+            "vendor": "Acme Corp",
+            "amount": 42000.0,
+            "due_date": "2026-07-15",
+            "po": "PO-7781"
+          },
+          "matcher": {
+            "po": "PO-7781",
+            "vendor_ok": true,
+            "amount": 42000.0
+          },
+          "fraud": {
+            "vendor": "Acme Corp",
+            "risk": "low"
+          },
+          "approver": {
+            "approved": true,
+            "amount": 42000.0
+          }
+        }
+      },
+      "parents": [
+        "s4"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "payment",
+        "agent": "payment",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "PAYOUT"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "vendor": "Acme Corp",
+        "amount_paid": 42000.0,
+        "due_date": "2026-07-15",
+        "po": "PO-7781",
+        "status": "paid"
+      }
+    }
+  ],
+  "final_output": {
+    "vendor": "Acme Corp",
+    "amount_paid": 42000.0,
+    "due_date": "2026-07-15",
+    "po": "PO-7781",
+    "status": "paid"
+  },
+  "success": false,
+  "gold_root_step_id": "s1"
+}

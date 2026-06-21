@@ -1,0 +1,34 @@
+{
+  "s4": {
+    "trace_id": "flight_run",
+    "step_id": "s4",
+    "injected_value": {
+      "departure": "2026-07-12"
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "s5": {
+    "trace_id": "flight_run",
+    "step_id": "s5",
+    "injected_value": "selected AA-218 @ $999 for 2026-07-12",
+    "n": 5,
+    "flipped": false,
+    "confirmation_rate": 0.0,
+    "outcomes": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  }
+}

@@ -99,6 +99,11 @@ def _write_spans(tracer, trace: Trace, *, monitor: dict | None = None) -> int:
         SpanAttributes.TAG_TAGS: json.dumps(["blackbox", trace.id, verdict.lower()]),
         **_io_attrs(inp=root_input, out=trace.final_output),
     }
+    if monitor and monitor.get("runtime") == "langgraph":
+        tags = json.loads(root_attrs[SpanAttributes.TAG_TAGS])
+        tags.extend(["langgraph", "flight"])
+        root_attrs[SpanAttributes.TAG_TAGS] = json.dumps(tags)
+        root_attrs["blackbox.runtime"] = "langgraph"
     if trace.gold_root_step_id is not None:
         root_attrs["blackbox.gold_root_step_id"] = trace.gold_root_step_id
     if monitor:
@@ -128,6 +133,10 @@ def _write_spans(tracer, trace: Trace, *, monitor: dict | None = None) -> int:
                 attrs[SpanAttributes.AGENT_NAME] = str(s.raw["agent"])
             if s.raw.get("node"):
                 attrs["blackbox.node"] = s.raw["node"]
+            if s.raw.get("runtime"):
+                attrs["blackbox.runtime"] = s.raw["runtime"]
+            if s.raw.get("capture"):
+                attrs["blackbox.capture"] = s.raw["capture"]
             tool = s.tool_name or (s.raw.get("node") if kind == OpenInferenceSpanKindValues.TOOL.value else None)
             if tool:
                 attrs[SpanAttributes.TOOL_NAME] = str(tool)
@@ -148,17 +157,19 @@ def emit_trace(
     *,
     backend: Backend = "phoenix",
     monitor: dict | None = None,
+    flush: bool = True,
 ) -> bool:
-    """Emit one Trace as spans. Returns False if backend unavailable."""
+    """Emit one Trace as spans. Returns False if backend unavailable or export failed."""
     if backend == "arize":
         from . import tracing
 
         tracing.setup_tracing()
         tracer = tracing.get_tracer("blackbox")
         n = _write_spans(tracer, trace, monitor=monitor)
-        tracing.flush_tracing()
-        print(f"[arize] emitted {n} spans for {trace.id!r} -> https://app.arize.com")
-        return True
+        ok = tracing.flush_tracing() if flush else True
+        status = "exported" if ok else "FAILED to export"
+        print(f"[arize] {status} {n} spans for {trace.id!r} -> https://app.arize.com")
+        return ok
 
     setup = _phoenix_setup()
     if setup is None:

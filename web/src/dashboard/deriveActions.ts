@@ -11,8 +11,8 @@ function laneFor(step: Step): Lane {
 }
 
 function labelFor(step: Step): string {
-  // multi-agent subjects (AP, coding) carry the producing agent's name here —
-  // the most legible label. Tool steps use the tool name; otherwise fall back.
+  const display = step.raw?.display
+  if (typeof display === 'string') return display
   const agent = step.raw?.agent
   if (typeof agent === 'string' && agent) return agent
   if (step.tool_name) return step.tool_name
@@ -27,7 +27,15 @@ export function deriveActions(trace: Trace): ActionGraph {
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]
-    if (step.kind === 'tool_result') continue // consumed by its preceding call
+    const prev = steps[i - 1]
+    // Skip tool_result only when it pairs with the immediately preceding tool_call.
+    if (
+      step.kind === 'tool_result' &&
+      prev?.kind === 'tool_call' &&
+      prev.tool_name === step.tool_name
+    ) {
+      continue
+    }
     const id = `a${nodes.length}`
     const stepIds = [step.id]
     const next = steps[i + 1]

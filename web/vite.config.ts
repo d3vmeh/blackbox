@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   // dev server may read the shared fixture one level up from web/
   server: {
+    port: 5173,
+    strictPort: true,
     fs: { allow: ['..'] },
     proxy: { '/api': 'http://localhost:8000' },
   },

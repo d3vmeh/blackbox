@@ -4,9 +4,9 @@ Reasoning nodes call Claude (agent/llm.py); the web node uses the Browserbase to
 (agent/tools.py). Each node records itself into a Recorder, producing a canonical Trace
 (str step ids, true `parents` edges, a state snapshot per step).
 
-Nodes are plain functions over a RunContext so they run sequentially today AND can later be
-wrapped in a checkpointed LangGraph for live fork/replay (`build_graph`, future work — the
-deterministic path here is what main's replay docstring calls the on-stage demo path).
+Nodes are plain functions over a RunContext. They run sequentially via `_run` and are
+wrapped in a checkpointed LangGraph by `build_graph` / `run_agent_graph` for live
+fork/replay (`app.update_state` + resume).
 """
 from __future__ import annotations
 
@@ -173,6 +173,7 @@ def replay_run(fork_node: str, override: dict, *, use_real_llm: bool = False) ->
 # Module-level registry: thread_id → Recorder.
 # Recorder is not JSON-serializable so it lives here, outside LangGraph state.
 _RUN_REC: dict[str, Recorder] = {}
+_REPLAY_THREADS: set[str] = set()
 
 
 def build_graph(*, use_real_llm: bool = False, use_browserbase: bool = False):
@@ -187,12 +188,16 @@ def build_graph(*, use_real_llm: bool = False, use_browserbase: bool = False):
     search_fn = browserbase_search if use_browserbase else mock_browserbase_search
 
     def _wrap(node_fn):
-        def lg_node(state: dict) -> dict:
-            thread_id = state["__thread_id__"]
+        def lg_node(state: dict, config) -> dict:
+            cfg = config.get("configurable") or {}
+            thread_id = state.get("__thread_id__") or cfg.get("thread_id")
+            if not thread_id:
+                raise KeyError("__thread_id__ missing from state and config")
             rec = _RUN_REC[thread_id]
             ctx = RunContext(think=think_fn, search=search_fn, rec=rec)
             ctx.state = {k: v for k, v in state.items() if not k.startswith("__")}
             ctx.last = state.get("__last__", {})
+            ctx.replay_mode = thread_id in _REPLAY_THREADS
             node_fn(ctx)
             return {**ctx.state, "__last__": ctx.last, "__thread_id__": thread_id}
         lg_node.__name__ = node_fn.__name__
@@ -232,6 +237,38 @@ def run_agent_graph(*, use_real_llm: bool = False, use_browserbase: bool = False
     final_output = final_state.get("final_output", {})
     trace = rec.finish(final_output=final_output, success=evaluate(final_output, DEFAULT_TASK))
     return trace, app
+
+
+def graph_fork_outcome(app, config: dict, fork_node: str, override: dict) -> bool:
+    """LangGraph checkpoint fork: `update_state(as_node=...)` + resume. Returns oracle pass/fail."""
+    tid = config["configurable"]["thread_id"]
+    snap = app.get_state(config)
+    base = {k: v for k, v in (snap.values or {}).items() if not k.startswith("__")}
+    patch = {**base, **override, "__thread_id__": tid, "__last__": (snap.values or {}).get("__last__", {})}
+    app.update_state(config, patch, as_node=fork_node)
+    _RUN_REC[tid] = Recorder(f"{tid}_fork", DEFAULT_TASK)
+    _REPLAY_THREADS.add(tid)
+    try:
+        final = app.invoke(None, config)
+    finally:
+        _REPLAY_THREADS.discard(tid)
+        _RUN_REC.pop(tid, None)
+    return bool(evaluate(final.get("final_output", {})))
+
+
+def graph_replay_confirm(fork_node: str, bad: dict, good: dict, n: int = 5) -> list[bool]:
+    """Counterfactual over n trials via LangGraph fork (sashikumar path)."""
+    outcomes = []
+    for i in range(n):
+        tid = f"lg_replay_{i}"
+        _, app = run_agent_graph(trace_id=tid)
+        cfg = {"configurable": {"thread_id": tid}}
+        base_fail = not graph_fork_outcome(app, cfg, fork_node, bad)
+        _, app2 = run_agent_graph(trace_id=f"{tid}b")
+        cfg2 = {"configurable": {"thread_id": f"{tid}b"}}
+        fixed_pass = graph_fork_outcome(app2, cfg2, fork_node, good)
+        outcomes.append(bool(fixed_pass and base_fail))
+    return outcomes
 
 
 if __name__ == "__main__":

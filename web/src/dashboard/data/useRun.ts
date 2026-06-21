@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Attribution, ReplayResult, Trace } from '../../types'
+import type { Attribution, MonitorDecision, ReplayResult, Trace } from '../../types'
 import type { ActionGraph } from '../types'
 import { deriveActions } from '../deriveActions'
 import { nodeStatus, type StatusMap } from '../nodeStatus'
 import { loadFixtureTrace } from './loadFixture'
+import { loadRunMeta, type RunMeta } from './loadMeta'
+import { loadMonitorDecision } from './loadMonitor'
 import { STUB_ATTRIBUTION } from './stubAttribution'
 import { FALLBACK_REPLAYS, nonFlip } from './replayMap'
 
@@ -12,18 +14,26 @@ export interface RunData {
   attribution: Attribution
   graph: ActionGraph
   status: StatusMap
+  meta: RunMeta
+  monitor: MonitorDecision
   replays: Record<string, ReplayResult>
 }
 
 interface RunResponse { trace: Trace; attribution: Attribution; replay: Record<string, ReplayResult> }
 
-function toRunData(trace: Trace, attribution: Attribution, replays: Record<string, ReplayResult>): RunData {
+function toRunData(
+  trace: Trace,
+  attribution: Attribution,
+  replays: Record<string, ReplayResult>,
+  meta: RunMeta = loadRunMeta(),
+  monitor: MonitorDecision = loadMonitorDecision(),
+): RunData {
   const graph = deriveActions(trace)
-  return { trace, attribution, graph, status: nodeStatus(graph, attribution), replays }
+  return { trace, attribution, graph, status: nodeStatus(graph, attribution), meta, monitor, replays }
 }
 
 const FALLBACK: RunData = toRunData(loadFixtureTrace(), STUB_ATTRIBUTION, FALLBACK_REPLAYS)
-const FALLBACK_SCENARIOS = [{ name: 'parse_duration_units', label: 'parse duration units' }]
+const FALLBACK_SCENARIOS = [{ name: 'acme_amount', label: 'claims · acme amount' }]
 
 export function useRun() {
   const [data, setData] = useState<RunData>(FALLBACK)
