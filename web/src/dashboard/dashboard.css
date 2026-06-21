@@ -21,3 +21,24 @@
 .tg__node[data-status='pass'] { box-shadow: inset 2px 0 0 var(--pass); }
 .tg__node[data-status='pass'] .nl { color: var(--pass); }
 .tg__node[data-selected='true'] { outline: 2px solid var(--text-dim); outline-offset: 2px; }
+
+/* ---- Inspector (task 8) ---- */
+.insp { max-height: 512px; overflow: auto; font-family: var(--font-mono); }
+.insp--empty { color: var(--text-dim); padding: var(--space-4); }
+.insp__sec { margin-bottom: var(--space-4); }
+.insp__sech { display: flex; justify-content: space-between; font-size: var(--t-label);
+  letter-spacing: .09em; text-transform: uppercase; color: var(--text-dim);
+  border-bottom: 1px solid var(--line); padding-bottom: var(--space-1); margin-bottom: var(--space-2); }
+.insp__kv { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-2); padding: 2px 0;
+  font-size: var(--t-step); }
+.insp__k { color: var(--text-dim); } .insp__v { color: var(--text); font-variant-numeric: tabular-nums; }
+.insp__v--bad { color: var(--blast); } .insp__v--good { color: var(--pass); } .insp__v--root { color: var(--root); }
+.insp__pre { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-2);
+  padding: var(--space-2) var(--space-3); font-size: var(--t-step); color: var(--text); overflow: auto; }
+.insp__diff { font-size: var(--t-step); color: var(--text-dim); line-height: var(--lh-data); }
+.insp__judge { background: var(--inset); border: 1px solid var(--line); border-radius: var(--r-3);
+  padding: var(--space-2) var(--space-3); box-shadow: inset 3px 0 0 var(--root); color: var(--text); }
+.insp__actions { margin-top: var(--space-3); }
+.insp__btn { font-family: var(--font-mono); font-size: var(--t-step); padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--r-2); background: var(--raised); color: var(--text); cursor: pointer; }
+.insp__btn--primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
