@@ -21,6 +21,16 @@ _CORRECT_CODE = (
 # what a faithful implementer writes if the SPEC says the unit is minutes
 _MINUTES_CODE = _CORRECT_CODE.replace("    return total\n", "    return total // 60\n")
 
+# implementer-fault: a plausible bug — counts hours/minutes but drops seconds
+_PARSE_BAD_CODE = (
+    "import re\n"
+    "def parse_duration(s):\n"
+    "    total = 0\n"
+    "    for value, unit in re.findall(r'(\\d+)([hms])', s):\n"
+    "        total += int(value) * {'h': 3600, 'm': 60, 's': 0}[unit]\n"
+    "    return total\n"
+)
+
 _ACCEPTANCE = (
     "assert parse_duration('2m30s') == 150\n"
     "assert parse_duration('1h') == 3600\n"
@@ -69,15 +79,30 @@ def _ref_review(scn: "CodeScenario", up: dict) -> dict:
     return {"approved": True, "notes": "code matches the structured spec"}
 
 
+_PARSE_REF = {"spec_interpreter": _ref_spec, "implementer": _ref_impl,
+              "test_writer": _ref_tests, "reviewer": _ref_review}
+
 SCENARIOS: list[CodeScenario] = [
     CodeScenario(
         name="parse_duration_units",
         requirement=("Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. "
                      "Return the TOTAL NUMBER OF SECONDS as an int."),
-        reference={"spec_interpreter": _ref_spec, "implementer": _ref_impl,
-                   "test_writer": _ref_tests, "reviewer": _ref_review},
-        acceptance_tests=_ACCEPTANCE,
+        reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
         fault=CodeFault("spec_interpreter", "unit", "minutes"),
+    ),
+    CodeScenario(
+        name="parse_duration_impl",
+        requirement=("Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. "
+                     "Return the TOTAL NUMBER OF SECONDS as an int."),
+        reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
+        fault=CodeFault("implementer", "code", _PARSE_BAD_CODE),
+    ),
+    CodeScenario(
+        name="parse_duration_clean",
+        requirement=("Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. "
+                     "Return the TOTAL NUMBER OF SECONDS as an int."),
+        reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
+        fault=None,
     ),
 ]
 

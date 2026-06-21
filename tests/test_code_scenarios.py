@@ -19,3 +19,17 @@ def test_reference_agents_cover_all_four():
 def test_fault_is_spec_unit_minutes():
     scn = next(s for s in SCENARIOS if s.name == "parse_duration_units")
     assert scn.fault == CodeFault("spec_interpreter", "unit", "minutes")
+
+def test_scenarios_include_parse_impl_fault_and_clean():
+    names = {s.name for s in SCENARIOS}
+    assert "parse_duration_impl" in names
+    assert "parse_duration_clean" in names
+
+def test_parse_impl_fault_is_at_implementer():
+    scn = next(s for s in SCENARIOS if s.name == "parse_duration_impl")
+    assert scn.fault.agent == "implementer"
+    assert scn.fault.field == "code"
+
+def test_parse_clean_has_no_fault():
+    scn = next(s for s in SCENARIOS if s.name == "parse_duration_clean")
+    assert scn.fault is None
