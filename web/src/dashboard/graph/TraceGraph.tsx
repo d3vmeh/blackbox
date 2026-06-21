@@ -1,4 +1,5 @@
 // web/src/dashboard/graph/TraceGraph.tsx
+import { motion, useReducedMotion } from 'motion/react'
 import type { ActionGraph } from '../types'
 import type { StatusMap } from '../nodeStatus'
 import { layout } from '../layout'
@@ -13,6 +14,7 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
+  const reduce = useReducedMotion()
   const l = layout(graph, status)
   const posById = new Map(l.positions.map((p) => [p.id, p]))
   return (
@@ -30,17 +32,25 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
           />
         ))}
       </svg>
-      {graph.nodes.map((n) => {
+      {graph.nodes.map((n, i) => {
         const p = posById.get(n.id)!
+        const st = displayStatus(status[n.id] ?? 'neutral', phase)
         return (
-          <GraphNode
+          <motion.div
             key={n.id}
-            node={n}
-            status={displayStatus(status[n.id] ?? 'neutral', phase)}
-            selected={selectedId === n.id}
-            onSelect={onSelect}
-            style={{ left: p.x, top: p.y }}
-          />
+            style={{ position: 'absolute', left: p.x, top: p.y }}
+            initial={reduce ? false : { opacity: 0.6, scale: 0.98 }}
+            animate={{ opacity: 1, scale: st === 'blast' ? [1, 1.06, 1] : 1 }}
+            transition={reduce ? { duration: 0 } : { delay: i * 0.06, duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <GraphNode
+              node={n}
+              status={st}
+              selected={selectedId === n.id}
+              onSelect={onSelect}
+              style={{ position: 'static' }}
+            />
+          </motion.div>
         )
       })}
     </div>

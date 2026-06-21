@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useReducedMotion } from 'motion/react'
 import { useRun } from './data/useRun'
 import { ReadoutBar } from './ReadoutBar'
 import { TraceGraph } from './graph/TraceGraph'
@@ -9,8 +10,17 @@ import './dashboard.css'
 
 export function Dashboard() {
   const { data, replay } = useRun()
+  const reduce = useReducedMotion()
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [phase, setPhase] = useState<Phase>('analyze') // localized view by default
+  // Reduced motion: skip the cascade and render the localized view directly.
+  const [phase, setPhase] = useState<Phase>(reduce ? 'analyze' : 'idle')
+
+  useEffect(() => {
+    if (reduce) return
+    const t1 = window.setTimeout(() => setPhase('blast'), 600)
+    const t2 = window.setTimeout(() => setPhase('analyze'), 3200)
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+  }, [reduce])
 
   const selectedNode = useMemo(
     () => data.graph.nodes.find((n) => n.id === selectedId) ?? null,
