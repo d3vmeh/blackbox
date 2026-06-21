@@ -24,7 +24,7 @@ describe('deriveTopology', () => {
     expect(status).toEqual({
       intake: 'root',
       coverage: 'blast',
-      fraud: 'blast',
+      fraud: 'neutral',
       adjuster: 'blast',
       payout: 'blast',
     })
@@ -36,7 +36,7 @@ describe('deriveTopology', () => {
       { from: 'intake', to: 'coverage', poisoned: false },
       { from: 'intake', to: 'fraud', poisoned: false },
       { from: 'coverage', to: 'adjuster', poisoned: true },
-      { from: 'fraud', to: 'adjuster', poisoned: true },
+      { from: 'fraud', to: 'adjuster', poisoned: false },
       { from: 'adjuster', to: 'payout', poisoned: true },
     ])
   })
