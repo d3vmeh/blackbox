@@ -36,10 +36,10 @@ export function HeroShowcase() {
             aria-label="Introduction"
             style={reduce ? undefined : { opacity: titleOpacity }}
           >
-            <p className="eyebrow">Causal supervisor · flight recorder for multi-agent systems</p>
+            <p className="eyebrow">Forensic supervisor · trust layer for multi-agent pipelines</p>
             <h1 className="hero__title">
-              <span className="hero__title-line">The payment was wrong.</span>
-              <span className="hero__title-line">The mistake was three agents upstream.</span>
+              <span className="hero__title-line">The payout was wrong.</span>
+              <span className="hero__title-line">The fault was at intake — not the adjuster.</span>
             </h1>
           </motion.header>
         </div>
@@ -60,10 +60,11 @@ function HeroRest() {
     <>
       <p className="hero__sub">
         When agents collaborate, one early mistake corrupts a hand-off and every
-        downstream agent trusts it. blackbox localizes the agent at fault on the
-        hand-off graph, traces the blast radius across agents, and proves the fix
-        by replay — before it heals the run or escalates to a human. Confirmed by
-        intervention, not by asking an LLM who’s to blame.
+        downstream agent trusts it. blackbox records the run as a provenance graph,
+        localizes the earliest bad hand-off (not where the symptom surfaced), traces
+        blast radius across agents, and proves the fix by counterfactual replay —
+        before the monitor auto-heals or escalates. Confirmed by intervention, not
+        by asking an LLM who to blame.
       </p>
       <div className="hero__actions">
         <button
@@ -71,11 +72,10 @@ function HeroRest() {
           type="button"
           onClick={() => { window.location.hash = 'dashboard' }}
         >
-          Start free
+          Dashboard
         </button>
         <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
       </div>
-      <p className="hero__note">Open source · self-host in 5 minutes · no credit card</p>
     </>
   )
 }

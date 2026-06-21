@@ -725,13 +725,14 @@
 }
 .system-map__canvas {
   position: relative;
-  height: min(400px, 48vh);
-  min-height: 320px;
+  height: min(480px, 52vh);
+  min-height: 380px;
+  overflow: visible;
 }
 /* Inset plot — keeps nodes and edges away from the window edge */
 .system-map__plot {
   position: absolute;
-  inset: var(--space-6) var(--space-5) var(--space-4);
+  inset: var(--space-7) var(--space-6) var(--space-6);
 }
 .system-map__links {
   position: absolute;
@@ -743,7 +744,7 @@
 .system-map__node {
   position: absolute;
   transform: translate(-50%, -50%);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--inset);
   border: 1px solid var(--line);
   border-radius: var(--r-2);
@@ -753,6 +754,9 @@
   color: var(--text-dim);
   cursor: pointer;
   white-space: nowrap;
+  max-width: min(120px, 22vw);
+  text-align: center;
+  line-height: 1.25;
   transition:
     color var(--dur-base) var(--ease-out),
     border-color var(--dur-base) var(--ease-out),
@@ -760,13 +764,33 @@
     transform var(--dur-base) var(--ease-out);
   z-index: 2;
 }
+.system-map__node--root {
+  border-color: color-mix(in srgb, var(--root) 55%, var(--line));
+  color: color-mix(in srgb, var(--root) 80%, var(--text));
+}
+.system-map__node--blast {
+  border-color: color-mix(in srgb, var(--blast) 45%, var(--line));
+}
+.system-map__node--replay,
+.system-map__node--trust {
+  border-color: color-mix(in srgb, var(--pass) 40%, var(--line));
+}
 .system-map__node:hover,
 .system-map__node--lit {
   color: var(--text-bright);
   border-color: var(--text-dim);
-  transform: translate(-50%, -50%) scale(1.03);
+  transform: translate(-50%, -50%) scale(1.04);
   box-shadow: var(--shadow-2);
   z-index: 3;
+}
+.system-map__node--root.system-map__node--lit {
+  border-color: var(--root);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--root) 35%, transparent), var(--shadow-2);
+}
+.system-map__node-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .system-map__node-ring {
   position: absolute;
@@ -849,11 +873,13 @@
   .landing-stats { gap: var(--space-6); flex-wrap: wrap; }
   .legend { flex-wrap: wrap; gap: var(--space-4); }
   .coverflow__controls { flex-wrap: wrap; }
-  .system-map__canvas { min-height: 280px; height: min(360px, 55vh); }
-  .system-map__plot { inset: var(--space-5) var(--space-4) var(--space-3); }
+  .system-map__canvas { min-height: 340px; height: min(420px, 58vh); }
+  .system-map__plot { inset: var(--space-6) var(--space-4) var(--space-5); }
   .system-map__node {
     font-size: 10px;
     padding: var(--space-1) var(--space-2);
+    max-width: min(96px, 28vw);
+    white-space: normal;
   }
   .page { padding: 0 var(--space-4); }
   .coverflow-stage { margin: 0 calc(-1 * var(--space-4)) var(--space-8); }
