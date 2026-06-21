@@ -12,6 +12,7 @@ import json
 import anthropic
 
 from shared.schema import Step, Trace
+from attribution.cache import cache_get, cache_set
 
 _client = anthropic.AsyncAnthropic()
 _MODEL = "claude-haiku-4-5-20251001"
@@ -26,7 +27,11 @@ _SYSTEM = (
 
 
 async def judge_step(step: Step) -> float:
-    """Return (is_output_correct_given_inputs, short_reason)."""
+    """Return correctness score; cached results skip the LLM call."""
+    cached = cache_get(step)
+    if cached is not None:
+        return cached
+
     node_name = step.raw.get("node", step.id)
     state_str = json.dumps(step.state, indent=2) if step.state else "{}"
     user_msg = (
@@ -49,9 +54,12 @@ async def judge_step(step: Step) -> float:
         )
         text = msg.content[0].text.strip()
         score = float(text)
-        return max(0.0, min(1.0, score))
+        score = max(0.0, min(1.0, score))
     except (ValueError, IndexError, anthropic.APIError):
-        return 0.5
+        score = 0.5
+
+    cache_set(step, score)
+    return score
 
 
 async def judge_all_suspects(suspects: set[str], trace: Trace) -> dict[str, float]:

@@ -67,6 +67,24 @@ def rank_suspects(
     return sorted(results, key=lambda c: c.suspicion, reverse=True)
 
 
+def compute_confidence(candidates: list[Candidate]) -> float:
+    """Confidence based on how much the top suspect stands out from the rest.
+
+    High confidence (>0.7) → monitor can auto-fix.
+    Low confidence (<0.7) → escalate to human.
+    """
+    if not candidates:
+        return 0.0
+    if len(candidates) <= 1:
+        return candidates[0].suspicion
+    top = candidates[0].suspicion
+    runner_up = candidates[1].suspicion
+    # Gap between #1 and #2, normalized. Big gap = high confidence.
+    gap = (top - runner_up) / top if top > 0 else 0.0
+    # Blend: 60% raw suspicion of #1 + 40% separation from #2
+    return min(1.0, top * 0.6 + gap * 0.4)
+
+
 async def attribute(trace: Trace) -> Attribution:
     """Localize the root cause of a failing trace. Main exported function."""
     from attribution.regression import save_regression_case
@@ -84,10 +102,11 @@ async def attribute(trace: Trace) -> Attribution:
     judge_scores = await judge_all_suspects(active_suspects, trace)
     candidates = rank_suspects(active_suspects, judge_scores, trace)
 
-    # 5-7. root → blast → rationale
+    # 5-8. root → blast → rationale + suggested fix → confidence
     root_step_id = candidates[0].step_id
     blast = blast_radius(G, root_step_id)
-    rationale = await generate_rationale(root_step_id, blast, trace)
+    rationale, suggested_fix = await generate_rationale(root_step_id, blast, trace)
+    confidence = compute_confidence(candidates)
 
     result = Attribution(
         trace_id=trace.id,
@@ -95,6 +114,9 @@ async def attribute(trace: Trace) -> Attribution:
         blast_radius=blast,
         candidates=candidates[:3],
         rationale=rationale,
+        suggested_fix=suggested_fix,
+        confidence=confidence,
     )
     save_regression_case(trace, result)
     return result
+

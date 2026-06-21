@@ -71,6 +71,8 @@ class Attribution(BaseModel):
     blast_radius: list[str]          # step ids in the forward slice from root
     candidates: list[Candidate]      # ranked; index 0 is the leading suspect
     rationale: str                   # plain-English explanation of the root cause
+    suggested_fix: Optional[Any] = None   # corrected output for root_step_id, usable as replay injected_value
+    confidence: float = 0.0          # 0.0–1.0; high = safe to auto-fix, low = escalate to human
 
 
 class ReplayResult(BaseModel):
