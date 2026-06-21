@@ -134,7 +134,7 @@ def build_artifacts(domain_id: str = HERO_ID, *, think=None) -> dict:
     meta = _meta(spec, agent, monitor)
     if think is not None and agent in spec.live:
         # this run's root agent actually ran on a real model — say so (honest LIVE label)
-        meta["engine"] = f"{spec.engine} · LIVE real Claude (Haiku)"
+        meta["engine"] = f"{spec.engine} · LIVE · Claude Haiku 4.5"
         meta["live_agent"] = agent
 
     return {

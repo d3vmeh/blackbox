@@ -50,7 +50,7 @@ def _coding_meta_and_monitor(scn, art: dict, live: bool) -> tuple[dict, dict]:
     meta = {
         "runtime": "multi-agent",
         "domain": "coding · natural failure" if scn.natural else "coding pipeline",
-        "engine": f"4-agent pipeline · {'real Claude (Haiku)' if live else 'deterministic'}",
+        "engine": f"4-agent pipeline · {'Claude Haiku 4.5' if live else 'deterministic'}",
         "pipeline": ["record", "localize", "confirm"],
         "agent_labels": _CODE_AGENT_LABELS,
         "scenario": scn.name,
