@@ -1,17 +1,17 @@
 """Run the coding pipeline + monitor, with a readable diagnostic view.
 
-    python -m agent.run_code            # offline, deterministic (no key)
-    python -m agent.run_code --live     # real Claude for the spec interpreter (needs ANTHROPIC_API_KEY)
-    python -m agent.run_code --verbose  # also dump every agent's full output + the final code
+    python -m agent.code.run            # offline, deterministic (no key)
+    python -m agent.code.run --live     # real Claude for the spec interpreter (needs ANTHROPIC_API_KEY)
+    python -m agent.code.run --verbose  # also dump every agent's full output + the final code
 """
 from __future__ import annotations
 
 import sys
 
-from .code_graph import _LLM, run_code
-from .code_monitor import investigate
-from .code_scenarios import AGENTS, DEFAULT
-from .llm import make_think
+from .graph import _LLM, run_code
+from .monitor import investigate
+from .scenarios import AGENTS, DEFAULT
+from ..llm import make_think
 
 
 def _salient(output: dict) -> str:

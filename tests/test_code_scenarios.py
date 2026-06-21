@@ -1,4 +1,4 @@
-from agent.code_scenarios import SCENARIOS, CodeScenario, CodeFault, AGENTS
+from agent.code.scenarios import SCENARIOS, CodeScenario, CodeFault, AGENTS
 
 def test_one_scenario_named_parse_duration_seconds():
     names = [s.name for s in SCENARIOS]

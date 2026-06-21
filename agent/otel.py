@@ -4,10 +4,10 @@ Backends:
   phoenix  — local `phoenix serve` at http://localhost:6006 (default for --otel)
   arize    — Arize AX cloud at https://app.arize.com (use --arize)
 
-    python -m agent.run --arize       # flight benchmark -> Arize AX
-    python -m agent.run_ap --arize   # AP demo -> Arize AX (needs .env keys)
-    python -m agent.run_ap --otel     # AP demo -> local Phoenix
-    phoenix serve && python -m agent.run_ap --otel
+    python -m agent.flight.run --arize    # flight benchmark -> Arize AX
+    python -m agent.ap.run --arize        # AP demo -> Arize AX (needs .env keys)
+    python -m agent.ap.run --otel         # AP demo -> local Phoenix
+    phoenix serve && python -m agent.ap.run --otel
 """
 from __future__ import annotations
 
