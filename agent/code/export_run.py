@@ -147,12 +147,21 @@ def build_artifacts(scn: CodeScenario = DEFAULT, *, think=None) -> dict:
         field, bad, good = next(diffs)
     except StopIteration:
         raise ValueError(f"root step {root.id} has no output↔correct_output diff to attribute")
-    candidates = [Candidate(step_id=root.id, suspicion=0.92,
-                            reason=f"{verdict.root_agent} set {field}={bad!r}; should be {good!r}")]
+    # For code/multi-line fields, DON'T dump the value into the prose (repr() escapes newlines into
+    # an unreadable blob) — the actual before→after is rendered in the WHAT HAPPENED / THE FIX diff.
+    # Short scalar faults (e.g. unit='minutes') keep the inline before→after, which reads cleanly.
+    codeish = field in ("code", "tests") or (isinstance(bad, str) and "\n" in bad)
+    if codeish:
+        reason = f"{verdict.root_agent} wrote {field} that fails the hidden tests — see the diff"
+        rationale = (f"The {verdict.root_agent}'s {field} is wrong (shown in WHAT HAPPENED / THE FIX); "
+                     f"every downstream step inherited it and the acceptance test failed.")
+    else:
+        reason = f"{verdict.root_agent} set {field}={bad!r}; should be {good!r}"
+        rationale = (f"The {verdict.root_agent} set {field}={bad!r} (should be {good!r}); every "
+                     f"downstream step inherited it and the acceptance test failed.")
+    candidates = [Candidate(step_id=root.id, suspicion=0.92, reason=reason)]
     candidates += [Candidate(step_id=sid, suspicion=0.30, reason="inherited the wrong value")
                    for sid in blast[:2]]
-    rationale = (f"The {verdict.root_agent} set {field}={bad!r} (should be {good!r}); every "
-                 f"downstream step inherited it and the acceptance test failed.")
     attribution = Attribution(trace_id="code_run", root_step_id=root.id, blast_radius=blast,
                               candidates=candidates, rationale=rationale)
 
