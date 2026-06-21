@@ -11,20 +11,20 @@
     {
       "step_id": "s1",
       "suspicion": 0.92,
-      "reason": "INTAKE misread billed_amount as $52,000 — correct value is $5,200"
+      "reason": "INTAKE set billed_amount=52000.0; should be 5200.0"
     },
     {
       "step_id": "s4",
       "suspicion": 0.45,
-      "reason": "ADJUSTER trimmed payout to tier cap — plausible suspect, but replay does not flip"
+      "reason": "ADJUSTER looks suspicious but replay does not flip"
     },
     {
       "step_id": "s2",
       "suspicion": 0.3,
-      "reason": "COVERAGE inherited the inflated billed_amount and applied the wrong cap"
+      "reason": "inherited the corrupted hand-off"
     }
   ],
-  "rationale": "INTAKE extracted billed_amount=$52,000 from the claim form instead of $5,200 — a 10× read error. Every downstream agent trusted that figure: COVERAGE capped at the $8,000 tier limit and PAYOUT disbursed $8,000. The correct payout is $5,200. Injecting billed_amount=5200 at INTAKE and replaying flips the oracle FAIL → PASS in 5/5 runs.",
+  "rationale": "Payout $52,000 exceeds gold tier policy limit ($8,000)",
   "suggested_fix": {
     "billed_amount": 5200.0
   },
