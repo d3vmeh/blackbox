@@ -28,6 +28,8 @@ def save_regression_case(
         "correct": attribution.root_step_id == trace.gold_root_step_id,
         "blast_radius": attribution.blast_radius,
         "rationale": attribution.rationale,
+        "suggested_fix": attribution.suggested_fix,
+        "confidence": attribution.confidence,
         "candidates": [c.model_dump() for c in attribution.candidates],
         "human_confirmed": human_confirmed,
         "confirmed_root": confirmed_root or attribution.root_step_id,
