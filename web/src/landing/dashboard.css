@@ -4,7 +4,7 @@
 .appshell {
   display: grid;
   grid-template-columns: 208px minmax(0, 1fr) 288px;
-  height: 560px;
+  height: 592px;
   background: var(--bg);
   font-family: var(--font-mono);
 }
@@ -63,8 +63,9 @@
 .appshell__runtask { font-size: var(--t-label); color: var(--text-faint); justify-self: end; }
 
 /* ---- Main column ---- */
-.appshell__main { display: flex; flex-direction: column; min-width: 0; }
+.appshell__main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .appshell__head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -99,7 +100,8 @@
   flex-direction: column;
   gap: 2px;
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  overflow-y: auto;
 }
 .step {
   position: relative;
@@ -157,6 +159,7 @@
 .spine--analyzing .step:not(.step--root) { opacity: 0.32; }
 
 .appshell__foot {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);

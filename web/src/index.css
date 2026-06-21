@@ -107,8 +107,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html, body, #root { height: 100%; }
-html { overflow-x: hidden; }
+html, body, #root { min-height: 100%; }
+html {
+  overflow-x: clip;
+  scroll-padding-top: 60px;
+}
 
 body {
   margin: 0;

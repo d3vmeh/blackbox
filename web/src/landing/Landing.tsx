@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { motion, type Variants } from 'motion/react'
 import { HeroShowcase } from './HeroShowcase'
 import { HowItWorksDeck } from './HowItWorksDeck'
+import { SystemMap } from './SystemMap'
 import './landing.css'
 
 const reveal: Variants = {
@@ -24,23 +26,20 @@ const FEATURES = [
   { tone: 'mechanical', title: 'Mechanical, not an LLM guessing', body: 'Localize → replay → decide is plain code. The only model in the loop judges one step in isolation.' },
 ] as const
 
-const STATS = [
-  { value: '~14%', label: 'SOTA step-attribution we beat by proof' },
-  { value: 'fail→pass', label: 'every fix confirmed by replay' },
-  { value: '0', label: 'fixes trusted before replay proves them' },
-] as const
-
 export function Landing() {
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
   return (
     <div className="page">
       <nav className="nav">
-        <a className="brand" href="/">
+        <a className="brand" href="/" onClick={() => { window.location.hash = '' }}>
           <span className="brand__mark" aria-hidden="true" />
           blackbox
         </a>
         <div className="nav__links">
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#system-map">System map</a>
           <a href="#docs">Docs</a>
           <a href="#github">GitHub</a>
         </div>
@@ -82,16 +81,6 @@ build_artifacts()  <span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → P
 
       <HowItWorksDeck />
 
-      {/* ---- Stats band ---- */}
-      <section className="stats">
-        {STATS.map((s) => (
-          <div key={s.label} className="stat">
-            <span className="stat__value tnum">{s.value}</span>
-            <span className="stat__label">{s.label}</span>
-          </div>
-        ))}
-      </section>
-
       {/* ---- Features ---- */}
       <motion.section className="features" id="features" variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>
         <motion.p className="eyebrow sect__eyebrow" variants={reveal}>Why blackbox</motion.p>
@@ -105,6 +94,8 @@ build_artifacts()  <span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → P
           ))}
         </div>
       </motion.section>
+
+      <SystemMap />
 
       {/* ---- CTA ---- */}
       <motion.section className="cta" variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>
