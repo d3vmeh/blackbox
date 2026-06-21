@@ -27,6 +27,12 @@ export function Dashboard() {
   // Selecting a different node clears the stale replay result.
   const selectNode = (id: string | null) => { setSelectedId(id); setReplayInfo(null) }
 
+  // Keep the picked scenario valid for the served list (the live backend serves the coding
+  // scenarios; the default 'acme_amount' isn't among them, so Run would 404 without this).
+  useEffect(() => {
+    if (scenarios.length && !scenarios.some((s) => s.name === picked)) setPicked(scenarios[0].name)
+  }, [scenarios, picked])
+
   // Each new run (data change) re-focuses the root cause and replays the cascade.
   useEffect(() => {
     setSelectedId(rootNodeId)
