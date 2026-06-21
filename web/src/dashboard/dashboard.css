@@ -112,15 +112,18 @@
 /* ---- Trace graph: node-link diagram (positioned nodes + curved SVG edges) ---- */
 .tg { position: relative; }
 .tg__edges { position: absolute; inset: 0; pointer-events: none; }
-/* Per-agent grouping: a mono UPPERCASE label in the reserved left gutter (28px,
-   = GUTTER_W in layout.ts), centered on the band. Neutral --text-dim; the band
-   that owns the localized root cause earns --root (its reserved meaning). */
+/* Per-agent grouping: a mono UPPERCASE label in the reserved left gutter (80px,
+   = GUTTER_W in layout.ts), centered on the band. Wide enough for a full agent
+   name; longer names ellipsize inside the gutter rather than being covered by a
+   node. Neutral --text-dim; the band that owns the localized root cause earns
+   --root (its reserved meaning). */
 .tg__band-label {
-  position: absolute; left: 0; width: 28px;
+  position: absolute; left: 0; width: 80px;
   font-family: var(--font-mono); font-size: var(--t-label);
   letter-spacing: var(--track-upper); text-transform: uppercase;
   color: var(--text-dim); text-align: center; line-height: var(--lh-data);
   transform: translateY(-50%); pointer-events: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .tg__band-label[data-root='true'] { color: var(--root); }
 /* Band separator: surface-step + hairline rule (--line-soft at --hair), never a hue. */
@@ -129,7 +132,7 @@
   background: var(--line-soft); pointer-events: none;
 }
 .tg__node {
-  position: absolute; width: 190px; min-height: 50px; display: flex; flex-direction: column;
+  position: absolute; width: 150px; min-height: 50px; display: flex; flex-direction: column;
   justify-content: center; gap: 3px; padding: var(--space-2) var(--space-3);
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-3);
   cursor: pointer; transition: outline-color var(--dur-micro) var(--ease-out);
