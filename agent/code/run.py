@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import sys
 
-from .code_graph import _LLM, run_code
-from .code_monitor import investigate
-from .code_scenarios import AGENTS, DEFAULT
-from .llm import make_think
+from .graph import _LLM, run_code
+from .monitor import investigate
+from .scenarios import AGENTS, DEFAULT
+from ..llm import make_think
 
 
 def _salient(output: dict) -> str:

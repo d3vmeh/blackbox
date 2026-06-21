@@ -1,6 +1,6 @@
-from agent.code_graph import run_code
-from agent.code_monitor import investigate
-from agent.code_scenarios import SCENARIOS, CodeScenario
+from agent.code.graph import run_code
+from agent.code.monitor import investigate
+from agent.code.scenarios import SCENARIOS, CodeScenario
 
 PARSE = next(s for s in SCENARIOS if s.name == "parse_duration_units")
 

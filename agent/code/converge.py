@@ -2,7 +2,7 @@
 """P1 — Convergence harness for the coding pipeline. For every labeled scenario, localize
 the guilty agent two ways and score each against the gold:
 
-  • deterministic monitor (code_monitor.investigate) — reliable, no key, and
+  • deterministic monitor (monitor.investigate) — reliable, no key, and
   • P2's general attribute() LLM-judge — needs ANTHROPIC_API_KEY for its Haiku judges.
 
 Run from repo root:  python -m agent.converge_code
@@ -17,9 +17,9 @@ from typing import Optional
 from eval.code_oracle import evaluate_code
 from shared.schema import Trace
 
-from . import code_monitor
-from .code_graph import run_code
-from .code_scenarios import SCENARIOS, CodeScenario
+from . import monitor
+from .graph import run_code
+from .scenarios import SCENARIOS, CodeScenario
 
 
 def _gold_agent(scn: CodeScenario) -> Optional[str]:
@@ -45,7 +45,7 @@ async def _one(scn: CodeScenario, live: bool) -> dict:
         return {"name": scn.name, "failed": False, "gold": gold,
                 "monitor": None, "p2": None if live else "—"}
 
-    mon = code_monitor.investigate(trace, scn).root_agent
+    mon = monitor.investigate(trace, scn).root_agent
 
     if not live:
         return {"name": scn.name, "failed": True, "gold": gold, "monitor": mon, "p2": "—"}

@@ -1,6 +1,6 @@
 import asyncio
-from agent.converge_code import main, _gold_agent
-from agent.code_scenarios import SCENARIOS
+from agent.code.converge import main, _gold_agent
+from agent.code.scenarios import SCENARIOS
 
 
 def test_gold_agent_reads_fault():

@@ -11,8 +11,8 @@ from typing import Any, Optional
 from eval.code_oracle import evaluate_code
 from shared.schema import Trace
 
-from .code_graph import replay_code
-from .code_scenarios import AGENTS, CodeScenario
+from .graph import replay_code
+from .scenarios import AGENTS, CodeScenario
 
 
 @dataclass
