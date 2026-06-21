@@ -21,6 +21,16 @@ _CORRECT_CODE = (
 # what a faithful implementer writes if the SPEC says the unit is minutes
 _MINUTES_CODE = _CORRECT_CODE.replace("    return total\n", "    return total // 60\n")
 
+# implementer-fault: a plausible bug — counts hours/minutes but drops seconds
+_PARSE_BAD_CODE = (
+    "import re\n"
+    "def parse_duration(s):\n"
+    "    total = 0\n"
+    "    for value, unit in re.findall(r'(\\d+)([hms])', s):\n"
+    "        total += int(value) * {'h': 3600, 'm': 60, 's': 0}[unit]\n"
+    "    return total\n"
+)
+
 _ACCEPTANCE = (
     "assert parse_duration('2m30s') == 150\n"
     "assert parse_duration('1h') == 3600\n"
@@ -40,7 +50,8 @@ class CodeScenario:
     name: str
     requirement: str
     reference: dict                      # agent -> fn(scn, up) -> dict (correct output)
-    acceptance_tests: str                # python asserts over parse_duration (hidden oracle)
+    acceptance_tests: str                # python asserts over the function (hidden oracle)
+    function_name: str = "parse_duration"  # the entry point the acceptance tests import
     fault: Optional[CodeFault] = None
 
 
@@ -68,15 +79,122 @@ def _ref_review(scn: "CodeScenario", up: dict) -> dict:
     return {"approved": True, "notes": "code matches the structured spec"}
 
 
+_PARSE_REF = {"spec_interpreter": _ref_spec, "implementer": _ref_impl,
+              "test_writer": _ref_tests, "reviewer": _ref_review}
+
+# --- task: celsius_to_fahrenheit (return int Fahrenheit) ---
+_TEMP_CORRECT = "def celsius_to_fahrenheit(c):\n    return int(c * 9 / 5 + 32)\n"
+_TEMP_CELSIUS = "def celsius_to_fahrenheit(c):\n    return int(c)\n"        # spec said celsius
+_TEMP_BAD_CODE = "def celsius_to_fahrenheit(c):\n    return int(c * 9 / 5)\n"  # forgets + 32
+_TEMP_ACCEPTANCE = ("assert celsius_to_fahrenheit(100) == 212\n"
+                    "assert celsius_to_fahrenheit(0) == 32\n"
+                    "assert celsius_to_fahrenheit(37) == 98\n")
+
+
+def _ref_spec_temp(scn, up):
+    return {"signature": "def celsius_to_fahrenheit(c: int) -> int",
+            "unit": "fahrenheit", "summary": "convert celsius to fahrenheit, floored to int"}
+
+
+def _ref_impl_temp(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    return {"code": _TEMP_CORRECT if unit == "fahrenheit" else _TEMP_CELSIUS}
+
+
+def _ref_tests_temp(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    expected = 212 if unit == "fahrenheit" else 100
+    return {"tests": f"assert celsius_to_fahrenheit(100) == {expected}\n"}
+
+
+_TEMP_REF = {"spec_interpreter": _ref_spec_temp, "implementer": _ref_impl_temp,
+             "test_writer": _ref_tests_temp, "reviewer": _ref_review}
+
 SCENARIOS: list[CodeScenario] = [
     CodeScenario(
         name="parse_duration_units",
         requirement=("Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. "
                      "Return the TOTAL NUMBER OF SECONDS as an int."),
-        reference={"spec_interpreter": _ref_spec, "implementer": _ref_impl,
-                   "test_writer": _ref_tests, "reviewer": _ref_review},
-        acceptance_tests=_ACCEPTANCE,
+        reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
         fault=CodeFault("spec_interpreter", "unit", "minutes"),
+    ),
+    CodeScenario(
+        name="parse_duration_impl",
+        requirement=("Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. "
+                     "Return the TOTAL NUMBER OF SECONDS as an int."),
+        reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
+        fault=CodeFault("implementer", "code", _PARSE_BAD_CODE),
+    ),
+    CodeScenario(
+        name="parse_duration_clean",
+        requirement=("Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. "
+                     "Return the TOTAL NUMBER OF SECONDS as an int."),
+        reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
+        fault=None,
+    ),
+]
+
+SCENARIOS += [
+    CodeScenario(
+        name="celsius_spec",
+        requirement="Implement celsius_to_fahrenheit(c). Return the temperature in "
+                    "FAHRENHEIT as an int (floored).",
+        reference=_TEMP_REF, acceptance_tests=_TEMP_ACCEPTANCE,
+        function_name="celsius_to_fahrenheit",
+        fault=CodeFault("spec_interpreter", "unit", "celsius"),
+    ),
+    CodeScenario(
+        name="celsius_impl",
+        requirement="Implement celsius_to_fahrenheit(c). Return the temperature in "
+                    "FAHRENHEIT as an int (floored).",
+        reference=_TEMP_REF, acceptance_tests=_TEMP_ACCEPTANCE,
+        function_name="celsius_to_fahrenheit",
+        fault=CodeFault("implementer", "code", _TEMP_BAD_CODE),
+    ),
+]
+
+# --- task: kib (bytes -> kibibytes, floor) ---
+_KIB_CORRECT = "def kib(n_bytes):\n    return n_bytes // 1024\n"
+_KIB_MEBI = "def kib(n_bytes):\n    return n_bytes // 1024 // 1024\n"   # spec said mebibytes
+_KIB_BAD_CODE = "def kib(n_bytes):\n    return n_bytes // 1000\n"        # KB not KiB
+_KIB_ACCEPTANCE = ("assert kib(1024) == 1\n"
+                   "assert kib(1048576) == 1024\n"
+                   "assert kib(1000000) == 976\n")
+
+
+def _ref_spec_kib(scn, up):
+    return {"signature": "def kib(n_bytes: int) -> int",
+            "unit": "kibibytes", "summary": "bytes to kibibytes via floor division by 1024"}
+
+
+def _ref_impl_kib(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    return {"code": _KIB_CORRECT if unit == "kibibytes" else _KIB_MEBI}
+
+
+def _ref_tests_kib(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    expected = 1 if unit == "kibibytes" else 0
+    return {"tests": f"assert kib(1024) == {expected}\n"}
+
+
+_KIB_REF = {"spec_interpreter": _ref_spec_kib, "implementer": _ref_impl_kib,
+            "test_writer": _ref_tests_kib, "reviewer": _ref_review}
+
+SCENARIOS += [
+    CodeScenario(
+        name="kib_spec",
+        requirement="Implement kib(n_bytes). Return the size in KIBIBYTES (KiB) as an int, "
+                    "floor-dividing the byte count by 1024.",
+        reference=_KIB_REF, acceptance_tests=_KIB_ACCEPTANCE, function_name="kib",
+        fault=CodeFault("spec_interpreter", "unit", "mebibytes"),
+    ),
+    CodeScenario(
+        name="kib_impl",
+        requirement="Implement kib(n_bytes). Return the size in KIBIBYTES (KiB) as an int, "
+                    "floor-dividing the byte count by 1024.",
+        reference=_KIB_REF, acceptance_tests=_KIB_ACCEPTANCE, function_name="kib",
+        fault=CodeFault("implementer", "code", _KIB_BAD_CODE),
     ),
 ]
 
