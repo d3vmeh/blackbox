@@ -1,4 +1,4 @@
-import type { Attribution, Step } from '../../types'
+import type { Attribution, MonitorDecision, Step } from '../../types'
 import type { ActionNode } from '../types'
 import type { RunMeta } from '../data/loadMeta'
 import { Field, RawPayload, Section } from './sections'
@@ -10,11 +10,12 @@ function previewState(state: Step['state']): string {
     .join('  ·  ')
 }
 
-export function Inspector({ node, steps, attribution, runMeta, onReplay }: {
+export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
   runMeta: RunMeta
+  monitor: MonitorDecision
   onReplay: (stepId: string) => void
 }) {
   if (!node) {
@@ -68,6 +69,13 @@ export function Inspector({ node, steps, attribution, runMeta, onReplay }: {
         <Field k="parents" v={step.parents.join(', ') || '—'} />
       </Section>
 
+      {isRoot && (
+        <Section title="supervise · trust gate" aside={monitor.decision}>
+          <Field k="trusted" v={monitor.trusted ? 'yes' : 'no'} tone={monitor.trusted ? 'good' : undefined} />
+          <Field k="decision" v={monitor.decision} tone={monitor.trusted ? 'good' : undefined} />
+          <Field k="confirmation" v={`${Math.round(monitor.replay.confirmation_rate * 100)}% over n=${monitor.replay.n}`} />
+        </Section>
+      )}
       {candidate && (
         <Section title="node-judge · haiku" aside={`suspicion ${candidate.suspicion}`}>
           <div className="insp__judge">{candidate.reason}</div>

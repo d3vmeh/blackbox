@@ -7,6 +7,12 @@
     "run_agent_graph",
     "to_trace"
   ],
+  "pipeline": [
+    "record",
+    "localize",
+    "confirm",
+    "supervise"
+  ],
   "graph_nodes": [
     "plan",
     "search",
@@ -23,5 +29,11 @@
   "capture_path": "Recorder inside LangGraph nodes (dashboard trace)",
   "replay_path": "app.update_state(as_node=...) + invoke (LangGraph fork)",
   "fork_node": "parse_date",
-  "thread_id": "flight_run"
+  "thread_id": "flight_run",
+  "observability": {
+    "otel": "agent/otel.emit_trace",
+    "arize": "ARIZE_* env \u2192 https://app.arize.com (use --arize on export)",
+    "project_default": "blackbox-ap"
+  },
+  "monitor_decision": "auto_apply"
 }

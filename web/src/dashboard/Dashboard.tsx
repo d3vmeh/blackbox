@@ -33,6 +33,7 @@ export function Dashboard() {
   )
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
   const verdict = phase === 'confirm' ? 'PASS' : 'FAIL'
+  const monitorLabel = phase === 'confirm' ? data.monitor.decision : null
 
   const onReplay = async (stepId: string) => {
     // The corrected value comes from the pre-generated replay result, keyed by step.
@@ -47,6 +48,7 @@ export function Dashboard() {
         task={data.trace.task}
         verdict={verdict}
         runtime={`${data.meta.engine}`}
+        monitorDecision={monitorLabel}
         meta={`${data.trace.steps.length} steps · ${data.meta.checkpoints} checkpoints · ${PHASE_STATUS[phase]}`}
       />
       <div className="dash__body">
@@ -65,6 +67,7 @@ export function Dashboard() {
             steps={data.trace.steps}
             attribution={data.attribution}
             runMeta={data.meta}
+            monitor={data.monitor}
             onReplay={onReplay}
           />
         </aside>

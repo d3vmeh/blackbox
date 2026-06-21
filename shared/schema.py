@@ -87,3 +87,13 @@ class ReplayResult(BaseModel):
     flipped: bool                    # did the outcome flip fail->pass at all
     confirmation_rate: float         # fraction of n re-runs that passed, in [0, 1]
     outcomes: list[bool]             # per-run pass/fail
+
+
+class MonitorDecision(BaseModel):
+    """Trust gate after replay-confirm: auto-heal or escalate to human."""
+
+    trace_id: str
+    root_step_id: str
+    replay: ReplayResult
+    trusted: bool
+    decision: str                    # auto_apply | escalate

@@ -5,7 +5,9 @@ import { deriveActions } from '../deriveActions'
 import { nodeStatus, type StatusMap } from '../nodeStatus'
 import { loadFixtureTrace } from './loadFixture'
 import { loadRunMeta, type RunMeta } from './loadMeta'
+import { loadMonitorDecision } from './loadMonitor'
 import { STUB_ATTRIBUTION } from './stubAttribution'
+import type { MonitorDecision } from '../../types'
 import { stubReplay } from './stubReplay'
 
 export interface RunData {
@@ -14,6 +16,7 @@ export interface RunData {
   graph: ActionGraph
   status: StatusMap
   meta: RunMeta
+  monitor: MonitorDecision
 }
 
 export function useRun(): {
@@ -24,9 +27,10 @@ export function useRun(): {
     const trace = loadFixtureTrace()
     const attribution = STUB_ATTRIBUTION
     const meta = loadRunMeta()
+    const monitor = loadMonitorDecision()
     const graph = deriveActions(trace)
     const status = nodeStatus(graph, attribution)
-    return { trace, attribution, graph, status, meta }
+    return { trace, attribution, graph, status, meta, monitor }
   }, [])
 
   // Async shape now so the SSE swap later is a drop-in (no caller change).

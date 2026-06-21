@@ -1,10 +1,11 @@
 """Demo entrypoint: capture a failing run, confirm the root cause by replay.
 
-    python -m agent.run               # offline (mock LLM + mock web)
-    python -m agent.run --live        # Claude reasoning (needs ANTHROPIC_API_KEY)
-    python -m agent.run --browserbase # real Browserbase web tool (needs BROWSERBASE_* keys)
-    python -m agent.run --arize       # export spans to Arize AX (https://app.arize.com)
-    python -m agent.run --otel        # export spans to local Phoenix (run `phoenix serve` first)
+    python -m agent.flight.run               # offline sequential path
+    python -m agent.flight.run --langgraph     # LangGraph path (same as dashboard export)
+    python -m agent.flight.run --live          # Claude reasoning (needs ANTHROPIC_API_KEY)
+    python -m agent.flight.run --browserbase   # real Browserbase web tool
+    python -m agent.flight.run --arize         # export spans to Arize AX
+    python -m agent.flight.run --otel          # export spans to local Phoenix
 """
 from __future__ import annotations
 
@@ -12,12 +13,17 @@ import sys
 
 from shared.schema import Trace
 from .faults import inject_fault
-from .graph import INTENDED_DATE, run_agent
+from .graph import INTENDED_DATE, run_agent, run_agent_graph
 
 
-def make_failing_trace(use_real_llm: bool = False, use_browserbase: bool = False) -> Trace:
+def make_failing_trace(*, use_real_llm: bool = False, use_browserbase: bool = False,
+                       use_langgraph: bool = False) -> Trace:
     bad = "2026-12-07"
-    base = run_agent(use_real_llm=use_real_llm, use_browserbase=use_browserbase)
+    if use_langgraph:
+        base, _app = run_agent_graph(use_real_llm=use_real_llm, use_browserbase=use_browserbase,
+                                     trace_id="flight_live")
+    else:
+        base = run_agent(use_real_llm=use_real_llm, use_browserbase=use_browserbase)
     parse_id = next(s.id for s in base.steps if s.raw.get("node") == "parse_date")
     return inject_fault(base, parse_id, bad_output=f"departure = {bad}",
                         propagate=(INTENDED_DATE, bad),
@@ -29,10 +35,12 @@ def main() -> None:
 
     live = "--live" in sys.argv
     bb = "--browserbase" in sys.argv
+    lg = "--langgraph" in sys.argv
     use_otel = "--otel" in sys.argv
     use_arize = "--arize" in sys.argv
-    t = make_failing_trace(use_real_llm=live, use_browserbase=bb)
-    print(f"failing trace {t.id!r}: {len(t.steps)} steps, success={t.success}, gold={t.gold_root_step_id}")
+    t = make_failing_trace(use_real_llm=live, use_browserbase=bb, use_langgraph=lg)
+    path = "langgraph" if lg else "sequential"
+    print(f"failing trace {t.id!r} ({path}): {len(t.steps)} steps, success={t.success}, gold={t.gold_root_step_id}")
     print(f"  final: {t.final_output}")
 
     gold = next(s for s in t.steps if s.id == t.gold_root_step_id)
@@ -53,6 +61,7 @@ def main() -> None:
             "root_node": root_node or "",
             "replay_confirmed": r.flipped,
             "confirmation_rate": r.confirmation_rate,
+            "runtime": path,
         }
         label = "Arize AX (https://app.arize.com)" if use_arize else "Phoenix (http://localhost:6006)"
         print(f"\n[trace] exporting flight spans to {label}:")

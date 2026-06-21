@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Inspector } from './Inspector'
-import type { Step, Attribution } from '../../types'
+import type { Step, Attribution, MonitorDecision } from '../../types'
 import type { ActionNode } from '../types'
 import type { RunMeta } from '../data/loadMeta'
 
@@ -27,6 +27,16 @@ const runMeta: RunMeta = {
   fork_node: 'parse_date',
   thread_id: 'flight_run',
 }
+const monitor: MonitorDecision = {
+  trace_id: 't',
+  root_step_id: 's3',
+  replay: {
+    trace_id: 't', step_id: 's3', injected_value: 'fix', n: 5,
+    flipped: true, confirmation_rate: 1, outcomes: [true, true, true, true, true],
+  },
+  trusted: true,
+  decision: 'auto_apply',
+}
 const attribution: Attribution = {
   trace_id: 't', root_step_id: 's3', blast_radius: ['s4'],
   candidates: [{ step_id: 's3', suspicion: 0.91, reason: 'date swap' }], rationale: 'x',
@@ -34,7 +44,7 @@ const attribution: Attribution = {
 
 describe('Inspector', () => {
   it('renders telemetry for the focused node including the judge suspicion', () => {
-    render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} onReplay={() => {}} />)
+    render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor} onReplay={() => {}} />)
     expect(screen.getByText('normalize_dates')).toBeInTheDocument()
     expect(screen.getAllByText(/2024-12-07/).length).toBeGreaterThan(0)
     expect(screen.getByText(/0\.91/)).toBeInTheDocument()
@@ -42,13 +52,13 @@ describe('Inspector', () => {
 
   it('fires onReplay with the root step id', () => {
     const onReplay = vi.fn()
-    render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} onReplay={onReplay} />)
+    render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor} onReplay={onReplay} />)
     fireEvent.click(screen.getByRole('button', { name: /replay with fix/i }))
     expect(onReplay).toHaveBeenCalledWith('s3')
   })
 
   it('shows a prompt when nothing is selected', () => {
-    render(<Inspector node={null} steps={steps} attribution={attribution} runMeta={runMeta} onReplay={() => {}} />)
+    render(<Inspector node={null} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor} onReplay={() => {}} />)
     expect(screen.getByText(/select a node/i)).toBeInTheDocument()
   })
 })

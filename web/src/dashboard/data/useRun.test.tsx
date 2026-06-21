@@ -8,6 +8,7 @@ describe('useRun', () => {
     expect(result.current.data.trace.id).toBe('flight_run')
     expect(result.current.data.meta.runtime).toBe('langgraph')
     expect(result.current.data.meta.apis).toContain('run_agent_graph')
+    expect(result.current.data.monitor.decision).toBe('auto_apply')
     expect(result.current.data.attribution.root_step_id).toBe('s4')
     expect(result.current.data.graph.nodes.length).toBeGreaterThanOrEqual(4)
     expect(result.current.data.status[result.current.data.graph.nodes[0].id]).toBeDefined()

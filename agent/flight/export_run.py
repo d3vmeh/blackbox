@@ -1,18 +1,22 @@
 """P2 — Generate LangGraph flight-run JSON artifacts for the dashboard.
 
-Runs the flight agent through LangGraph (`run_agent_graph`), injects a known
-parse_date fault, confirms replay via `graph_fork_outcome` / `update_state`,
-and writes shared/fixtures/flight_run/{trace,attribution,replay,meta}.json.
+Full blackbox pipeline on one LangGraph run:
+  record (run_agent_graph) → localize (attribution) → confirm (replay) → supervise (monitor)
 
-Run: python -m agent.flight.export_run
+Writes shared/fixtures/flight_run/{trace,attribution,replay,monitor,meta}.json.
+
+Run:
+    python -m agent.flight.export_run
+    python -m agent.flight.export_run --arize   # also emit FAIL+healed spans to Arize AX
 """
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 from attribution.provenance import blast_radius, build_provenance_graph
-from shared.schema import Attribution, Candidate, ReplayResult, Trace
+from shared.schema import Attribution, Candidate, MonitorDecision, ReplayResult, Trace
 
 from ..capture import to_trace
 from .faults import inject_fault
@@ -21,14 +25,17 @@ from .graph import (
     NODES,
     REPLAYABLE,
     graph_replay_confirm,
+    replay_run,
     run_agent_graph,
 )
 
 _OUT = Path("shared/fixtures/flight_run")
 _TRACE_ID = "flight_run"
+_HEALED_ID = "flight_healed"
 _BAD_DATE = "2026-12-07"
 _N = 5
 _FORK_NODE = "parse_date"
+_TRUST_THRESHOLD = 0.5
 
 
 def _sid(trace: Trace, node: str) -> str:
@@ -59,14 +66,20 @@ def _failing_trace() -> tuple[Trace, object, dict]:
     return _tag_langgraph(trace), app, config
 
 
-def _meta(app, config: dict) -> dict:
-    """Surface all three langgraph-clean APIs for the frontend."""
+def trace_task() -> str:
+    from .graph import DEFAULT_TASK
+    return DEFAULT_TASK
+
+
+def _meta(app, config: dict, monitor: MonitorDecision) -> dict:
+    """Surface langgraph-clean APIs + full blackbox pipeline for the frontend."""
     ckpt_trace = to_trace(app, config, task=trace_task(), trace_id=_TRACE_ID)
     return {
         "runtime": "langgraph",
         "author": "sashikumar6 / p2/langgraph-clean",
         "engine": "StateGraph + MemorySaver",
         "apis": ["build_graph", "run_agent_graph", "to_trace"],
+        "pipeline": ["record", "localize", "confirm", "supervise"],
         "graph_nodes": [fn.__name__ for fn in NODES],
         "checkpoints": len(list(app.get_state_history(config))),
         "to_trace_steps": len(ckpt_trace.steps),
@@ -75,12 +88,13 @@ def _meta(app, config: dict) -> dict:
         "replay_path": "app.update_state(as_node=...) + invoke (LangGraph fork)",
         "fork_node": _FORK_NODE,
         "thread_id": _TRACE_ID,
+        "observability": {
+            "otel": "agent/otel.emit_trace",
+            "arize": "ARIZE_* env → https://app.arize.com (use --arize on export)",
+            "project_default": "blackbox-ap",
+        },
+        "monitor_decision": monitor.decision,
     }
-
-
-def trace_task() -> str:
-    from .graph import DEFAULT_TASK
-    return DEFAULT_TASK
 
 
 def _lg_replay(root_id: str, good: dict) -> ReplayResult:
@@ -93,16 +107,53 @@ def _lg_replay(root_id: str, good: dict) -> ReplayResult:
         step_id=root_id,
         injected_value=good,
         n=_N,
-        flipped=rate >= 0.5,
+        flipped=rate >= _TRUST_THRESHOLD,
         confirmation_rate=rate,
         outcomes=outcomes,
     )
 
 
 def _decoy_replay(trace: Trace, decoy_id: str, injected: str) -> ReplayResult:
-    """Decoy still uses sequential replay_run — fixing the wrong node doesn't flip."""
     from replay.replay import replay
     return replay(trace, decoy_id, injected, n=_N)
+
+
+def _monitor(root_replay: ReplayResult) -> MonitorDecision:
+    trusted = root_replay.flipped and root_replay.confirmation_rate >= _TRUST_THRESHOLD
+    return MonitorDecision(
+        trace_id=_TRACE_ID,
+        root_step_id=root_replay.step_id,
+        replay=root_replay,
+        trusted=trusted,
+        decision="auto_apply" if trusted else "escalate",
+    )
+
+
+def _healed_trace() -> Trace:
+    """PASS trace after LangGraph fork fix — pair with flight_run in Arize."""
+    state_key = REPLAYABLE[_FORK_NODE][0]
+    t = replay_run(_FORK_NODE, {state_key: INTENDED_DATE})
+    t.id = _HEALED_ID
+    return _tag_langgraph(t)
+
+
+def _emit_arize(trace: Trace, monitor: MonitorDecision, healed: Trace | None = None) -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    from ..otel import emit_trace
+
+    meta = {
+        "root_step_id": monitor.root_step_id,
+        "root_node": _FORK_NODE,
+        "replay_confirmed": monitor.replay.flipped,
+        "confirmation_rate": monitor.replay.confirmation_rate,
+        "monitor_decision": monitor.decision,
+        "runtime": "langgraph",
+    }
+    emit_trace(trace, backend="arize", monitor=meta)
+    if healed is not None:
+        emit_trace(healed, backend="arize", monitor={**meta, "healed": True})
 
 
 def build_artifacts() -> dict:
@@ -139,26 +190,44 @@ def build_artifacts() -> dict:
     )
 
     decoy_id = _sid(trace, "select_flight")
+    root_replay = _lg_replay(root.id, good)
     replays = {
-        root.id: _lg_replay(root.id, good),
+        root.id: root_replay,
         decoy_id: _decoy_replay(trace, decoy_id, f"selected AA-218 @ $999 for {INTENDED_DATE}"),
     }
+    monitor = _monitor(root_replay)
+    healed = _healed_trace() if monitor.trusted else None
+
     return {
         "trace": trace.model_dump(),
         "attribution": attribution.model_dump(),
         "replays": {k: v.model_dump() for k, v in replays.items()},
-        "meta": _meta(app, config),
+        "monitor": monitor.model_dump(),
+        "meta": _meta(app, config, monitor),
+        "_healed": healed,
     }
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Export LangGraph flight_run dashboard fixtures")
+    parser.add_argument("--arize", action="store_true", help="Emit flight_run (+ healed) to Arize AX")
+    args = parser.parse_args()
+
     art = build_artifacts()
+    healed: Trace | None = art.pop("_healed", None)
     _OUT.mkdir(parents=True, exist_ok=True)
     (_OUT / "trace.json").write_text(json.dumps(art["trace"], indent=2))
     (_OUT / "attribution.json").write_text(json.dumps(art["attribution"], indent=2))
     (_OUT / "replay.json").write_text(json.dumps(art["replays"], indent=2))
+    (_OUT / "monitor.json").write_text(json.dumps(art["monitor"], indent=2))
     (_OUT / "meta.json").write_text(json.dumps(art["meta"], indent=2))
-    print(f"wrote {_OUT}/ : trace.json, attribution.json, replay.json, meta.json")
+    print(f"wrote {_OUT}/ : trace, attribution, replay, monitor, meta")
+
+    if args.arize:
+        monitor = MonitorDecision.model_validate(art["monitor"])
+        trace = Trace.model_validate(art["trace"])
+        _emit_arize(trace, monitor, healed)
+        print("[arize] flight_run + flight_healed -> https://app.arize.com")
 
 
 if __name__ == "__main__":
