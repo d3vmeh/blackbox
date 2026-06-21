@@ -33,17 +33,22 @@ def _step_to_agent(trace: Trace, step_id: Optional[str]) -> Optional[str]:
     return None
 
 
+def _mark(predicted: Optional[str], gold: Optional[str]) -> str:
+    return "✓" if predicted == gold else "✗"
+
+
 async def _one(scn: CodeScenario, live: bool) -> dict:
     trace = run_code(scn)
     failed = not evaluate_code(trace.final_output["code"], scn)
     gold = _gold_agent(scn)
     if not failed:
-        return {"name": scn.name, "gold": gold, "monitor": None, "p2": None if live else "—"}
+        return {"name": scn.name, "failed": False, "gold": gold,
+                "monitor": None, "p2": None if live else "—"}
 
     mon = code_monitor.investigate(trace, scn).root_agent
 
     if not live:
-        return {"name": scn.name, "gold": gold, "monitor": mon, "p2": "—"}
+        return {"name": scn.name, "failed": True, "gold": gold, "monitor": mon, "p2": "—"}
 
     from attribution.localize import attribute  # lazy: pulls in anthropic
     try:
@@ -51,7 +56,7 @@ async def _one(scn: CodeScenario, live: bool) -> dict:
         p2 = _step_to_agent(trace, attr.root_step_id)
     except Exception as exc:                       # never let one scenario kill the suite
         p2 = f"ERR:{type(exc).__name__}"
-    return {"name": scn.name, "gold": gold, "monitor": mon, "p2": p2}
+    return {"name": scn.name, "failed": True, "gold": gold, "monitor": mon, "p2": p2}
 
 
 async def main() -> dict:
@@ -72,7 +77,9 @@ async def main() -> dict:
         if live:
             p2_ok += p2 == gold
             agree += mon == p2
-        print(f"{r['name']:<22}{str(gold):<18}{str(mon):<18}{str(p2):<16}")
+        mon_cell = f"{mon} {_mark(mon, gold)}"
+        p2_cell = f"{p2} {_mark(p2, gold)}" if live else str(p2)
+        print(f"{r['name']:<22}{str(gold):<18}{mon_cell:<19}{p2_cell:<18}")
 
     n = len(rows)
     print("-" * 72)
