@@ -88,8 +88,9 @@
 
   /* ---- Dashboard rails & bars ---- */
   --rail-nav:   240px;   /* left: monitor rail (on bare bg, outside the tile) */
-  --rail-insp:  320px;   /* right: inspector */
+  --rail-insp:  380px;   /* right: inspector (split compare) */
   --h-bar:      48px;    /* readout header height */
+  --h-toolbar:  52px;    /* scenario picker row */
 
   --glyph:      13px;    /* status-ring glyph */
 

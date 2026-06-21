@@ -5,9 +5,10 @@ import { deriveActions } from '../deriveActions'
 import { nodeStatus, type StatusMap } from '../nodeStatus'
 import { loadRunMeta, type RunMeta } from './loadMeta'
 import { loadMonitorDecision } from './loadMonitor'
+import { loadFixtureReplays } from './loadReplay'
 import { nonFlip } from './replayMap'
-import { loadStubMultiAgentTrace, STUB_MULTI_ATTRIBUTION } from './stubMultiAgentTrace'
-import { STUB_MONITOR_DECISION } from './stubMonitor'
+import { loadFixtureTrace } from './loadFixture'
+import { STUB_ATTRIBUTION } from './stubAttribution'
 
 export interface RunData {
   trace: Trace
@@ -38,14 +39,12 @@ function toRunData(
 // First paint shows the multi-agent demo trace (the redesign's topology view); the
 // monitor's confirmed root replay is the only step that flips, every other fork is a
 // non-flipping decoy. Picking a scenario + Run swaps in a live backend run below.
-const FALLBACK_REPLAYS: Record<string, ReplayResult> = {
-  [STUB_MONITOR_DECISION.root_step_id]: STUB_MONITOR_DECISION.replay,
-}
+const FALLBACK_REPLAYS = loadFixtureReplays()
 const FALLBACK: RunData = toRunData(
-  loadStubMultiAgentTrace(), STUB_MULTI_ATTRIBUTION, FALLBACK_REPLAYS,
-  loadRunMeta(), STUB_MONITOR_DECISION,
+  loadFixtureTrace(), STUB_ATTRIBUTION, FALLBACK_REPLAYS,
+  loadRunMeta(), loadMonitorDecision(),
 )
-const FALLBACK_SCENARIOS = [{ name: 'acme_amount', label: 'claims · acme amount' }]
+const FALLBACK_SCENARIOS = [{ name: 'claim_adjudication', label: 'insurance · claim adjudication' }]
 
 export function useRun() {
   const [data, setData] = useState<RunData>(FALLBACK)

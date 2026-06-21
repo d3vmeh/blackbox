@@ -1,63 +1,25 @@
 """P4 — FastAPI app for the dashboard.
 
   GET  /health
-  GET  /api/scenarios        -> [{name, label}] for the dropdown
+  GET  /api/scenarios        -> [{name, label}] for the dropdown (four demo domains)
   POST /api/run {scenario, live=True}
-        -> {trace, attribution, replay}  (live=True runs the agents on real Claude;
-           live=False is the deterministic mock — fast, no key, used by tests/the UI toggle)
+        -> {trace, attribution, replay, meta, monitor}
 
 The frontend reaches this via the Vite dev proxy (/api -> :8000), so no CORS is needed in dev.
 """
 from __future__ import annotations
 
 from dotenv import load_dotenv
-# override=True so the valid key in .env wins over any stale ANTHROPIC_API_KEY
-# left in the launch shell's environment (otherwise live runs 401).
+
 load_dotenv(override=True)
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from agent.code.export_run import build_artifacts
-from agent.code.scenarios import SCENARIOS
+from agent.domains.export_run import build_artifacts as domain_build
+from shared.scenarios.manifest import BY_ID, DOMAINS
 
 app = FastAPI(title="Blackbox API")
-_BY_NAME = {s.name: s for s in SCENARIOS}
-
-# Agent → short display label for the multi-agent inspector section.
-_AGENT_LABELS = {"spec_interpreter": "SPEC", "implementer": "IMPL",
-                 "test_writer": "TESTS", "reviewer": "REVIEW"}
-
-
-def _meta_and_monitor(scn, art: dict, live: bool) -> tuple[dict, dict]:
-    """Presentation metadata the new dashboard expects (RunMeta + MonitorDecision), built from
-    the coding run so a live coding/natural-failure run shows ITS OWN data, not the static
-    claims fixture. The causal artifacts (trace/attribution/replay) come from build_artifacts."""
-    trace, attr, replays = art["trace"], art["attribution"], art["replays"]
-    root_id = attr["root_step_id"]
-    root_step = next((s for s in trace["steps"] if s["id"] == root_id), None)
-    root_agent = root_step["raw"].get("agent") if root_step else None
-    root_replay = replays.get(root_id)
-    trusted = bool(root_replay and root_replay["flipped"]) or not root_id
-    decision = "auto_apply" if trusted else "escalate"
-    meta = {
-        "runtime": "multi-agent",
-        "domain": "coding · natural failure" if scn.natural else "coding pipeline",
-        "engine": f"4-agent pipeline · {'real Claude (Haiku)' if live else 'deterministic'}",
-        "pipeline": ["record", "localize", "confirm"],
-        "agent_labels": _AGENT_LABELS,
-        "scenario": scn.name,
-        "parallel_agents": ["implementer", "test_writer"],
-        "fork_agent": root_agent,
-        "monitor_decision": decision,
-    }
-    monitor = {
-        "trace_id": "code_run", "root_step_id": root_id,
-        "replay": root_replay or {"trace_id": "code_run", "step_id": "", "injected_value": None,
-                                  "n": 0, "flipped": False, "confirmation_rate": 0.0, "outcomes": []},
-        "trusted": trusted, "decision": decision,
-    }
-    return meta, monitor
 
 
 @app.get("/health")
@@ -65,48 +27,31 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# The LangGraph flight run is a distinct runtime (StateGraph + MemorySaver, checkpoint
-# fork/replay) surfaced as its own selectable scenario so it can be exercised in the UI.
-FLIGHT_SCENARIO = "flight_langgraph"
-
-
 @app.get("/api/scenarios")
 def scenarios() -> list[dict[str, str]]:
-    coding = [{"name": s.name, "label": s.name.replace("_", " ")} for s in SCENARIOS]
-    return [{"name": FLIGHT_SCENARIO, "label": "flight · langgraph"}, *coding]
+    return [{"name": d.id, "label": d.label} for d in DOMAINS]
 
 
 class RunRequest(BaseModel):
     scenario: str
-    live: bool = True
+    live: bool = True  # domains are deterministic; flag kept for API compatibility
 
 
 @app.post("/api/run")
 def run(req: RunRequest) -> dict:
-    if req.scenario == FLIGHT_SCENARIO:
-        # Runs the real LangGraph agent (run_agent_graph) + checkpoint-fork replay.
-        # Deterministic mock think, so no API key needed.
-        from agent.flight.export_run import build_artifacts as flight_build
-        try:
-            art = flight_build()
-        except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"flight run failed: {type(exc).__name__}: {exc}")
-        meta = {**art["meta"], "scenario": req.scenario}  # match dropdown so the graph isn't gated as "pending"
-        return {"trace": art["trace"], "attribution": art["attribution"],
-                "replay": art["replays"], "meta": meta, "monitor": art["monitor"]}
-
-    scn = _BY_NAME.get(req.scenario)
-    if scn is None:
+    if req.scenario not in BY_ID:
         raise HTTPException(status_code=404, detail=f"unknown scenario {req.scenario!r}")
-    think = None
-    if req.live:
-        from agent.code.graph import CODE_MODEL
-        from agent.llm import make_think
-        think = make_think(use_real_llm=True, model=CODE_MODEL, max_tokens=1500)
     try:
-        art = build_artifacts(scn, think=think)
-    except Exception as exc:  # surface LLM/runtime errors to the UI instead of a 500 stack
-        raise HTTPException(status_code=502, detail=f"run failed: {type(exc).__name__}: {exc}")
-    meta, monitor = _meta_and_monitor(scn, art, req.live)
-    return {"trace": art["trace"], "attribution": art["attribution"], "replay": art["replays"],
-            "meta": meta, "monitor": monitor}
+        art = domain_build(req.scenario)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"domain run failed: {type(exc).__name__}: {exc}",
+        )
+    return {
+        "trace": art["trace"],
+        "attribution": art["attribution"],
+        "replay": art["replays"],
+        "meta": art["meta"],
+        "monitor": art["monitor"],
+    }

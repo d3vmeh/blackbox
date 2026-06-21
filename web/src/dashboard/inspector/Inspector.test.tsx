@@ -47,7 +47,8 @@ describe('Inspector', () => {
     render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor} onReplay={() => {}} />)
     expect(screen.getByText('normalize_dates')).toBeInTheDocument()
     expect(screen.getAllByText(/2024-12-07/).length).toBeGreaterThan(0)
-    expect(screen.getByText(/0\.91/)).toBeInTheDocument()
+    expect(screen.getByText(/date swap/i)).toBeInTheDocument()
+    expect(screen.getByText(/what happened/i)).toBeInTheDocument()
   })
 
   it('fires onReplay with the root step id', () => {

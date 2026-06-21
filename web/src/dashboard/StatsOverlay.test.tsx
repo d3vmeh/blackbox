@@ -12,8 +12,8 @@ describe('StatsOverlay', () => {
     render(<StatsOverlay open stats={stats} onClose={() => {}} />)
     expect(screen.getByTestId('stats-overlay')).toBeInTheDocument()
     // one body row per agent
-    expect(screen.getByText('extractor')).toBeInTheDocument()
-    expect(screen.getByText('payment')).toBeInTheDocument()
+    expect(screen.getByText('intake')).toBeInTheDocument()
+    expect(screen.getByText('payout')).toBeInTheDocument()
     // tokens are flagged estimated, never presented as exact
     expect(screen.getByText('est.')).toBeInTheDocument()
     expect(screen.getByText('est. tokens')).toBeInTheDocument()

@@ -15,7 +15,7 @@ export const HOW_STEPS: ReadonlyArray<{
     tone: 'record',
     title: 'Record',
     body: 'Capture the multi-agent run as one causal graph — every reasoning step, tool call, and hand-off payload passed between agents.',
-    mockupLabel: 'claim_run · trace graph',
+    mockupLabel: 'claim_adjudication · trace graph',
     figmaBrief: 'Dashboard with 5-agent pipeline (INTAKE→COVERAGE∥FRAUD→ADJUDICATOR→PAYOUT), all nodes neutral gray, oracle FAIL, log wall visible.',
   },
   {

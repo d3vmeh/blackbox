@@ -97,7 +97,7 @@ function ProductShowcase() {
   return (
     <section className="showcase showcase--persist" id="demo" aria-label="Product demo">
       <div className="showcase__glow" aria-hidden="true" />
-      <BrowserFrame url="app.blackbox.dev/runs/claim_run">
+      <BrowserFrame url="app.blackbox.dev/runs/claim_adjudication">
         <Dashboard />
       </BrowserFrame>
       <div className="legend">

@@ -2,7 +2,8 @@ import { agentOf } from '../../types'
 import type { Attribution, Json, MonitorDecision, ReplayResult, Step } from '../../types'
 import type { ActionNode } from '../types'
 import type { RunMeta } from '../data/loadMeta'
-import { CodeBlock } from './CodeBlock'
+import { deriveStepInsight } from './deriveStepInsight'
+import { SplitCompare } from './SplitCompare'
 import { Field, ProvenanceList, RawPayload, Section } from './sections'
 import type { ParentLink } from './sections'
 import '../dashboard.css'
@@ -125,20 +126,23 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect,
   const KLASS_LABEL: Record<string, string> = {
     root: '● root cause', blast: '▸ blast radius', suspect: '◌ suspect', ordinary: '· ordinary',
   }
+  const insight = deriveStepInsight(step, steps, attribution, runMeta)
 
   return (
     <div className="insp">
       <div className="insp__scroll">
+      <SplitCompare {...insight} />
+
       <div className="insp__hd">
         <span className="insp__hdid tnum">{step.id}</span>
         <span className="insp__hdkind">{step.tool_name ?? step.kind}</span>
         <span className="insp__pill" data-klass={klass}>{KLASS_LABEL[klass]}</span>
       </div>
 
-      {/* Lead with the finding — the one thing that explains WHY this step is flagged. */}
-      {candidate && (
-        <Section title="what went wrong" aside={`suspicion ${candidate.suspicion.toFixed(2)}`}>
-          <div className="insp__judge" data-klass={isRoot ? 'root' : 'neutral'}>{candidate.reason}</div>
+      {/* Detailed finding for candidates (split view carries the headline). */}
+      {candidate && !isRoot && insight.role === 'decoy' && (
+        <Section title="why replay fails here" aside={`suspicion ${candidate.suspicion.toFixed(2)}`}>
+          <div className="insp__judge" data-klass="neutral">{candidate.reason}</div>
         </Section>
       )}
 
@@ -165,7 +169,7 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect,
         </Section>
       )}
 
-      <Section title="what it produced" aside="output">
+      <Section title="hand-off payload" aside="output">
         <ProducedOutput output={step.output} />
       </Section>
 

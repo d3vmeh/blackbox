@@ -1,0 +1,138 @@
+/* Side-by-side problem / solution readout — the inspector's primary story beat. */
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--inset);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-3);
+}
+
+.split__hd {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.split__agent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.split__agent-label {
+  font-family: var(--font-mono);
+  font-size: var(--t-h3);
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: var(--track-tight);
+}
+
+.split__agent-role {
+  font-size: var(--t-label);
+  color: var(--text-faint);
+  line-height: var(--lh-body);
+}
+
+.split__role {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--track-upper);
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--r-1);
+  border: var(--hair) solid var(--line);
+  color: var(--text-dim);
+}
+.split__role[data-role='root'] { color: var(--root); border-color: color-mix(in srgb, var(--root) 40%, var(--line)); }
+.split__role[data-role='blast'] { color: var(--blast); border-color: color-mix(in srgb, var(--blast) 35%, var(--line)); }
+.split__role[data-role='decoy'] { color: var(--text-dim); border-style: dashed; }
+.split__role[data-role='symptom'] { color: var(--blast); }
+
+.split__headline {
+  margin: 0;
+  font-size: var(--t-step);
+  line-height: var(--lh-body);
+  color: var(--text);
+  border-left: 2px solid var(--line);
+  padding-left: var(--space-3);
+}
+
+.split__panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+@media (max-width: 1180px) {
+  .split__panes { grid-template-columns: 1fr; }
+}
+
+.split__pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--r-2);
+  min-width: 0;
+}
+.split__pane--bad {
+  background: color-mix(in srgb, var(--blast) 6%, var(--panel));
+  box-shadow: inset 2px 0 0 var(--blast);
+}
+.split__pane--good {
+  background: color-mix(in srgb, var(--pass) 6%, var(--panel));
+  box-shadow: inset 2px 0 0 var(--pass);
+}
+
+.split__pane-label {
+  font-size: var(--t-label);
+  letter-spacing: var(--track-upper);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.split__diffs {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.split__diff {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+
+.split__key {
+  font-size: var(--t-label);
+  color: var(--text-dim);
+  text-transform: lowercase;
+}
+
+.split__val {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-step);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.split__val--bad { color: var(--blast); font-weight: 600; }
+.split__val--good { color: var(--pass); font-weight: 600; }
+
+.split__note {
+  margin: 0;
+  font-size: var(--t-step);
+  line-height: var(--lh-body);
+  color: var(--text-dim);
+}
+.split__note--sub {
+  font-size: var(--t-label);
+  color: var(--text-faint);
+}

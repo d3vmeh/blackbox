@@ -10,6 +10,7 @@ import { Inspector } from './inspector/Inspector'
 import { MonitorPanel, type MonitorLine } from './MonitorPanel'
 import { StatsOverlay } from './StatsOverlay'
 import { LogConsole } from './console/LogConsole'
+import { ScenarioToolbar } from './ScenarioToolbar'
 import { deriveStats } from './deriveStats'
 import { deriveTopology } from './deriveTopology'
 import { phaseForReplay, PHASE_STATUS, trustForPhase, type Phase } from './phase'
@@ -21,7 +22,7 @@ const DECOY_MS = 1100
 
 export function Dashboard() {
   const { data, scenarios, loading, error, run, replay } = useRun()
-  const [picked, setPicked] = useState<string>('acme_amount')
+  const [picked, setPicked] = useState<string>('claim_adjudication')
   const reduce = useReducedMotion()
   // First paint lands on the WHY: select the root-cause node so the inspector is never empty.
   const rootNodeId = useMemo(
@@ -50,8 +51,7 @@ export function Dashboard() {
   // Selecting a different node clears the stale replay result.
   const selectNode = useCallback((id: string | null) => { setSelectedId(id); setReplayInfo(null) }, [])
 
-  // Keep the picked scenario valid for the served list (the live backend serves the coding
-  // scenarios; the default 'acme_amount' isn't among them, so Run would 404 without this).
+  // Keep the picked scenario valid once /api/scenarios loads (fallback list is hero-only).
   useEffect(() => {
     // Intentional: re-sync the picked scenario to the served list once it loads.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -79,9 +79,18 @@ export function Dashboard() {
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
 
   const onSelectAgent = useCallback((agentId: AgentId) => {
-    // Toggle: clicking the live agent again clears the filter (all bands live).
-    setSelectedAgentId((cur) => (cur === agentId ? null : agentId))
-  }, [])
+    setSelectedAgentId((cur) => {
+      const next = cur === agentId ? null : agentId
+      if (next) {
+        const node = data.graph.nodes.find((n) => n.agentId === agentId)
+        if (node) {
+          setSelectedId(node.id)
+          setReplayInfo(null)
+        }
+      }
+      return next
+    })
+  }, [data.graph.nodes])
 
   // The confirm climax: replay the focused step. If it is the true root the
   // monitor proves the decoy first (no flip), re-targets, then the root flips →
@@ -192,25 +201,25 @@ export function Dashboard() {
           statsOpen={statsOpen}
           onToggleStats={() => setStatsOpen((cur) => !cur)}
         />
-        <div className="dash__run">
-          <span className="dash__lab">test</span>
-          <select className="dash__sel" value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="test">
-            {scenarios.map((s) => <option key={s.name} value={s.name}>{s.label}</option>)}
-          </select>
-          <button className="dash__btn" type="button" onClick={() => run(picked)} disabled={loading}>
-            {loading ? 'running… (real Claude)' : 'Run'}
-          </button>
-          {error && <span className="dash__err">{error}</span>}
-        </div>
+        <ScenarioToolbar
+          scenarios={scenarios}
+          picked={picked}
+          loaded={loadedScenario}
+          onPick={setPicked}
+          onRun={() => run(picked)}
+          loading={loading}
+          error={error}
+        />
+        <div className="dash__body">
         {pendingRun ? (
           <div className="dash__await">
             <div className="dash__await-card">
               {loading ? (
                 <>
                   <span className="dash__spinner" aria-hidden="true" />
-                  <span className="dash__await-eyebrow">running on real Claude</span>
+                  <span className="dash__await-eyebrow">running pipeline</span>
                   <span className="dash__await-scn">{pickedLabel}</span>
-                  <span className="dash__await-hint">executing the pipeline on real Claude…</span>
+                  <span className="dash__await-hint">Executing the multi-agent graph and building the trace…</span>
                 </>
               ) : (
                 <>
@@ -266,6 +275,7 @@ export function Dashboard() {
             <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
           </>
         )}
+        </div>
         <StatsOverlay open={statsOpen} stats={stats} onClose={() => setStatsOpen(false)} />
       </div>
     </div>

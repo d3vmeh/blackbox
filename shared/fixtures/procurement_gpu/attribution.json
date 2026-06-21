@@ -1,0 +1,31 @@
+{
+  "trace_id": "procurement_gpu",
+  "root_step_id": "s2",
+  "blast_radius": [
+    "s3",
+    "s4",
+    "s5"
+  ],
+  "candidates": [
+    {
+      "step_id": "s2",
+      "suspicion": 0.92,
+      "reason": "BROWSER set sku_selected='H100-80GB-REFURB'; should be 'H100-80GB'"
+    },
+    {
+      "step_id": "s3",
+      "suspicion": 0.45,
+      "reason": "COMPARE looks suspicious but replay does not flip"
+    },
+    {
+      "step_id": "s3",
+      "suspicion": 0.3,
+      "reason": "inherited the corrupted hand-off"
+    }
+  ],
+  "rationale": "Oracle FAIL: selected SKU mismatch vs spec (refurb \u2260 new)",
+  "suggested_fix": {
+    "sku_selected": "H100-80GB"
+  },
+  "confidence": 0.0
+}

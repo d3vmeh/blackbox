@@ -1,4 +1,4 @@
-/** Shared investigation narrative — graph topology, phases, copy. */
+/** Shared investigation narrative — insurance hero graph + system map. */
 
 export type NodeStatus = 'muted' | 'healthy' | 'root' | 'blast' | 'healed' | 'fail'
 
@@ -18,16 +18,16 @@ export const GRAPH_NODES: GraphNode[] = [
   { id: 'intake', label: 'INTAKE', x: 200, y: 28 },
   { id: 'coverage', label: 'COVERAGE', x: 72, y: 118 },
   { id: 'fraud', label: 'FRAUD', x: 328, y: 118 },
-  { id: 'adjudicator', label: 'ADJUDICATOR', x: 200, y: 198 },
+  { id: 'adjuster', label: 'ADJUSTER', x: 200, y: 198 },
   { id: 'payout', label: 'PAYOUT', x: 200, y: 268 },
 ]
 
 export const GRAPH_EDGES: GraphEdge[] = [
   { from: 'intake', to: 'coverage' },
   { from: 'intake', to: 'fraud' },
-  { from: 'coverage', to: 'adjudicator' },
-  { from: 'fraud', to: 'adjudicator' },
-  { from: 'adjudicator', to: 'payout' },
+  { from: 'coverage', to: 'adjuster' },
+  { from: 'fraud', to: 'adjuster' },
+  { from: 'adjuster', to: 'payout' },
 ]
 
 export type InvestigationPhase =
@@ -63,36 +63,36 @@ export interface AgentFeedLine {
   detail: string
 }
 
-/** Initial success feed — then the corrupt hand-off lands. */
 export const INCIDENT_FEED_SUCCESS: AgentFeedLine[] = [
-  { agent: 'Coverage Agent', status: 'ok', detail: 'Approved' },
-  { agent: 'Fraud Agent', status: 'ok', detail: 'Passed' },
-  { agent: 'Adjudicator', status: 'ok', detail: 'Approved' },
-  { agent: 'Payout Agent', status: 'ok', detail: 'Sent $12,500' },
+  { agent: 'INTAKE', status: 'ok', detail: 'Parsed claim M-8842' },
+  { agent: 'COVERAGE', status: 'ok', detail: 'Gold tier · within limit' },
+  { agent: 'FRAUD', status: 'ok', detail: 'Risk 0.12 · overridden' },
+  { agent: 'ADJUSTER', status: 'ok', detail: 'Payout $52,000' },
+  { agent: 'PAYOUT', status: 'fail', detail: 'Oracle FAIL · exceeds cap' },
 ]
 
 export const INCIDENT_CORRUPT: AgentFeedLine = {
-  agent: 'Coverage Agent',
+  agent: 'INTAKE',
   status: 'warn',
-  detail: 'vehicle_type = motorcycle',
+  detail: 'billed_amount = $52,000 (should $5,200)',
 }
 
 export function nodeStatusForPhase(phase: InvestigationPhase, nodeId: string): NodeStatus {
   switch (phase) {
     case 'incident':
-      return nodeId === 'payout' ? 'healthy' : 'muted'
+      return nodeId === 'payout' ? 'fail' : 'muted'
     case 'corrupt':
-      return nodeId === 'coverage' ? 'root' : 'muted'
+      return nodeId === 'intake' ? 'root' : 'muted'
     case 'blast':
-      if (nodeId === 'coverage') return 'root'
-      if (['adjudicator', 'payout'].includes(nodeId)) return 'blast'
+      if (nodeId === 'intake') return 'root'
+      if (['coverage', 'fraud', 'adjuster', 'payout'].includes(nodeId)) return 'blast'
       return 'muted'
     case 'localize':
-      if (nodeId === 'coverage') return 'root'
-      if (['adjudicator', 'payout'].includes(nodeId)) return 'blast'
+      if (nodeId === 'intake') return 'root'
+      if (['coverage', 'fraud', 'adjuster', 'payout'].includes(nodeId)) return 'blast'
       return 'muted'
     case 'replay':
-      if (nodeId === 'coverage') return 'healed'
+      if (nodeId === 'intake') return 'healed'
       return 'muted'
     case 'heal':
       return 'healed'
@@ -102,23 +102,25 @@ export function nodeStatusForPhase(phase: InvestigationPhase, nodeId: string): N
 }
 
 export function edgePoisoned(phase: InvestigationPhase, from: string, to: string): boolean {
-  if (phase === 'incident' || phase === 'corrupt') return from === 'coverage' && phase === 'corrupt'
+  if (phase === 'corrupt') return from === 'intake'
   if (phase === 'blast' || phase === 'localize') {
     const poisonPairs = [
-      ['coverage', 'adjudicator'],
-      ['adjudicator', 'payout'],
+      ['intake', 'coverage'],
+      ['intake', 'fraud'],
+      ['coverage', 'adjuster'],
+      ['fraud', 'adjuster'],
+      ['adjuster', 'payout'],
     ]
     return poisonPairs.some(([f, t]) => f === from && t === to)
   }
   return false
 }
 
-/** Interpolate replay slider 0 = failure, 1 = fix. */
 export function nodeStatusForReplay(t: number, nodeId: string): NodeStatus {
   if (t < 0.15) return nodeStatusForPhase('blast', nodeId)
   if (t < 0.45) {
-    if (nodeId === 'coverage') return t > 0.25 ? 'healed' : 'root'
-    if (['adjudicator', 'payout'].includes(nodeId)) return t > 0.35 ? 'muted' : 'blast'
+    if (nodeId === 'intake') return t > 0.25 ? 'healed' : 'root'
+    if (['coverage', 'fraud', 'adjuster', 'payout'].includes(nodeId)) return t > 0.35 ? 'muted' : 'blast'
     return 'muted'
   }
   return nodeStatusForPhase('heal', nodeId)
@@ -127,79 +129,87 @@ export function nodeStatusForReplay(t: number, nodeId: string): NodeStatus {
 export function replayLog(t: number): { level: string; msg: string }[] {
   if (t < 0.2) {
     return [
-      { level: 'ERR', msg: 'oracle: payout $12,500 exceeds policy limit' },
-      { level: 'WRN', msg: 'coverage hand-off vehicle_type=motorcycle (expected sedan)' },
-      { level: 'INF', msg: 'blast radius: 2 agents downstream' },
+      { level: 'ERR', msg: 'oracle: payout $52,000 exceeds gold tier cap ($8,000)' },
+      { level: 'WRN', msg: 'INTAKE hand-off billed_amount=52000 (expected 5200)' },
+      { level: 'INF', msg: 'blast radius: 4 agents downstream' },
     ]
   }
   if (t < 0.6) {
     return [
-      { level: 'INF', msg: 'fork at COVERAGE · inject vehicle_type=sedan' },
-      { level: 'INF', msg: 're-run 1/5 … payout $4,200' },
+      { level: 'INF', msg: 'fork @ intake · inject billed_amount=5200.0' },
+      { level: 'INF', msg: 're-run 1/5 … payout $5,200' },
       { level: 'INF', msg: 're-run 5/5 … oracle PASS' },
     ]
   }
   return [
     { level: 'OK', msg: 'replay confirmed · fail → pass (5/5)' },
     { level: 'OK', msg: 'trust gate · auto_apply' },
-    { level: 'OK', msg: 'payout sent · $4,200 to Acme Corp' },
+    { level: 'OK', msg: 'payout sent · $5,200 to member M-8842' },
   ]
 }
 
 export function replayMetrics(t: number) {
-  const payout = t < 0.5 ? '$12,500' : '$4,200'
+  const payout = t < 0.5 ? '$52,000' : '$5,200'
   const oracle = t < 0.5 ? 'FAIL' : 'PASS'
-  const agents = t < 0.3 ? '2 poisoned' : t < 0.7 ? '1 corrected' : '5 healthy'
+  const agents = t < 0.3 ? '4 poisoned' : t < 0.7 ? '1 corrected' : '5 healthy'
   return { payout, oracle, agents }
 }
 
 export const SYSTEM_MAP_NODES = [
   {
-    id: 'coverage',
-    label: 'Coverage',
+    id: 'intake',
+    label: 'INTAKE',
     x: 24,
     y: 18,
-    desc: 'Verifies policy limits and vehicle class against claim intake.',
-    links: ['fraud', 'root'],
+    desc: 'Parses claim form → structured hand-off {member_id, procedure, billed_amount, policy_tier}.',
+    links: ['coverage', 'root'],
+  },
+  {
+    id: 'coverage',
+    label: 'COVERAGE',
+    x: 76,
+    y: 22,
+    desc: 'Verifies procedure against tier limits — trusts INTAKE billed_amount blindly.',
+    links: ['intake', 'fraud'],
   },
   {
     id: 'fraud',
-    label: 'Fraud',
+    label: 'FRAUD',
     x: 76,
-    y: 22,
-    desc: 'Risk scoring on hand-offs — trusts upstream values blindly when corrupted.',
-    links: ['coverage', 'payout'],
+    y: 56,
+    desc: 'Parallel anomaly scan; can flag but be overridden downstream.',
+    links: ['coverage', 'adjuster'],
+  },
+  {
+    id: 'adjuster',
+    label: 'ADJUSTER',
+    x: 52,
+    y: 64,
+    desc: 'Merges coverage + fraud → payout decision. Decoy fix target — replay does not flip.',
+    links: ['fraud', 'payout'],
   },
   {
     id: 'payout',
-    label: 'Payout',
-    x: 76,
-    y: 56,
-    desc: 'Final oracle check — where symptoms surface, not where cause lives.',
-    links: ['fraud', 'audit'],
-  },
-  {
-    id: 'audit',
-    label: 'Audit',
-    x: 52,
-    y: 64,
-    desc: 'Immutable trace of every agent hand-off for compliance replay.',
-    links: ['payout', 'replay'],
+    label: 'PAYOUT',
+    x: 30,
+    y: 40,
+    desc: 'Payment rail + oracle — symptom surfaces here, root lives at INTAKE.',
+    links: ['adjuster', 'replay'],
   },
   {
     id: 'root',
     label: 'Root Cause',
     x: 30,
-    y: 40,
-    desc: 'Earliest agent whose output doesn’t follow from its inputs.',
-    links: ['coverage', 'blast'],
+    y: 56,
+    desc: 'Earliest agent whose output doesn’t follow from its inputs — INTAKE decimal slip.',
+    links: ['intake', 'blast'],
   },
   {
     id: 'blast',
     label: 'Blast Radius',
     x: 52,
     y: 36,
-    desc: 'Forward slice — every downstream agent that inherited the bad value.',
+    desc: 'Forward slice — COVERAGE, FRAUD, ADJUSTER, PAYOUT inherited $52k.',
     links: ['root', 'replay'],
   },
   {
@@ -207,7 +217,7 @@ export const SYSTEM_MAP_NODES = [
     label: 'Replay',
     x: 68,
     y: 46,
-    desc: 'Fork, inject correction, re-run. Fail→pass confirms; no flip rejects.',
+    desc: 'LangGraph update_state(as_node="intake") + re-invoke. Fail→pass confirms root.',
     links: ['blast', 'trust'],
   },
   {
@@ -215,8 +225,8 @@ export const SYSTEM_MAP_NODES = [
     label: 'Trust Gate',
     x: 38,
     y: 56,
-    desc: 'Auto-heal proven fixes or escalate to human with structured correction.',
-    links: ['replay', 'audit'],
+    desc: 'Auto-heal proven fixes or escalate with {root_step, blast_radius, replay_rate}.',
+    links: ['replay', 'payout'],
   },
 ] as const
 

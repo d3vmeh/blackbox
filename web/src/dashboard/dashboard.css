@@ -21,12 +21,19 @@
 
 /* The work-area tile: the only elevated surface at the page level. */
 .dash__tile {
-  position: relative; /* anchors the full-width StatsOverlay below the readout bar */
+  position: relative;
   min-width: 0; min-height: 0; overflow: hidden;
-  display: grid; grid-template-rows: var(--h-bar) minmax(0, 1fr);
+  display: grid;
+  grid-template-rows: var(--h-bar) var(--h-toolbar) minmax(0, 1fr);
   background: var(--panel);
   border: var(--hair) solid var(--line);
   border-radius: var(--r-4);
+}
+
+/* Scrollable main column: work area + log console share the third grid row. */
+.dash__body {
+  min-height: 0; min-width: 0; overflow: hidden;
+  display: flex; flex-direction: column;
 }
 
 /* ============================ Readout bar (tile header) ============================ */
@@ -38,6 +45,7 @@
 .rb__id { font-family: var(--font-mono); font-size: var(--t-step); font-weight: 500; color: var(--text-bright); flex: 0 0 auto; }
 /* task = plain dim text with a quiet leading separator — no pill */
 .rb__task {
+  flex: 1;
   font-size: var(--t-step); color: var(--text-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
@@ -65,12 +73,16 @@
 
 /* ============================ Work area (spine | inspector) ============================ */
 .dash__work {
+  flex: 1;
   min-height: 0; min-width: 0; display: grid;
   grid-template-columns: minmax(0, 1fr) var(--rail-insp);
   grid-template-rows: minmax(0, 1fr);
 }
 
-/* Pane header / eyebrow (spine + inspector) */
+.dash__await {
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-8) var(--space-4);
+}
 .pane__head {
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: var(--space-3); flex: 0 0 auto;
@@ -226,17 +238,16 @@
 .lc__ln[data-flag='root'] .lc__lv, .lc__ln[data-flag='root'] .lc__msg { color: var(--root); }
 .lc__ln[data-selected] { background: var(--inset); }
 
-/* ---- Readout-bar runtime + trust-gate pills (reuse existing tokens, no new hue) ---- */
-.rb__trust { margin-left: .45rem; padding: .12rem .45rem; border-radius: 999px;
-  font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; }
+/* ---- Readout-bar runtime + trust-gate pills ---- */
+.rb__trust { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: 999px;
+  font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
 .rb__trust--apply { color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
   background: color-mix(in srgb, var(--pass) 8%, transparent); }
 .rb__trust--escalate { color: var(--blast); border: 1px solid color-mix(in srgb, var(--blast) 35%, transparent);
   background: color-mix(in srgb, var(--blast) 8%, transparent); }
-.rb__runtime { margin-left: .6rem; padding: .12rem .45rem; border-radius: 999px;
-  font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase;
-  color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
-  background: color-mix(in srgb, var(--pass) 8%, transparent); }
+.rb__runtime { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: 999px;
+  font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
+  color: var(--text-dim); border: 1px solid var(--line); background: var(--inset); }
 
 /* "Ready to run" — picked scenario differs from the loaded trace */
 .dash__await {
@@ -262,25 +273,6 @@
   animation: dash-spin 0.8s linear infinite;
 }
 @keyframes dash-spin { to { transform: rotate(360deg); } }
-
-/* ---- Run bar (scenario picker + Run) — top toolbar ---- */
-.dash__run { display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--space-4); background: var(--panel);
-  border-bottom: 1px solid var(--line); font-family: var(--font-mono); }
-.dash__lab { font-size: var(--t-label); letter-spacing: var(--track-upper);
-  text-transform: uppercase; color: var(--text-dim); }
-.dash__sel { font-family: var(--font-mono); font-size: var(--t-step); color: var(--text-bright);
-  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-2);
-  padding: var(--space-2) var(--space-3); cursor: pointer; min-width: 220px; }
-.dash__sel:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.dash__btn { font-family: var(--font-mono); font-size: var(--t-step); font-weight: 600;
-  padding: var(--space-2) var(--space-5); border-radius: var(--r-2);
-  border: 1px solid var(--text); background: var(--text); color: var(--bg); cursor: pointer;
-  transition: opacity var(--dur-micro) var(--ease-out); }
-.dash__btn:hover { opacity: .88; }
-.dash__btn:disabled { background: var(--raised); color: var(--text-dim);
-  border-color: var(--line); cursor: default; }
-.dash__err { color: var(--blast); font-size: var(--t-step); }
 
 @media (prefers-reduced-motion: reduce) {
   .dash__spinner { animation: none; }

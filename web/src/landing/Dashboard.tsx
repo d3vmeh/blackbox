@@ -33,7 +33,7 @@ const STAGGER_MS = 75
 const BLAST_COUNT = BLAST_END - ROOT_INDEX
 
 const RECENT_RUNS = [
-  { id: 'claim_run', task: 'claims-adjudication', state: 'active' },
+  { id: 'claim_adjudication', task: 'insurance-claims', state: 'active' },
   { id: 'run_3f81', task: 'support-triage', state: 'pass' },
   { id: 'run_3f77', task: 'sql-writer', state: 'pass' },
   { id: 'run_3f60', task: 'web-shopper', state: 'pass' },
@@ -50,7 +50,7 @@ function inspectorFields(phase: Phase): Field[] {
     case 'idle':
       return [
         { label: 'oracle', value: 'FAIL', tone: 'blast' },
-        { label: 'reason', value: 'payout $42,000 exceeds policy limit for claim' },
+        { label: 'reason', value: 'payout $52,000 exceeds gold tier limit ($8,000)' },
       ]
     case 'blast':
       return [
@@ -59,12 +59,12 @@ function inspectorFields(phase: Phase): Field[] {
       ]
     case 'analyze':
       return [
-        { label: 'hand-off', value: 'amount: $42,000 (should be $4,200)' },
-        { label: 'root cause', value: 'INTAKE decimal slip on billed amount', tone: 'root' },
+        { label: 'hand-off', value: 'billed_amount: $52,000 (should be $5,200)' },
+        { label: 'root cause', value: 'INTAKE decimal slip · policy_tier gold', tone: 'root' },
       ]
     case 'confirm':
       return [
-        { label: 'fix', value: 'inject amount = 4200.0 at INTAKE', tone: 'pass' },
+        { label: 'fix', value: 'inject billed_amount = 5200.0 at INTAKE', tone: 'pass' },
         { label: 'replay', value: 'n = 5 re-runs' },
         { label: 'confirmation', value: '5 / 5 passed', tone: 'pass' },
       ]
@@ -138,7 +138,7 @@ export function Dashboard() {
         <header className="appshell__head">
           <div className="appshell__headid">
             <span className="eyebrow">trace</span>
-            <span className="appshell__run-title tnum">claim_run · claims-adjudication · multi-agent</span>
+            <span className="appshell__run-title tnum">claim_adjudication · insurance · multi-agent</span>
           </div>
           <div className="appshell__verdict">
             <span className="appshell__status">{PHASE_STATUS[phase]}</span>

@@ -1,5 +1,5 @@
 import type { Json } from '../../types'
-import data from '../../../../shared/fixtures/claim_run/meta.json'
+import data from '../../../../shared/fixtures/claim_adjudication/meta.json'
 
 /** Runtime metadata from fixture meta.json (LangGraph flight or multi-agent claims). */
 export interface RunMeta {

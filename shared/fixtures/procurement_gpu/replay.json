@@ -1,0 +1,40 @@
+{
+  "s2": {
+    "trace_id": "procurement_gpu",
+    "step_id": "s2",
+    "injected_value": {
+      "sku_selected": "H100-80GB"
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "explanation": null
+  },
+  "s3": {
+    "trace_id": "procurement_gpu",
+    "step_id": "s3",
+    "injected_value": {
+      "best_offer": {
+        "vendor": "gray-market"
+      }
+    },
+    "n": 5,
+    "flipped": false,
+    "confirmation_rate": 0.0,
+    "outcomes": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "explanation": null
+  }
+}

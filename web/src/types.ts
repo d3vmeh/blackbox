@@ -71,6 +71,10 @@ export interface Step {
   tool_name?: string | null
   /** original span/checkpoint payload */
   raw: Record<string, Json>
+  /** ground-truth labels (fixtures / fault-injected runs) */
+  is_injected_fault?: boolean
+  /** what this step should have produced */
+  correct_output?: Json | null
 }
 
 /** A full recorded run. `success` is null until the oracle evaluates it. */

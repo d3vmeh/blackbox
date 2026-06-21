@@ -10,38 +10,34 @@ describe('deriveTopology', () => {
     const graph = deriveActions(loadStubMultiAgentTrace())
     const topo = deriveTopology(graph, STUB_MULTI_ATTRIBUTION)
 
-    // agents in first-seen order, deduped (extractor → matcher → fraud → approver → payment).
+    // agents in first-seen order, deduped (intake → coverage → fraud → adjuster → payout).
     expect(topo.agents.map((a) => a.id)).toEqual([
-      'extractor',
-      'matcher',
+      'intake',
+      'coverage',
       'fraud',
-      'approver',
-      'payment',
+      'adjuster',
+      'payout',
     ])
 
-    // status: extractor owns root s2 ⇒ 'root'; agents on the blast path ⇒ 'blast';
-    // fraud is the parallel decoy, off the blast set ⇒ 'neutral'.
+    // status: intake owns root s1 ⇒ 'root'; downstream agents on blast path ⇒ 'blast'.
     const status = Object.fromEntries(topo.agents.map((a) => [a.id, a.status]))
     expect(status).toEqual({
-      extractor: 'root',
-      matcher: 'blast',
-      fraud: 'neutral',
-      approver: 'blast',
-      payment: 'blast',
+      intake: 'root',
+      coverage: 'blast',
+      fraud: 'blast',
+      adjuster: 'blast',
+      payout: 'blast',
     })
 
     // label defaults to the agent id (position + label, never a hue).
     expect(topo.agents.every((a) => a.label === a.id)).toBe(true)
 
-    // cross-agent edges, deduped on (from, to).
-    // fraud→matcher: the matcher's s10 handoff joins the fraud verdict (s9) in;
-    // fraud is off the blast set so that wire is not poisoned.
     expect(topo.handoffs).toEqual([
-      { from: 'extractor', to: 'matcher', poisoned: true },
-      { from: 'extractor', to: 'fraud', poisoned: true },
-      { from: 'fraud', to: 'matcher', poisoned: false },
-      { from: 'matcher', to: 'approver', poisoned: true },
-      { from: 'approver', to: 'payment', poisoned: true },
+      { from: 'intake', to: 'coverage', poisoned: false },
+      { from: 'intake', to: 'fraud', poisoned: false },
+      { from: 'coverage', to: 'adjuster', poisoned: true },
+      { from: 'fraud', to: 'adjuster', poisoned: true },
+      { from: 'adjuster', to: 'payout', poisoned: true },
     ])
   })
 

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { motion, type Variants } from 'motion/react'
 import { HeroShowcase } from './HeroShowcase'
 import { HowItWorksDeck } from './HowItWorksDeck'
+import { ScenarioCatalog } from './ScenarioCatalog'
 import { SystemMap } from './SystemMap'
 import './landing.css'
 
@@ -37,6 +38,7 @@ export function Landing() {
           blackbox
         </a>
         <div className="nav__links">
+          <a href="#scenarios">Scenarios</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
           <a href="#system-map">System map</a>
@@ -71,15 +73,17 @@ export function Landing() {
           <div className="code__bar"><span className="code__file tnum">quickstart.py</span></div>
           <pre className="code__body">
 <span className="c-dim">$ pip install blackbox langgraph</span>{'\n\n'}
-<span className="c-key">from</span> agent.ap.export_run <span className="c-key">import</span> build_artifacts{'\n\n'}
-build_artifacts()  <span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → PAYOUT</span>{'\n'}
-<span className="c-dim"># on FAIL: localize root + replay-confirm before trust gate:</span>{'\n'}
-<span className="c-dim">$ python -m agent.ap.export_run && open /#dashboard</span>
+<span className="c-key">from</span> shared.scenarios.manifest <span className="c-key">import</span> DOMAINS{'\n\n'}
+<span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → ADJUSTER → PAYOUT</span>{'\n'}
+<span className="c-dim"># on FAIL: localize root + LangGraph replay before trust gate:</span>{'\n'}
+<span className="c-dim">$ python -m eval.arize_pipeline --domain claim_adjudication</span>
           </pre>
         </motion.div>
       </motion.section>
 
       <HowItWorksDeck />
+
+      <ScenarioCatalog />
 
       {/* ---- Features ---- */}
       <motion.section className="features" id="features" variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>

@@ -1,0 +1,33 @@
+{
+  "trace_id": "prior_auth",
+  "root_step_id": "s1",
+  "blast_radius": [
+    "s2",
+    "s3",
+    "s4"
+  ],
+  "candidates": [
+    {
+      "step_id": "s1",
+      "suspicion": 0.92,
+      "reason": "CHART_READER set prior_treatments=['2025-01-02']; should be ['2025-11-02']"
+    },
+    {
+      "step_id": "s3",
+      "suspicion": 0.45,
+      "reason": "AUTH_WRITER looks suspicious but replay does not flip"
+    },
+    {
+      "step_id": "s2",
+      "suspicion": 0.3,
+      "reason": "inherited the corrupted hand-off"
+    }
+  ],
+  "rationale": "Prior auth denied \u2014 insufficient conservative therapy interval (90-day rule)",
+  "suggested_fix": {
+    "prior_treatments": [
+      "2025-11-02"
+    ]
+  },
+  "confidence": 0.0
+}

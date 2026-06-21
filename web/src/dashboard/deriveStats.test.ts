@@ -9,20 +9,20 @@ describe('deriveStats — multi-agent stub', () => {
 
   it('produces one row per agent in first-appearance order', () => {
     expect(stats.agents.map((a) => a.agentId)).toEqual([
-      'extractor', 'matcher', 'fraud', 'approver', 'payment',
+      'intake', 'coverage', 'fraud', 'adjuster', 'payout',
     ])
   })
 
   it('counts steps per agent and the totals partition every step', () => {
     const byId = Object.fromEntries(stats.agents.map((a) => [a.agentId, a.steps]))
-    expect(byId).toEqual({ extractor: 5, matcher: 3, fraud: 3, approver: 3, payment: 3 })
+    expect(byId).toEqual({ intake: 1, coverage: 1, fraud: 1, adjuster: 1, payout: 1 })
     expect(stats.totals.steps).toBe(trace.steps.length)
     expect(stats.totals.agents).toBe(5)
   })
 
   it('counts tool calls and handoffs across the run', () => {
-    expect(stats.totals.toolCalls).toBe(4) // s1, s5, s7, s14
-    expect(stats.totals.handoffs).toBe(3)  // s4, s10, s13
+    expect(stats.totals.toolCalls).toBe(0)
+    expect(stats.totals.handoffs).toBe(0)
   })
 
   it('estimates positive tokens that split into in + out', () => {
@@ -39,9 +39,9 @@ describe('deriveStats — multi-agent stub', () => {
   })
 
   it('zero-fills every StepKind in each per-agent breakdown', () => {
-    const extractor = stats.agents.find((a) => a.agentId === 'extractor')!
-    expect(extractor.kinds).toMatchObject({
-      reason: 1, tool_call: 1, tool_result: 1, decision: 1, handoff: 1, final: 0,
+    const intake = stats.agents.find((a) => a.agentId === 'intake')!
+    expect(intake.kinds).toMatchObject({
+      reason: 0, tool_call: 0, tool_result: 1, decision: 0, handoff: 0, final: 0,
     })
   })
 })

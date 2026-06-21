@@ -1,5 +1,5 @@
 /**
- * Landing-page demo spine — mirrors shared/fixtures/claim_run/trace.json
+ * Landing-page demo spine — mirrors shared/fixtures/claim_adjudication/trace.json
  * (insurance claims multi-agent pipeline + injected INTAKE amount fault).
  * Keep ROOT_INDEX / BLAST_END in sync with agent.ap.export_run.
  */
@@ -14,11 +14,11 @@ export interface DemoStep {
 }
 
 export const DEMO_TRACE: DemoStep[] = [
-  { id: 's1', kind: 'tool_result', label: 'INTAKE read claim → amount $42,000' },
-  { id: 's2', kind: 'decision', label: 'COVERAGE verify policy · amount passes' },
-  { id: 's3', kind: 'decision', label: 'FRAUD risk check · low risk' },
-  { id: 's4', kind: 'decision', label: 'ADJUDICATOR approve $42,000 payout' },
-  { id: 's5', kind: 'final', label: 'PAYOUT sent to Acme Corp · oracle FAIL' },
+  { id: 's1', kind: 'tool_result', label: 'INTAKE parse claim → billed_amount $52,000' },
+  { id: 's2', kind: 'decision', label: 'COVERAGE gold tier · approve up to limit' },
+  { id: 's3', kind: 'decision', label: 'FRAUD risk 0.12 · flagged, overridden' },
+  { id: 's4', kind: 'decision', label: 'ADJUSTER merge → payout $52,000' },
+  { id: 's5', kind: 'final', label: 'PAYOUT rail · oracle FAIL (exceeds tier cap)' },
 ]
 
 /** INTAKE (s1) — earliest corrupted hand-off. */

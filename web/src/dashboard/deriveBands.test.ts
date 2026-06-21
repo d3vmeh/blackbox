@@ -10,19 +10,16 @@ describe('deriveBands — multi-agent stub', () => {
 
   it('groups consecutive nodes into contiguous bands in time order', () => {
     expect(bands.map((b) => b.agentId)).toEqual([
-      'extractor',
-      'matcher',
+      'intake',
+      'coverage',
       'fraud',
-      'matcher',
-      'approver',
-      'payment',
+      'adjuster',
+      'payout',
     ])
   })
 
-  it('starts a new band when the agent reappears non-contiguously', () => {
-    // matcher runs before fraud, then again after — two separate bands, never merged.
-    const matcherBands = bands.filter((b) => b.agentId === 'matcher')
-    expect(matcherBands).toHaveLength(2)
+  it('has one band per agent in the claim_adjudication trace', () => {
+    expect(bands.filter((b) => b.agentId === 'coverage')).toHaveLength(1)
   })
 
   it('partitions every node into exactly one band', () => {
@@ -32,9 +29,9 @@ describe('deriveBands — multi-agent stub', () => {
   })
 
   it('derives short mono UPPERCASE labels from agentId', () => {
-    expect(bands.find((b) => b.agentId === 'extractor')?.label).toBe('EXTR')
-    expect(bands.find((b) => b.agentId === 'matcher')?.label).toBe('MATCH')
-    expect(bands.find((b) => b.agentId === 'payment')?.label).toBe('PAY')
+    expect(bands.find((b) => b.agentId === 'intake')?.label).toBe('INTAK')
+    expect(bands.find((b) => b.agentId === 'coverage')?.label).toBe('COVER')
+    expect(bands.find((b) => b.agentId === 'payout')?.label).toBe('PAYOU')
   })
 })
 

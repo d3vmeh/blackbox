@@ -1,0 +1,254 @@
+{
+  "id": "soc_incident",
+  "task": "Contain SIEM alert #8812 \u00b7 suspected C2 beacon",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "tool_result",
+      "inputs": {
+        "task": "Contain SIEM alert #8812 \u00b7 suspected C2 beacon"
+      },
+      "output": {
+        "severity": "medium",
+        "ioc": "deadbeef\u2026",
+        "affected_hosts": [
+          "srv-12"
+        ]
+      },
+      "state": {
+        "up": {}
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "alert_triage",
+        "agent": "alert_triage",
+        "runtime": "multi-agent",
+        "domain": "security-soc",
+        "display": "ALERT_TRIAGE"
+      },
+      "is_injected_fault": true,
+      "correct_output": {
+        "severity": "medium",
+        "ioc": "cafebabe0123456789abcdef0123456789abcdef0123456789abcdef01234567",
+        "affected_hosts": [
+          "srv-12"
+        ]
+      }
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "alert_triage"
+        ]
+      },
+      "output": {
+        "ioc_verdict": "malicious",
+        "feed_refs": [
+          "MISP-8812"
+        ]
+      },
+      "state": {
+        "up": {
+          "alert_triage": {
+            "severity": "medium",
+            "ioc": "deadbeef\u2026",
+            "affected_hosts": [
+              "srv-12"
+            ]
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "threat_intel",
+        "agent": "threat_intel",
+        "runtime": "multi-agent",
+        "domain": "security-soc",
+        "display": "THREAT_INTEL"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "ioc_verdict": "malicious",
+        "feed_refs": [
+          "MISP-8812"
+        ]
+      }
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "alert_triage",
+          "threat_intel"
+        ]
+      },
+      "output": {
+        "confirmed_hosts": [
+          "srv-99"
+        ]
+      },
+      "state": {
+        "up": {
+          "alert_triage": {
+            "severity": "medium",
+            "ioc": "deadbeef\u2026",
+            "affected_hosts": [
+              "srv-12"
+            ]
+          },
+          "threat_intel": {
+            "ioc_verdict": "malicious",
+            "feed_refs": [
+              "MISP-8812"
+            ]
+          }
+        }
+      },
+      "parents": [
+        "s1",
+        "s2"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "enrich",
+        "agent": "enrich",
+        "runtime": "multi-agent",
+        "domain": "security-soc",
+        "display": "ENRICH"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "confirmed_hosts": [
+          "srv-99"
+        ]
+      }
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "enrich"
+        ]
+      },
+      "output": {
+        "isolated": [
+          "srv-99"
+        ]
+      },
+      "state": {
+        "up": {
+          "alert_triage": {
+            "severity": "medium",
+            "ioc": "deadbeef\u2026",
+            "affected_hosts": [
+              "srv-12"
+            ]
+          },
+          "threat_intel": {
+            "ioc_verdict": "malicious",
+            "feed_refs": [
+              "MISP-8812"
+            ]
+          },
+          "enrich": {
+            "confirmed_hosts": [
+              "srv-99"
+            ]
+          }
+        }
+      },
+      "parents": [
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "contain",
+        "agent": "contain",
+        "runtime": "multi-agent",
+        "domain": "security-soc",
+        "display": "CONTAIN"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "isolated": [
+          "srv-99"
+        ]
+      }
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "kind": "final",
+      "inputs": {
+        "from": [
+          "contain"
+        ]
+      },
+      "output": {
+        "threat_active": true,
+        "contained_ioc": "deadbeef\u2026"
+      },
+      "state": {
+        "up": {
+          "alert_triage": {
+            "severity": "medium",
+            "ioc": "deadbeef\u2026",
+            "affected_hosts": [
+              "srv-12"
+            ]
+          },
+          "threat_intel": {
+            "ioc_verdict": "malicious",
+            "feed_refs": [
+              "MISP-8812"
+            ]
+          },
+          "enrich": {
+            "confirmed_hosts": [
+              "srv-99"
+            ]
+          },
+          "contain": {
+            "isolated": [
+              "srv-99"
+            ]
+          }
+        }
+      },
+      "parents": [
+        "s4"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "notify",
+        "agent": "notify",
+        "runtime": "multi-agent",
+        "domain": "security-soc",
+        "display": "NOTIFY"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "threat_active": true,
+        "contained_ioc": "deadbeef\u2026"
+      }
+    }
+  ],
+  "final_output": {
+    "threat_active": true,
+    "contained_ioc": "deadbeef\u2026"
+  },
+  "success": false,
+  "gold_root_step_id": "s1"
+}

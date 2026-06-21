@@ -6,7 +6,7 @@
 
 .stats {
   position: absolute;
-  top: var(--h-bar);   /* sit below the readout bar so its toggle stays live */
+  top: calc(var(--h-bar) + var(--h-toolbar));
   left: 0;
   right: 0;
   bottom: 0;

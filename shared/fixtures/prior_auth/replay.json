@@ -1,0 +1,42 @@
+{
+  "s1": {
+    "trace_id": "prior_auth",
+    "step_id": "s1",
+    "injected_value": {
+      "prior_treatments": [
+        "2025-11-02"
+      ]
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "explanation": null
+  },
+  "s3": {
+    "trace_id": "prior_auth",
+    "step_id": "s3",
+    "injected_value": {
+      "auth_payload": {
+        "wording": "weak"
+      }
+    },
+    "n": 5,
+    "flipped": false,
+    "confirmation_rate": 0.0,
+    "outcomes": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "explanation": null
+  }
+}

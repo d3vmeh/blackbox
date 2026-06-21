@@ -1,0 +1,26 @@
+{
+  "trace_id": "prior_auth",
+  "root_step_id": "s1",
+  "replay": {
+    "trace_id": "prior_auth",
+    "step_id": "s1",
+    "injected_value": {
+      "prior_treatments": [
+        "2025-11-02"
+      ]
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "explanation": null
+  },
+  "trusted": true,
+  "decision": "auto_apply"
+}

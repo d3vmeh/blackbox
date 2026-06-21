@@ -3,43 +3,34 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
 
-// The multi-agent stub (Accounts-Payable overpayment):
-//   root cause s2 lives in node a1 (extractor OCR misread); s1+s2 merge into a1.
-//   the fraud decoy s8 lives in node a5 (risk_score; s7+s8 merge into a5).
+// claim_adjudication fixture: root s1 / INTAKE billed_amount slip; decoy s4 / ADJUSTER.
 
 describe('Dashboard', () => {
   it('renders the readout verdict and the trace spine', () => {
     render(<Dashboard />)
     expect(screen.getByText('FAIL')).toBeInTheDocument()
-    // the spine shows the extractor's ocr_extract step label
-    expect(screen.getAllByText(/ocr_extract/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/INTAKE/).length).toBeGreaterThan(0)
   })
 
   it('selecting a node updates the inspector', () => {
     render(<Dashboard />)
-    // a1 is the extractor OCR result (s2) — the root cause; pre-selected on first paint.
-    // Clicking it confirms the inspector shows s2's misread raw_text "1,240.00".
-    fireEvent.click(screen.getByTestId('node-a1'))
-    // Scope to the inspector aside so we prove the INSPECTOR reacted to selection.
+    fireEvent.click(screen.getByTestId('node-a0'))
     const inspector = screen.getByRole('complementary')
-    expect(within(inspector).getAllByText(/1,240\.00/).length).toBeGreaterThan(0)
+    expect(within(inspector).getAllByText(/52000/).length).toBeGreaterThan(0)
   })
 
   it('replaying the root candidate flips the verdict to PASS (trusted)', async () => {
     render(<Dashboard />)
-    fireEvent.click(screen.getByTestId('node-a1')) // the true root (extractor OCR, s2)
+    fireEvent.click(screen.getByTestId('node-a0'))
     fireEvent.click(screen.getByRole('button', { name: /replay with fix/i }))
-    // The scripted climax (decoy → re-target → root) lands on confirm after ~2.2s:
-    // the verdict flips and the oracle becomes TRUSTED.
     expect(await screen.findByText('PASS', {}, { timeout: 3500 })).toBeInTheDocument()
     expect(await screen.findByText('TRUSTED', {}, { timeout: 3500 })).toBeInTheDocument()
   }, 6000)
 
   it('replaying a decoy candidate does NOT flip the verdict (rejection beat)', async () => {
     render(<Dashboard />)
-    fireEvent.click(screen.getByTestId('node-a5')) // the fraud decoy (risk_score, s8)
+    fireEvent.click(screen.getByTestId('node-a3'))
     fireEvent.click(screen.getByRole('button', { name: /replay candidate/i }))
-    // verdict stays FAIL; the focused decoy step does not flip the outcome
     expect(await screen.findByText('FAIL')).toBeInTheDocument()
     expect(screen.queryByText('PASS')).not.toBeInTheDocument()
   })
@@ -53,8 +44,8 @@ describe('Dashboard · pending run (Dev READY state)', () => {
         return {
           ok: true,
           json: async () => ([
-            { name: 'flight_langgraph', label: 'flight · langgraph' },
-            { name: 'acme_amount', label: 'claims · acme amount' },
+            { name: 'claim_adjudication', label: 'insurance · claim adjudication' },
+            { name: 'prior_auth', label: 'clinical · prior authorization' },
           ]),
         } as Response
       }
@@ -69,31 +60,34 @@ describe('Dashboard · pending run (Dev READY state)', () => {
   it('shows READY and hides the stale graph when the picked scenario is not loaded', async () => {
     render(<Dashboard />)
     expect(screen.getByText('FAIL')).toBeInTheDocument()
-    expect(screen.getAllByText(/ocr_extract/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/INTAKE/).length).toBeGreaterThan(0)
 
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /flight · langgraph/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Choose scenario' })).toBeInTheDocument()
     })
-    fireEvent.change(screen.getByLabelText('test'), { target: { value: 'flight_langgraph' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose scenario' }))
+    fireEvent.click(screen.getByRole('button', { name: /clinical · prior authorization/i }))
 
     expect(screen.getByText('READY')).toBeInTheDocument()
     expect(screen.getByText(/ready to run/i)).toBeInTheDocument()
-    expect(screen.queryByText(/ocr_extract/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/INTAKE/)).not.toBeInTheDocument()
     expect(document.querySelector('.dash--await')).toBeTruthy()
   })
 
   it('restores the loaded trace when re-selecting the scenario that is already loaded', async () => {
     render(<Dashboard />)
     await waitFor(() => {
-      expect(screen.getByRole('option', { name: /flight · langgraph/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Choose scenario' })).toBeInTheDocument()
     })
-    fireEvent.change(screen.getByLabelText('test'), { target: { value: 'flight_langgraph' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose scenario' }))
+    fireEvent.click(screen.getByRole('button', { name: /clinical · prior authorization/i }))
     expect(screen.getByText('READY')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('test'), { target: { value: 'acme_amount' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose scenario' }))
+    fireEvent.click(screen.getByRole('button', { name: /insurance · claim adjudication/i }))
 
     expect(screen.getByText('FAIL')).toBeInTheDocument()
-    expect(screen.getAllByText(/ocr_extract/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/INTAKE/).length).toBeGreaterThan(0)
     await waitFor(() => {
       expect(document.querySelector('.dash--await')).toBeFalsy()
     })

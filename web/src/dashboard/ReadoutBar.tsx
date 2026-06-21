@@ -14,14 +14,14 @@ export function ReadoutBar({ runId, task, verdict, meta, trust = 'untrusted', ra
 }) {
   return (
     <header className="rb">
-      <span className="rb__id tnum">{runId}</span>
-      <span className="rb__task">{task}</span>
-      {runtime && <span className="rb__runtime">{runtime}</span>}
+      <span className="rb__id tnum" title={runId}>{runId}</span>
+      <span className="rb__task" title={task}>{task}</span>
+      {runtime && <span className="rb__runtime">{runtime.replace(/-/g, ' ')}</span>}
       {monitorDecision === 'auto_apply' && (
-        <span className="rb__trust rb__trust--apply">trust gate · auto_apply</span>
+        <span className="rb__trust rb__trust--apply">auto-apply</span>
       )}
       {monitorDecision === 'escalate' && (
-        <span className="rb__trust rb__trust--escalate">trust gate · escalate</span>
+        <span className="rb__trust rb__trust--escalate">escalate</span>
       )}
       <span className="rb__meta">{meta}</span>
       <span className="rb__spacer" />
