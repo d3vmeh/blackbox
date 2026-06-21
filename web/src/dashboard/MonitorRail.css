@@ -8,7 +8,9 @@
 
 /* The rail sits on the bare --bg (outside the tile) — no panel surface, no border. */
 .mrail {
-  height: 100%; min-height: 0; overflow: auto; display: flex; flex-direction: column;
+  height: 100%; min-height: 0; display: flex; flex-direction: column;
+  /* scroll vertically as one column; never horizontally (the run menu is fixed-positioned) */
+  overflow-x: hidden; overflow-y: auto;
   background: transparent; font-family: var(--font-ui);
   /* breathing room so the last section never butts against the viewport edge */
   padding-bottom: var(--space-5);
@@ -30,8 +32,9 @@
   display: flex; flex-direction: column;
   border-bottom: var(--hair) solid var(--line-soft);
 }
-.mrail__sec--grow { flex: 1 1 auto; min-height: 0; }
-.mrail__sec--grow .mrail__body { overflow: auto; }
+/* Grow to fill spare space (pins Usage toward the bottom) but never shrink below
+   its content — when the rail is tall the whole rail scrolls, so Usage isn't squished. */
+.mrail__sec--grow { flex: 1 0 auto; }
 .mrail__sec:last-child { border-bottom: none; }
 
 /* ---- Section heading: a full-width toggle (chevron + icon + title + badge/count) ---- */

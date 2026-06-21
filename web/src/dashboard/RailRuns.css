@@ -86,16 +86,12 @@
 .rruns__tier--team { color: var(--text-dim); border-color: var(--line); }
 
 .rruns__menu {
-  position: absolute;
-  top: calc(100% + var(--space-1));
-  left: 0;
-  /* Wider than the narrow rail so run labels sit on one line; spills right over
-     the content area (a transient menu floats above the spine). */
-  min-width: 100%;
-  width: 360px;
-  z-index: calc(var(--z-overlay) + 1);
+  /* Fixed + JS-anchored to the trigger (top/left/width set inline) so the menu can
+     be wider than the narrow rail without extending the rail's overflow scroll. */
+  position: fixed;
+  z-index: var(--z-overlay);
   margin: 0;
-  padding: var(--space-1);
+  padding: 0; /* full-bleed rows: hover/active fill edge-to-edge, clipped by the radius */
   list-style: none;
   background: var(--raised);
   border: var(--hair) solid var(--line);
@@ -107,25 +103,40 @@
 }
 
 .rruns__opt {
-  display: flex;
+  /* Fixed badge column + body, so every run label starts at the same x. */
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: baseline;
-  gap: var(--space-2);
+  column-gap: var(--space-3);
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background: transparent;
   border: none;
-  border-radius: var(--r-2);
+  border-radius: 0;
   color: var(--text);
   cursor: pointer;
   text-align: left;
   transition: background var(--dur-micro) var(--ease-out);
 }
+/* In the menu the category is a quiet uppercase label in its own column (no chip
+   box — the boxed tag read as a clunky tile). Labels still align off the column. */
+.rruns__opt .rruns__tier {
+  justify-self: start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+}
 .rruns__opt:hover { background: var(--sel-bg); }
 .rruns__opt--active { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--accent); }
 
-.rruns__opt-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+/* Faint hairline between rows so each run reads as its own record. */
+.rruns__menu li + li { border-top: var(--hair) solid var(--line-soft); }
+
+.rruns__opt-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .rruns__opt-label {
   font-size: var(--t-step);
+  font-weight: 500;
   color: var(--text-bright);
   white-space: nowrap;
   overflow: hidden;
@@ -133,7 +144,7 @@
 }
 .rruns__opt-hint {
   font-size: var(--t-label);
-  line-height: var(--lh-body);
+  line-height: var(--lh-data);
   color: var(--text-faint);
   display: -webkit-box;
   -webkit-line-clamp: 2;
