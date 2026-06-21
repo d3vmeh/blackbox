@@ -110,44 +110,44 @@ export function Dashboard() {
   const rootStep = DEMO_TRACE[ROOT_INDEX]
 
   return (
-    <div className="dash" ref={rootRef}>
+    <div className="appshell" ref={rootRef}>
       {/* ---- Sidebar ---- */}
-      <aside className="dash__side">
-        <div className="dash__brand">
-          <span className="dash__mark" aria-hidden="true" />
+      <aside className="appshell__side">
+        <div className="appshell__brand">
+          <span className="appshell__mark" aria-hidden="true" />
           blackbox
         </div>
-        <nav className="dash__nav">
-          <span className="dash__navitem dash__navitem--on">Runs</span>
-          <span className="dash__navitem">Traces</span>
-          <span className="dash__navitem">Evals</span>
-          <span className="dash__navitem">Replays</span>
+        <nav className="appshell__nav">
+          <span className="appshell__navitem appshell__navitem--on">Runs</span>
+          <span className="appshell__navitem">Traces</span>
+          <span className="appshell__navitem">Evals</span>
+          <span className="appshell__navitem">Replays</span>
         </nav>
-        <p className="eyebrow dash__sectlabel">Recent runs</p>
-        <ul className="dash__runs">
+        <p className="eyebrow appshell__sectlabel">Recent runs</p>
+        <ul className="appshell__runs">
           {RECENT_RUNS.map((r) => (
-            <li key={r.id} className={`dash__run${r.state === 'active' ? ' dash__run--on' : ''}`}>
+            <li key={r.id} className={`appshell__run${r.state === 'active' ? ' appshell__run--on' : ''}`}>
               <span
-                className={`dash__rundot dash__rundot--${
+                className={`appshell__rundot appshell__rundot--${
                   r.state === 'active' ? (phase === 'confirm' ? 'pass' : 'fail') : 'pass'
                 }`}
               />
-              <span className="dash__runid tnum">{r.id}</span>
-              <span className="dash__runtask">{r.task}</span>
+              <span className="appshell__runid tnum">{r.id}</span>
+              <span className="appshell__runtask">{r.task}</span>
             </li>
           ))}
         </ul>
       </aside>
 
       {/* ---- Main: the trace spine ---- */}
-      <main className="dash__main">
-        <header className="dash__head">
-          <div className="dash__headid">
+      <main className="appshell__main">
+        <header className="appshell__head">
+          <div className="appshell__headid">
             <span className="eyebrow">trace</span>
-            <span className="dash__run-title tnum">run_3f9a · flight-agent</span>
+            <span className="appshell__run-title tnum">run_3f9a · flight-agent</span>
           </div>
-          <div className="dash__verdict">
-            <span className="dash__status">{PHASE_STATUS[phase]}</span>
+          <div className="appshell__verdict">
+            <span className="appshell__status">{PHASE_STATUS[phase]}</span>
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={verdict}
@@ -183,30 +183,30 @@ export function Dashboard() {
           })}
         </ol>
 
-        <footer className="dash__foot">
+        <footer className="appshell__foot">
           <span className="kbd">j</span>
           <span className="kbd">k</span>
-          <span className="dash__hint">step</span>
+          <span className="appshell__hint">step</span>
           <span className="kbd">↵</span>
-          <span className="dash__hint">inspect</span>
-          <span className="dash__foot-spacer" />
-          <button className="dash__replaybtn" type="button" onClick={replay}>↻ replay</button>
+          <span className="appshell__hint">inspect</span>
+          <span className="appshell__foot-spacer" />
+          <button className="appshell__replaybtn" type="button" onClick={replay}>↻ replay</button>
         </footer>
       </main>
 
       {/* ---- Inspector: narrates the localized root cause ---- */}
-      <aside className="dash__inspect">
-        <div className="dash__inspect-head">
+      <aside className="appshell__inspect">
+        <div className="appshell__inspect-head">
           <span className="eyebrow">inspector</span>
           {phase !== 'idle' && (
-            <span className="dash__pill tnum">{rootStep.id} · {rootStep.kind}</span>
+            <span className="appshell__pill tnum">{rootStep.id} · {rootStep.kind}</span>
           )}
         </div>
 
         <AnimatePresence mode="wait">
           <motion.div
             key={phase}
-            className="dash__inspect-body"
+            className="appshell__inspect-body"
             initial={{ opacity: 0, x: 8 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
@@ -229,7 +229,7 @@ export function Dashboard() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="dash__replay">
+        <div className="appshell__replay">
           {phase === 'confirm' ? '✓ Fix confirmed' : 'Replay with fix'}
         </div>
       </aside>

@@ -103,6 +103,28 @@
   --ease-in:    cubic-bezier(0.40, 0, 1, 1);      /* exit: faster than enter */
   --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);   /* loops / property changes */
   /* framer-motion spring (JS, not CSS): { stiffness: 360, damping: 34, mass: 1 } */
+
+  /* ---- Hairlines & separators (Linear-validated: 0.5px retina hairline; elevation
+     reads as a lighter surface + a low-alpha white top edge, never a heavy border) ---- */
+  --hair:       0.5px;                       /* retina hairline weight (sub-pixel, sharp) */
+  --line-soft:  rgba(255,255,255,0.035);     /* ultra-faint inner separator / top edge */
+
+  /* ---- Selection: neutral brighten + border only (NEVER a 4th hue) ---- */
+  --sel-bg:     #161B22;
+  --sel-line:   #2A323C;
+
+  /* ---- Shadow stack: crisp lift for popovers/menus without an "AI glow" ---- */
+  --shadow-stack:
+    0 0 0 0.5px rgba(0,0,0,0.55), 0 1px 1px rgba(0,0,0,0.28),
+    0 3px 6px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.28);
+
+  /* ---- Dashboard rails & bars (three-column case-file layout) ---- */
+  --rail-nav:   256px;   /* left: case navigator */
+  --rail-insp:  336px;   /* right: inspector */
+  --h-bar:      53px;    /* readout header height */
+
+  --glyph:      13px;    /* status ring glyph (the small circular marker) */
+  --track-tight: -0.01em; /* tighten small mono labels; open only true eyebrows */
 }
 ```
 
@@ -153,23 +175,46 @@ Dark-UI rules: elevation reads via **lighter surfaces** (`--inset`→`--overlay`
 bigger shadows; accents already desaturated to sit calm; hairlines are low-alpha white
 (`--line-hi`) on raised surfaces; a faint colored **glow** is the accent on focus/active.
 
-## Layout — the trace is the spine (vertical)
+## Layout — the trace is the spine, framed as a case file (three columns)
+
+The spine stays the center of gravity; we frame it with a left **case navigator** and a
+right **inspector** so the screen reads like a forensic case file (structure borrowed
+from Linear's nav · content · properties layout — we take the *spatial rhythm and
+hairline/surface craft, not the indigo accent*; blackbox keeps its closed 3-signal set).
 
 ```
-┌─────────────────────────────────────────────┐
-│ READOUT BAR  run id · agent · VERDICT (huge) │  thin instrument header
-├──────────────────────────┬──────────────────┤
-│ TRACE SPINE (vertical)   │ INSPECTOR         │
-│ 30-step chain, top→down  │ selected step:    │
-│ mono, dim by default     │ in/out, why,      │
-│ (blast cascades down)    │ payload           │
-└──────────────────────────┴──────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ READOUT BAR  ◐ blackbox · trace id · task ............... ORACLE  VERDICT  │  --h-bar, glassy hairline
+├───────────────────┬──────────────────────────────────┬─────────────────────┤
+│ CASE NAVIGATOR    │ TRACE SPINE (vertical)            │ INSPECTOR           │
+│ --rail-nav        │ 30-step chain, top→down           │ --rail-insp         │
+│ · run identity    │ mono, dim by default              │ selected step:      │
+│ · pipeline steps  │ (blast cascades down)             │ in/out · why ·      │
+│   (status glyphs) │ root snaps into focus on analyze  │ provenance · judge  │
+│ · ranked suspects │                                   │ + replay action     │
+│ · shortcut chips  │                                   │                     │
+├───────────────────┴──────────────────────────────────┴─────────────────────┤
+│ LOG DOCK  chronological readout · root line marked                          │
+└──────────────────────────────────────────────────────────────────────────┘
         confirm-flip replay = full-width overlay (--z-overlay)
 ```
-- 8pt grid; 1px `--line` borders; dense trace rows (~30px) so 30 steps fit; spacious
-  inspector. Prefer surface-step / spacing for separation before reaching for a border.
+- 8pt grid; **`--hair` (0.5px) `--line` borders**; separate regions by surface-step +
+  hairline before reaching for a heavier border. Dense trace/nav rows (~28–32px) so the
+  chain fits; spacious inspector with compact key→value property rows.
+- **Left rail = navigation analog.** Run identity → the **debug pipeline** as a vertical
+  stepper (record · blast · analyze · confirm) with neutral **status-ring glyphs** that
+  advance with `phase` → **ranked suspects** (candidates) as selectable rows with a tiny
+  suspicion meter; the leading suspect carries `--root`, the rest stay neutral.
 - Background: `--bg` + a very faint graph-paper grid + soft central radial vignette →
   "instrument readout." Quiet enough that trace + accents dominate.
+
+### Status-ring glyph (Linear's signature element, neutralized)
+
+A small circular SVG ring (`--glyph`, ~13px) encoding state by **shape + fill**, never by
+color alone: `pending` = faint hollow ring, `active` = partial pie, `done` = filled ring
+with check. Used for the pipeline stepper and suspect rows. Glyphs are **neutral
+affordance** (text tiers) — the one exception is the confirmed root suspect, which earns
+`--root` because it *is* the localized root cause (per the color-mapping rule).
 
 ## Patterns
 

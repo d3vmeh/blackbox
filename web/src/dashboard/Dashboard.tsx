@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { useRun } from './data/useRun'
 import { ReadoutBar } from './ReadoutBar'
+import { CaseNav } from './CaseNav'
 import { TraceGraph } from './graph/TraceGraph'
 import { Inspector } from './inspector/Inspector'
 import { LogConsole } from './console/LogConsole'
@@ -34,10 +35,32 @@ export function Dashboard() {
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
   const verdict = phase === 'confirm' ? 'PASS' : 'FAIL'
 
-  const onReplay = async (stepId: string) => {
+  const onReplay = useCallback(async (stepId: string) => {
     const result = await replay(stepId, '2024-07-12')
     setPhase(phaseForReplay(result))
-  }
+  }, [replay])
+
+  // Keyboard-driven instrument: j/k (or ↓/↑) move the selection along the spine, r replays
+  // the focused step. (DESIGN.md: blackbox is keyboard-first.)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const nodes = data.graph.nodes
+      const idx = nodes.findIndex((n) => n.id === selectedId)
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedId(nodes[Math.min(nodes.length - 1, Math.max(0, idx) + 1)]?.id ?? selectedId)
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedId(nodes[Math.max(0, (idx < 0 ? 0 : idx) - 1)]?.id ?? selectedId)
+      } else if ((e.key === 'r' || e.key === 'R') && selectedNode) {
+        e.preventDefault()
+        void onReplay(selectedNode.stepIds[selectedNode.stepIds.length - 1])
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [data.graph.nodes, selectedId, selectedNode, onReplay])
 
   return (
     <div className="dash">
@@ -45,10 +68,22 @@ export function Dashboard() {
         runId={data.trace.id}
         task="flight-agent"
         verdict={verdict}
-        meta={`${data.trace.steps.length} steps · ${PHASE_STATUS[phase]}`}
+        meta={PHASE_STATUS[phase]}
       />
       <div className="dash__body">
-        <section className="dash__graph">
+        <CaseNav
+          trace={data.trace}
+          attribution={data.attribution}
+          graph={data.graph}
+          phase={phase}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+        <section className="dash__spine">
+          <div className="pane__head">
+            <span className="eyebrow">Provenance · trace</span>
+            <span className="pane__hint tnum">{data.graph.nodes.length} actions · {data.trace.steps.length} steps</span>
+          </div>
           <TraceGraph
             graph={data.graph}
             status={data.status}
@@ -58,6 +93,10 @@ export function Dashboard() {
           />
         </section>
         <aside className="dash__inspect">
+          <div className="pane__head">
+            <span className="eyebrow">Inspector</span>
+            {selectedNode && <span className="pane__hint tnum">{selectedNode.id}</span>}
+          </div>
           <Inspector
             node={selectedNode}
             steps={data.trace.steps}

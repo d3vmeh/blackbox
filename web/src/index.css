@@ -65,6 +65,33 @@
   --ease-in:    cubic-bezier(0.40, 0, 1, 1);
   --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
 
+  /* ---- Hairlines & separators (Linear-validated: 0.5px retina hairline; elevation
+     reads as a lighter surface + a low-alpha white top edge, never a heavy border) ---- */
+  --hair:       0.5px;                      /* retina hairline weight */
+  --line-soft:  rgba(255, 255, 255, 0.035); /* ultra-faint inner separator / top edge */
+
+  /* ---- Selection: neutral brighten + border only (never a 4th hue) ---- */
+  --sel-bg:     #161B22;
+  --sel-line:   #2A323C;
+
+  /* ---- Shadow stack: crisp lift for popovers/menus without an "AI glow" ---- */
+  --shadow-stack:
+    0 0 0 0.5px rgba(0, 0, 0, 0.55),
+    0 1px 1px rgba(0, 0, 0, 0.28),
+    0 3px 6px rgba(0, 0, 0, 0.22),
+    0 8px 24px rgba(0, 0, 0, 0.28);
+
+  /* ---- Dashboard rails & bars (three-column case-file layout) ---- */
+  --rail-nav:   256px;   /* left: case navigator */
+  --rail-insp:  336px;   /* right: inspector */
+  --h-bar:      53px;    /* readout header height */
+
+  /* ---- Status glyph (the small circular ring marker, Linear's signature element) ---- */
+  --glyph:      13px;
+
+  /* ---- Tracking: tighten small mono labels (negative), open only true eyebrows ---- */
+  --track-tight: -0.01em;
+
   color-scheme: dark;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;

@@ -1,4 +1,4 @@
-import type { ActionEdge, ActionGraph, NodeStatus } from './types'
+import type { ActionGraph, NodeStatus } from './types'
 import type { Attribution } from '../types'
 
 export type StatusMap = Record<string, NodeStatus>
@@ -14,11 +14,4 @@ export function nodeStatus(graph: ActionGraph, attribution: Attribution): Status
     else map[node.id] = 'neutral'
   }
   return map
-}
-
-const SRC = new Set<NodeStatus>(['root', 'blast'])
-const DST = new Set<NodeStatus>(['blast', 'decoy'])
-
-export function isPoisonEdge(edge: ActionEdge, status: StatusMap): boolean {
-  return SRC.has(status[edge.from] ?? 'neutral') && DST.has(status[edge.to] ?? 'neutral')
 }
