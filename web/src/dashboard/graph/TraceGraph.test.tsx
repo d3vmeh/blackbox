@@ -40,8 +40,8 @@ describe('TraceGraph', () => {
     const labels = container.querySelectorAll('.tg__band-label')
     expect(labels.length).toBe(2)
     const texts = Array.from(labels).map((el) => el.textContent)
-    expect(texts).toContain('EXTR')
-    expect(texts).toContain('MATCH')
+    expect(texts).toContain('EXTRACTOR')
+    expect(texts).toContain('MATCHER')
   })
 
   it('marks the band owning the root node with data-root', () => {
@@ -49,8 +49,8 @@ describe('TraceGraph', () => {
       <TraceGraph graph={graph} status={status} phase="analyze" selectedId={null} onSelect={() => {}} />,
     )
     const labels = Array.from(container.querySelectorAll('.tg__band-label'))
-    const matchLabel = labels.find((el) => el.textContent === 'MATCH')
-    const extrLabel = labels.find((el) => el.textContent === 'EXTR')
+    const matchLabel = labels.find((el) => el.textContent === 'MATCHER')
+    const extrLabel = labels.find((el) => el.textContent === 'EXTRACTOR')
     // a1 (matcher) is the root → matcher band label is --root.
     expect(matchLabel).toHaveAttribute('data-root', 'true')
     expect(extrLabel).toHaveAttribute('data-root', 'false')

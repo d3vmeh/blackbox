@@ -9,6 +9,18 @@ export function SystemMap() {
   const active = hovered ?? 'root'
 
   const activeNode = SYSTEM_MAP_NODES.find((n) => n.id === active)!
+  const hoveredNode = hovered ? SYSTEM_MAP_NODES.find((n) => n.id === hovered) : null
+
+  const edgeKey = (a: string, b: string) => (a < b ? `${a}-${b}` : `${b}-${a}`)
+  const drawnEdges = new Set<string>()
+
+  const nodeLit = (n: (typeof SYSTEM_MAP_NODES)[number]) => {
+    if (active === n.id) return true
+    if (!hovered) return active === n.id
+    if ((n.links as readonly string[]).includes(hovered)) return true
+    if ((hoveredNode?.links as readonly string[] | undefined)?.includes(n.id)) return true
+    return false
+  }
 
   return (
     <section className="system-map" id="system-map" aria-label="System map">
@@ -21,15 +33,18 @@ export function SystemMap() {
       <div className="system-map__stage">
         <div className="system-map__canvas">
           <div className="system-map__plot">
-            <svg className="system-map__links" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <svg className="system-map__links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               {SYSTEM_MAP_NODES.flatMap((n) =>
                 n.links.map((targetId) => {
                   const target = SYSTEM_MAP_NODES.find((t) => t.id === targetId)
                   if (!target) return null
+                  const key = edgeKey(n.id, targetId)
+                  if (drawnEdges.has(key)) return null
+                  drawnEdges.add(key)
                   const lit = hovered === n.id || hovered === targetId
                   return (
                     <motion.line
-                      key={`${n.id}-${targetId}`}
+                      key={key}
                       x1={n.x}
                       y1={n.y}
                       x2={target.x}
@@ -38,7 +53,7 @@ export function SystemMap() {
                       strokeWidth={lit ? 0.55 : 0.35}
                       vectorEffect="non-scaling-stroke"
                       initial={false}
-                      animate={{ opacity: lit ? 0.9 : 0.35 }}
+                      animate={{ opacity: lit ? 0.9 : 0.4 }}
                       transition={{ duration: reduce ? 0 : 0.25 }}
                     />
                   )
@@ -47,20 +62,18 @@ export function SystemMap() {
             </svg>
 
             {SYSTEM_MAP_NODES.map((n) => {
-              const isActive = active === n.id
-              const isLinked = hovered !== null && (n.links as readonly string[]).includes(hovered)
-              const lit = isActive || isLinked
+              const lit = nodeLit(n)
               return (
                 <motion.button
                   key={n.id}
                   type="button"
-                  className={`system-map__node${lit ? ' system-map__node--lit' : ''}`}
+                  className={`system-map__node system-map__node--${n.id}${lit ? ' system-map__node--lit' : ''}`}
                   style={{ left: `${n.x}%`, top: `${n.y}%` }}
                   onMouseEnter={() => setHovered(n.id)}
                   onMouseLeave={() => setHovered(null)}
                   onFocus={() => setHovered(n.id)}
                   onBlur={() => setHovered(null)}
-                  aria-pressed={isActive}
+                  aria-pressed={active === n.id}
                 >
                   <span className="system-map__node-label">{n.label}</span>
                   {lit && !reduce && (

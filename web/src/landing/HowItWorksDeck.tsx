@@ -126,7 +126,6 @@ export function HowItWorksDeck() {
         </div>
 
         <div className="coverflow__footer">
-          <p className="coverflow__hint eyebrow">Scroll slowly to step through · swipe or click a card</p>
           <CoverflowDots active={active} onSelect={goTo} />
           <ScrollProgress progress={scrollYProgress} />
         </div>
@@ -140,9 +139,6 @@ function CoverflowHeader() {
     <div className="coverflow__head">
       <p className="eyebrow sect__eyebrow">How it works</p>
       <h2 className="sect__title">From failed run to confirmed fix.</h2>
-      <p className="sect__lead coverflow__lead">
-        Scroll to rotate the pipeline — center card is the active step; side cards peel away in perspective.
-      </p>
     </div>
   )
 }

@@ -1,9 +1,10 @@
 /* ============================ Monitor rail (left) ============================
-   Live monitor rail, reframed from Linear's nav. Four blocks separated by
-   generous breathing room (--space-5) + an ultra-faint --line-soft hairline.
-   Type-color follows Linear: rows read at --text; only the SELECTED row brightens
-   to --text-bright + --sel-bg pill. Icons are NEUTRAL affordance (--text-dim).
-   Closed token set only — the 3 signal hues mean exactly one thing each.        */
+   Live monitor rail, reframed from Linear's nav. A persistent shell: brand → run
+   switcher → run identity → collapsible sections (Agents · Supervise · Candidates
+   · Usage). Section headers toggle their body. Rows read at --text; only the
+   SELECTED row brightens to --text-bright + --sel-bg pill. Icons are NEUTRAL
+   affordance (--text-dim). Closed token set only — the 3 signal hues mean exactly
+   one thing each.                                                                */
 
 /* The rail sits on the bare --bg (outside the tile) — no panel surface, no border. */
 .mrail {
@@ -22,22 +23,56 @@
 .mrail__mark path { fill: currentColor; }
 .mrail__brandname { font-size: var(--t-body); font-weight: 600; color: var(--text-bright); letter-spacing: var(--track-display); }
 
-/* Section blocks: generous vertical rhythm, separated by a --line-soft hairline. */
+/* ---- Collapsible section: header button + body, separated by a --line-soft hairline ---- */
 .mrail__sec {
-  padding: var(--space-5) var(--space-4);
+  display: flex; flex-direction: column;
   border-bottom: var(--hair) solid var(--line-soft);
 }
-.mrail__sec--grow { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.mrail__sec--grow { flex: 1 1 auto; min-height: 0; }
+.mrail__sec--grow .mrail__body { overflow: auto; }
 .mrail__sec:last-child { border-bottom: none; }
 
-/* ---- 1. Run identity ---- */
-.mrail__sec--id { padding-top: var(--space-4); }
+/* ---- Section heading: a full-width toggle (chevron + icon + title + badge/count) ---- */
+.mrail__head {
+  display: flex; align-items: center; gap: var(--gap-icon);
+  width: 100%; padding: var(--space-4) var(--space-4) var(--space-3);
+  background: transparent; border: none; cursor: pointer; text-align: left;
+  font-family: var(--font-ui); font-size: var(--t-label); font-weight: 600;
+  text-transform: uppercase; letter-spacing: var(--track-upper); color: var(--text-dim);
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.mrail__head:hover { color: var(--text); }
+.mrail__head:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-2); }
+.mrail__chev {
+  flex: none; color: var(--text-faint);
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+.mrail__sec[data-open] .mrail__chev { transform: rotate(90deg); }
+.mrail__headicon { width: var(--icon); height: var(--icon); color: var(--text-faint); flex: none; }
+.mrail__headtitle { flex: 0 1 auto; }
+.mrail__badge {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: normal;
+  text-transform: none; color: var(--text-faint);
+  border: var(--hair) solid var(--line); border-radius: var(--r-1); padding: 0 4px;
+}
+.mrail__count {
+  margin-left: auto; font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-faint);
+  border: var(--hair) solid var(--line); border-radius: var(--r-1); padding: 0 5px;
+  letter-spacing: normal;
+}
+/* The badge sits before the count; when both present the count still pushes right. */
+.mrail__badge + .mrail__count { margin-left: var(--space-2); }
+
+.mrail__body { padding: 0 var(--space-4) var(--space-4); }
+
+/* ---- Run identity (not collapsible) ---- */
+.mrail__sec--id { padding: var(--space-4); }
 .mrail__id { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2); }
 .mrail__idk {
   font-size: var(--t-label); text-transform: uppercase; letter-spacing: var(--track-upper);
   color: var(--text-faint);
 }
-.mrail__idv { font-size: var(--t-step); color: var(--text-bright); }
+.mrail__idv { font-family: var(--font-mono); font-size: var(--t-step); color: var(--text-bright); }
 .mrail__task {
   margin: 0 0 var(--space-3); font-size: var(--t-step); line-height: var(--lh-data);
   color: var(--text-dim); letter-spacing: var(--track-tight);
@@ -50,23 +85,10 @@
   border-radius: var(--r-1); padding: 1px var(--space-2);
 }
 
-/* ---- Section heading (eyebrow + icon + count) ---- */
-.mrail__head {
-  margin: 0 0 var(--space-3); font-family: var(--font-ui); font-size: var(--t-label);
-  font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-upper);
-  color: var(--text-dim); display: flex; align-items: center; gap: var(--gap-icon);
-}
+/* Data values read in mono (IDs, scores, counts). */
+.cand__id, .cand__score, .cand__verdict { font-family: var(--font-mono); }
 
-/* Data values read in mono (IDs, scores, counts); UI chrome stays sans. */
-.mrail__idv, .mrail__count, .cand__id, .cand__score, .cand__verdict { font-family: var(--font-mono); }
-.mrail__headicon { width: var(--icon); height: var(--icon); color: var(--text-faint); flex: none; }
-.mrail__count {
-  margin-left: auto; font-size: var(--t-label); color: var(--text-faint);
-  border: var(--hair) solid var(--line); border-radius: var(--r-1); padding: 0 5px;
-  letter-spacing: normal;
-}
-
-/* ---- 2. Agents roster ---- */
+/* ---- 3. Agents roster ---- */
 .roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .roster__row {
   width: 100%; height: 32px; text-align: left; background: transparent;
@@ -94,7 +116,7 @@
   text-transform: uppercase;
 }
 
-/* ---- 3. Supervise stepper ---- */
+/* ---- 4. Supervise stepper ---- */
 .sup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .sup__step {
   display: grid; grid-template-columns: var(--glyph) var(--icon) 1fr auto; align-items: center;
@@ -111,7 +133,7 @@
 .sup__step[data-state='active'] .sup__label { color: var(--text-bright); }
 .sup__step[data-state='done'] .sup__label { color: var(--text); }
 
-/* ---- 4. Candidates ---- */
+/* ---- 5. Candidates ---- */
 .cand { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .cand__row {
   position: relative; width: 100%; text-align: left; background: transparent;
@@ -158,4 +180,38 @@
 .cand__verdict[data-tone='pass'] {
   color: var(--pass); border-color: var(--pass);
   box-shadow: var(--ring-pass);
+}
+
+/* ---- 6. Usage (per-run statistics; estimated; neutral only — no signal hue) ---- */
+.usage__agg {
+  display: grid; grid-template-columns: auto 1fr; align-items: baseline;
+  column-gap: var(--space-2); margin-bottom: var(--space-3);
+}
+.usage__aggval { font-size: var(--t-h3); color: var(--text-bright); line-height: 1; }
+.usage__agglabel {
+  font-size: var(--t-label); color: var(--text-faint); text-transform: uppercase;
+  letter-spacing: var(--track-upper);
+}
+.usage__aggsub {
+  grid-column: 1 / -1; margin-top: var(--space-1);
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-dim);
+}
+.usage__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.usage__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 64px 32px; align-items: center;
+  gap: var(--space-2);
+}
+.usage__label {
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: var(--track-tight);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.usage__meter { height: 4px; background: var(--inset); border-radius: 2px; overflow: hidden; }
+.usage__fill {
+  display: block; height: 100%; background: var(--text-faint); border-radius: 2px;
+  transition: width var(--dur-base) var(--ease-out);
+}
+.usage__pct {
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-dim);
+  text-align: right; font-variant-numeric: tabular-nums;
 }

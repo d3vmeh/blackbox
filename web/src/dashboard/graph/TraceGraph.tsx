@@ -116,19 +116,20 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
             : e.crossAgent
               ? '5 4'
               : e.longHop ? '4 4' : undefined
-          // Edge heals to --pass when its source node has healed (fix propagates forward).
+          // Edge heals to --pass when its source node has healed (fix propagates forward);
+          // otherwise the poison wire stays a muted crimson (quiet evidence, not alarm).
           const fromHealed = e.poison && effectiveStatus(e.from) === 'pass'
           const edgeStroke = e.poison
-            ? (fromHealed ? 'var(--pass)' : 'var(--blast)')
+            ? (fromHealed ? 'var(--pass)' : 'color-mix(in srgb, var(--blast) 60%, var(--edge))')
             : 'var(--edge)'
-          const opacity = e.poison ? 0.85 : e.crossAgent ? 0.62 : 0.5
+          const opacity = e.poison ? 0.55 : e.crossAgent ? 0.62 : 0.5
           return (
             <path
               key={`${e.from}-${e.to}`}
               d={e.d}
               fill="none"
               stroke={edgeStroke}
-              strokeWidth={e.poison ? 1.6 : 1}
+              strokeWidth={e.poison ? 1.3 : 1}
               strokeDasharray={dash}
               opacity={opacity}
               data-cross={!e.poison && e.crossAgent ? 'true' : undefined}

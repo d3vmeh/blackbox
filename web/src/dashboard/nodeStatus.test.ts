@@ -32,9 +32,16 @@ describe('nodeStatus', () => {
 })
 
 describe('isPoisonEdge', () => {
-  it('is true when poison flows from root/blast into blast/decoy', () => {
+  it('is true when poison flows from a blast node into a blast/decoy node', () => {
     const s = nodeStatus(graph, attribution)
-    expect(isPoisonEdge({ from: 'a1', to: 'a2', longHop: false }, s)).toBe(true)
+    // blast (a2) → decoy (a3): the poison crosses this wire.
+    expect(isPoisonEdge({ from: 'a2', to: 'a3', longHop: false }, s)).toBe(true)
+  })
+  it("does NOT poison the root's own outgoing wires (root is the focal, not a blast source)", () => {
+    const s = nodeStatus(graph, attribution)
+    // root (a1) → blast (a2): neutral wire — the root card carries the signal, not the edge.
+    expect(isPoisonEdge({ from: 'a1', to: 'a2', longHop: false }, s)).toBe(false)
+    // neutral (a0) → root (a1): never poison.
     expect(isPoisonEdge({ from: 'a0', to: 'a1', longHop: false }, s)).toBe(false)
   })
 })

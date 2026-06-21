@@ -16,7 +16,7 @@ const stagger: Variants = {
 }
 const VIEWPORT = { once: true, amount: 0.3 } as const
 
-const INTEGRATIONS = ['LangGraph', 'OpenTelemetry', 'Arize Phoenix', 'Redis', 'Sentry', 'Browserbase']
+const INTEGRATIONS = ['LangGraph', 'OpenTelemetry', 'Arize', 'Redis', 'Sentry', 'Browserbase']
 
 const FEATURES = [
   { tone: 'record', title: 'Causal, not chronological', body: 'Edges are true data-flow dependencies — which hand-off fed which agent — not “the previous step”.' },
@@ -47,7 +47,7 @@ export function Landing() {
         </div>
         <div className="nav__cta">
           <a className="nav__signin" href="#login">Sign in</a>
-          <button className="btn btn--solid" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
+          <button className="btn btn--solid" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Dashboard</button>
         </div>
       </nav>
 
@@ -59,9 +59,9 @@ export function Landing() {
           <p className="eyebrow">Wire it in</p>
           <h2 className="sect__title">Standards in. No agent rewrite.</h2>
           <p className="sect__lead">
-            blackbox ingests OpenTelemetry agent spans and LangGraph checkpoints —
-            every step, tool call, and hand-off between your agents — and runs the
-            attribution when the run fails.
+            blackbox ingests OpenTelemetry agent spans and LangGraph checkpoints.
+            Every step, tool call, and hand-off between your agents is captured in one trace.
+            It runs attribution when the run fails.
           </p>
           <div className="install__chips">
             {INTEGRATIONS.map((i) => (
@@ -108,12 +108,9 @@ export function Landing() {
           Stop guessing which agent failed.<br />Start proving it.
         </motion.h2>
         <motion.div className="hero__actions" variants={reveal}>
-          <button className="btn btn--solid btn--lg" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
+          <button className="btn btn--solid btn--lg" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Dashboard</button>
           <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
         </motion.div>
-        <motion.p className="hero__note" variants={reveal}>
-          Open source · self-host in 5 minutes
-        </motion.p>
       </motion.section>
 
       <footer className="foot">
