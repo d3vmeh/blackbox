@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 import { agentOf } from '../../types'
 import type { Attribution, Json, MonitorDecision, ReplayResult, Step } from '../../types'
 import type { ActionNode } from '../types'
@@ -97,6 +99,15 @@ export function Inspector({ node, steps, attribution, onReplay, replaying = fals
   /** the last replay outcome for this step (before → after + flip) */
   replayResult?: ReplayResult | null
 }) {
+  const reduce = useReducedMotion()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  // When the selected node changes (click or j/k/arrow in the trace), snap the
+  // reader back to the header of the new node so they never land stranded
+  // mid-scroll from the previous one. Smooth unless reduced motion is on.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+  }, [node?.id, reduce])
+
   if (!node) {
     return <div className="insp insp--empty">Select a node to inspect its telemetry.</div>
   }
@@ -133,7 +144,16 @@ export function Inspector({ node, steps, attribution, onReplay, replaying = fals
 
   return (
     <div className="insp">
-      <div className="insp__scroll">
+      <div className="insp__scroll" ref={scrollRef}>
+      {/* Keyed on node id: a quick, quiet fade/slide on swap so the reader feels
+          the content change without it being bouncy. Off under reduced motion. */}
+      <motion.div
+        key={node.id}
+        className="insp__swap"
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.15, ease: [0.16, 1, 0.30, 1] }}
+      >
       <SplitCompare {...insight} />
 
       <div className="insp__hd">
@@ -205,6 +225,7 @@ export function Inspector({ node, steps, attribution, onReplay, replaying = fals
         </Section>
       )}
 
+      </motion.div>
       </div>
       <div className="insp__actions">
         <button type="button" className="insp__btn insp__btn--primary"

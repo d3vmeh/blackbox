@@ -30,6 +30,7 @@
   font-weight: 600;
   color: var(--text-bright);
   letter-spacing: var(--track-tight);
+  overflow-wrap: anywhere;
 }
 
 .split__agent-role {
@@ -61,6 +62,7 @@
   color: var(--text);
   border-left: 2px solid var(--line);
   padding-left: var(--space-3);
+  overflow-wrap: anywhere;
 }
 
 .split__panes {
@@ -73,22 +75,28 @@
   .split__panes { grid-template-columns: 1fr; }
 }
 
+/* Matched pair: both panes are identical neutral inset cards. The SIGNAL is
+   carried by ONE quiet, aligned cue — a flush 2px top accent that lines up
+   horizontally across both panes (red = fault, green = fix) — plus the value
+   text color. No full-pane tint, no floating left edge: reads as a calm,
+   deliberate forensic readout, not two clashing alert blocks. align-items:
+   stretch (grid default) + equal padding/gap keep label/key/value/note locked
+   to a shared row-for-row rhythm across the two panes. */
 .split__pane {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3);
+  background: var(--inset);
+  border: var(--hair) solid var(--line);
+  border-top: 2px solid var(--line);
   border-radius: var(--r-2);
   min-width: 0;
 }
-.split__pane--bad {
-  background: color-mix(in srgb, var(--blast) 6%, var(--panel));
-  box-shadow: inset 2px 0 0 var(--blast);
-}
-.split__pane--good {
-  background: color-mix(in srgb, var(--pass) 6%, var(--panel));
-  box-shadow: inset 2px 0 0 var(--pass);
-}
+.split__pane--bad { border-top-color: var(--blast); }
+.split__pane--good { border-top-color: var(--pass); }
+/* No fault and no fix here — neutral top edge, same surface as its sibling. */
+.split__pane--neutral { border-top-color: var(--line); }
 
 .split__pane-label {
   font-size: var(--t-label);
@@ -114,6 +122,7 @@
   font-size: var(--t-label);
   color: var(--text-dim);
   text-transform: lowercase;
+  overflow-wrap: anywhere;
 }
 
 .split__val {
@@ -125,12 +134,17 @@
 }
 .split__val--bad { color: var(--blast); font-weight: 600; }
 .split__val--good { color: var(--pass); font-weight: 600; }
+.split__val--neutral { color: var(--text); font-weight: 600; }
 
 .split__note {
   margin: 0;
   font-size: var(--t-step);
   line-height: var(--lh-body);
   color: var(--text-dim);
+  /* notes can hold raw agent-output JSON / long identifiers — wrap inside the
+     pane so they never overflow and spill behind the adjacent column. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .split__note--sub {
   font-size: var(--t-label);
