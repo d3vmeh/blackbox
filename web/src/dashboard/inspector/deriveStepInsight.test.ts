@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { loadFixtureTrace } from '../data/loadFixture'
 import { STUB_ATTRIBUTION } from '../data/stubAttribution'
+import type { RunMeta } from '../data/loadMeta'
 import { deriveStepInsight } from './deriveStepInsight'
 
 describe('deriveStepInsight — claim_adjudication', () => {
   const trace = loadFixtureTrace()
-  const meta = { scenario: 'claim_adjudication' } as const
+  const meta: RunMeta = { runtime: 'multi-agent', engine: '5-agent pipeline', scenario: 'claim_adjudication' }
 
   it('root INTAKE shows billed_amount bad vs good', () => {
     const step = trace.steps.find((s) => s.id === 's1')!
