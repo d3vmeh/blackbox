@@ -71,12 +71,11 @@ export function Landing() {
         <motion.div className="code" variants={reveal} aria-hidden="true">
           <div className="code__bar"><span className="code__file tnum">quickstart.py</span></div>
           <pre className="code__body">
-<span className="c-dim">$ pip install blackbox</span>{'\n\n'}
-<span className="c-key">from</span> blackbox <span className="c-key">import</span> supervise{'\n\n'}
-<span className="c-key">with</span> supervise(team):       <span className="c-dim"># records every hand-off</span>{'\n'}
-{'    '}team.run(invoice)       <span className="c-dim"># your agents, unchanged</span>{'\n\n'}
-<span className="c-dim"># a run failed? localize the agent + prove the fix:</span>{'\n'}
-<span className="c-dim">$ blackbox replay ap_7c2 --confirm</span>
+<span className="c-dim">$ pip install blackbox langgraph</span>{'\n\n'}
+<span className="c-key">from</span> agent.flight.graph <span className="c-key">import</span> run_agent_graph{'\n\n'}
+trace, app = run_agent_graph()  <span className="c-dim"># LangGraph checkpoints</span>{'\n'}
+<span className="c-dim"># on FAIL: localize root + replay-confirm via fork:</span>{'\n'}
+<span className="c-dim">$ blackbox replay flight_run --confirm</span>
           </pre>
         </motion.div>
       </motion.section>

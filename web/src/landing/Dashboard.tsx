@@ -33,7 +33,7 @@ const STAGGER_MS = 75
 const BLAST_COUNT = BLAST_END - ROOT_INDEX
 
 const RECENT_RUNS = [
-  { id: 'run_3f9a', task: 'flight-agent', state: 'active' },
+  { id: 'flight_run', task: 'flight-agent', state: 'active' },
   { id: 'run_3f81', task: 'support-triage', state: 'pass' },
   { id: 'run_3f77', task: 'sql-writer', state: 'pass' },
   { id: 'run_3f60', task: 'web-shopper', state: 'pass' },
@@ -59,13 +59,13 @@ function inspectorFields(phase: Phase): Field[] {
       ]
     case 'analyze':
       return [
-        { label: 'input', value: 'raw "03/04"' },
-        { label: 'output', value: '2026-04-03', tone: 'blast' },
-        { label: 'root cause', value: 'parsed MM/DD → Apr 3; user meant Mar 4 (DD/MM)', tone: 'root' },
+        { label: 'input', value: 'raw depart "2026-07-12"' },
+        { label: 'output', value: '2026-12-07', tone: 'blast' },
+        { label: 'root cause', value: 'parse_date swapped month/day on the search payload', tone: 'root' },
       ]
     case 'confirm':
       return [
-        { label: 'fix', value: 'inject 2026-03-04', tone: 'pass' },
+        { label: 'fix', value: 'inject departure = 2026-07-12', tone: 'pass' },
         { label: 'replay', value: 'n = 5 re-runs' },
         { label: 'confirmation', value: '5 / 5 passed', tone: 'pass' },
       ]
@@ -144,7 +144,7 @@ export function Dashboard() {
         <header className="dash__head">
           <div className="dash__headid">
             <span className="eyebrow">trace</span>
-            <span className="dash__run-title tnum">run_3f9a · flight-agent</span>
+            <span className="dash__run-title tnum">flight_run · flight-agent · LangGraph</span>
           </div>
           <div className="dash__verdict">
             <span className="dash__status">{PHASE_STATUS[phase]}</span>

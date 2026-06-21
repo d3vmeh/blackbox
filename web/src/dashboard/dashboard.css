@@ -61,7 +61,12 @@
 .dash { min-height: 100vh; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
 .rb { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--line); background: var(--panel); font-family: var(--font-mono); }
-.rb__id b { color: var(--text-bright); } .rb__meta { color: var(--text-faint); font-size: var(--t-label); }
+.rb__id b { color: var(--text-bright); }
+.rb__runtime { margin-left: .6rem; padding: .12rem .45rem; border-radius: 999px;
+  font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
+  background: color-mix(in srgb, var(--pass) 8%, transparent); }
+.rb__meta { color: var(--text-faint); font-size: var(--t-label); }
 .rb__spacer { flex: 1; } .rb__eyebrow { font-size: var(--t-label); letter-spacing: .09em;
   text-transform: uppercase; color: var(--text-dim); }
 .rb__verdict { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h2);

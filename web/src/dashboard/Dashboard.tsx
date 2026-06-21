@@ -46,7 +46,8 @@ export function Dashboard() {
         runId={data.trace.id}
         task={data.trace.task}
         verdict={verdict}
-        meta={`${data.trace.steps.length} steps · ${PHASE_STATUS[phase]}`}
+        runtime={`${data.meta.engine}`}
+        meta={`${data.trace.steps.length} steps · ${data.meta.checkpoints} checkpoints · ${PHASE_STATUS[phase]}`}
       />
       <div className="dash__body">
         <section className="dash__graph">
@@ -63,6 +64,7 @@ export function Dashboard() {
             node={selectedNode}
             steps={data.trace.steps}
             attribution={data.attribution}
+            runMeta={data.meta}
             onReplay={onReplay}
           />
         </aside>

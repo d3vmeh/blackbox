@@ -1,0 +1,27 @@
+{
+  "runtime": "langgraph",
+  "author": "sashikumar6 / p2/langgraph-clean",
+  "engine": "StateGraph + MemorySaver",
+  "apis": [
+    "build_graph",
+    "run_agent_graph",
+    "to_trace"
+  ],
+  "graph_nodes": [
+    "plan",
+    "search",
+    "parse_date",
+    "select_flight",
+    "check_budget",
+    "book",
+    "compose_email",
+    "finalize"
+  ],
+  "checkpoints": 10,
+  "to_trace_steps": 8,
+  "recorder_steps": 10,
+  "capture_path": "Recorder inside LangGraph nodes (dashboard trace)",
+  "replay_path": "app.update_state(as_node=...) + invoke (LangGraph fork)",
+  "fork_node": "parse_date",
+  "thread_id": "flight_run"
+}

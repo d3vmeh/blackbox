@@ -3,10 +3,6 @@ import { useRef } from 'react'
 import { BrowserFrame } from './BrowserFrame'
 import { Dashboard } from './Dashboard'
 
-const reveal: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0 },
-}
 const stagger: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
@@ -122,7 +118,7 @@ function ProductShowcase() {
   return (
     <section className="showcase showcase--persist" id="demo" aria-label="Product demo">
       <div className="showcase__glow" aria-hidden="true" />
-      <BrowserFrame url="app.blackbox.dev/runs/ap_7c2">
+      <BrowserFrame url="app.blackbox.dev/runs/flight_run">
         <Dashboard />
       </BrowserFrame>
       <div className="legend">

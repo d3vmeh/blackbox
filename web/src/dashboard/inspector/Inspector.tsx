@@ -1,5 +1,6 @@
 import type { Attribution, Step } from '../../types'
 import type { ActionNode } from '../types'
+import type { RunMeta } from '../data/loadMeta'
 import { Field, RawPayload, Section } from './sections'
 import '../dashboard.css'
 
@@ -9,10 +10,11 @@ function previewState(state: Step['state']): string {
     .join('  ·  ')
 }
 
-export function Inspector({ node, steps, attribution, onReplay }: {
+export function Inspector({ node, steps, attribution, runMeta, onReplay }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
+  runMeta: RunMeta
   onReplay: (stepId: string) => void
 }) {
   if (!node) {
@@ -30,8 +32,24 @@ export function Inspector({ node, steps, attribution, onReplay }: {
       <Section title="identity" aside={step.kind}>
         <Field k="step" v={`${step.id} (idx ${step.index})`} />
         {step.tool_name && <Field k="tool" v={step.tool_name} />}
+        <Field k="runtime" v={String(step.raw.runtime ?? '—')} />
         <Field k="status" v={isRoot ? '● ROOT CAUSE' : node.id} tone={isRoot ? 'root' : undefined} />
       </Section>
+
+      {runMeta.runtime === 'langgraph' && (
+        <Section title="LangGraph" aside={runMeta.engine}>
+          <Field k="apis" v={runMeta.apis.join(' · ')} />
+          <Field k="checkpoints" v={`${runMeta.checkpoints} saved`} />
+          <Field k="capture" v={runMeta.capture_path} />
+          {isRoot && (
+            <Field
+              k="fork replay"
+              v={`update_state(as_node=${runMeta.fork_node}) → invoke`}
+              tone="good"
+            />
+          )}
+        </Section>
+      )}
 
       <Section title="data flow">
         <Field k="inputs" v={JSON.stringify(step.inputs)} />
