@@ -11,7 +11,12 @@ import './dashboard.css'
 export function Dashboard() {
   const { data, replay } = useRun()
   const reduce = useReducedMotion()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // First paint lands on the WHY: select the root-cause node so the inspector is never empty.
+  const rootNodeId = useMemo(
+    () => data.graph.nodes.find((n) => n.stepIds.includes(data.attribution.root_step_id))?.id ?? null,
+    [data.graph.nodes, data.attribution.root_step_id],
+  )
+  const [selectedId, setSelectedId] = useState<string | null>(rootNodeId)
   // Reduced motion: skip the cascade and render the localized view directly.
   const [phase, setPhase] = useState<Phase>(reduce ? 'analyze' : 'idle')
 

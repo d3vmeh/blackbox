@@ -25,7 +25,7 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
             key={`${e.from}-${e.to}`}
             d={e.d}
             fill="none"
-            stroke={e.poison ? 'var(--blast)' : '#283039'}
+            stroke={e.poison ? 'var(--blast)' : 'var(--edge)'}
             strokeWidth={e.poison ? 1.6 : 1}
             strokeDasharray={e.longHop ? '4 4' : undefined}
             opacity={e.poison ? 0.85 : 0.5}
