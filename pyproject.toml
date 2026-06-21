@@ -10,6 +10,7 @@ dependencies = [
     "sse-starlette>=2.1",
     "redis>=5.0",
     "anthropic>=0.34",
+    "python-dotenv>=1.0",
     "networkx>=3.0",
     "langgraph>=0.2",
     "langchain-core>=0.3",
@@ -32,3 +33,12 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+# Python backend packages only — exclude the web/ frontend and the test suite.
+include = ["agent*", "shared*", "replay*", "attribution*", "api*", "eval*"]
+exclude = ["web*", "tests*"]
