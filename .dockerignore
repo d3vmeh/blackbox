@@ -1,0 +1,11 @@
+# keep the build context small + avoid copying local-only state into the image
+.venv
+**/__pycache__
+*.pyc
+.git
+.env
+web/node_modules
+web/dist
+**/node_modules
+.pytest_cache
+.DS_Store

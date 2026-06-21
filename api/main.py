@@ -157,3 +157,14 @@ def run(req: RunRequest) -> dict:
         "meta": art["meta"],
         "monitor": art["monitor"],
     }
+
+
+# --- single-service deploy: also serve the built SPA (web/dist) so ONE service hosts
+#     BOTH the API and the frontend. Mounted LAST so the /api + /health routes above
+#     always take precedence; everything else falls through to the static SPA. No-op
+#     locally when web/dist isn't built (dev uses the Vite server + /api proxy). ---
+import os as _os
+from fastapi.staticfiles import StaticFiles
+
+if _os.path.isdir("web/dist"):
+    app.mount("/", StaticFiles(directory="web/dist", html=True), name="spa")
