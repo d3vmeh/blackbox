@@ -49,8 +49,12 @@ export function Dashboard() {
     [data.graph.nodes, selectedId],
   )
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
-  const verdict = data.trace.success ? 'PASS' : phase === 'confirm' ? 'PASS' : 'FAIL'
-  const monitorLabel = phase === 'confirm' ? data.monitor.decision : null
+  // A test picked from the dropdown but not yet run: show a "ready to run" state instead of the
+  // previous run's graph/verdict, so the dashboard never shows stale data under a new test name.
+  const loadedScenario = data.meta.scenario ?? data.trace.task
+  const pendingRun = picked !== loadedScenario
+  const verdict = pendingRun ? 'READY' : data.trace.success ? 'PASS' : phase === 'confirm' ? 'PASS' : 'FAIL'
+  const monitorLabel = !pendingRun && phase === 'confirm' ? data.monitor.decision : null
 
   const onReplay = async (stepId: string) => {
     // The corrected value comes from the pre-generated replay result, keyed by step.
@@ -75,33 +79,45 @@ export function Dashboard() {
         runId={data.trace.id}
         task={picked}
         verdict={verdict}
-        runtime={data.meta.domain ?? data.meta.runtime}
+        runtime={pendingRun ? undefined : (data.meta.domain ?? data.meta.runtime)}
         monitorDecision={monitorLabel}
-        meta={`${data.trace.steps.length} agents · ${data.meta.engine} · ${PHASE_STATUS[phase]}`}
+        meta={pendingRun ? 'awaiting run' : `${data.trace.steps.length} agents · ${data.meta.engine} · ${PHASE_STATUS[phase]}`}
       />
-      <div className="dash__body">
-        <section className="dash__graph">
-          <TraceGraph
-            graph={data.graph}
-            status={data.status}
-            phase={phase}
-            selectedId={selectedId}
-            onSelect={selectNode}
-          />
-        </section>
-        <aside className="dash__inspect">
-          <Inspector
-            node={selectedNode}
-            steps={data.trace.steps}
-            attribution={data.attribution}
-            runMeta={data.meta}
-            monitor={data.monitor}
-            onReplay={onReplay}
-            replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
-          />
-        </aside>
-      </div>
-      <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
+      {pendingRun ? (
+        <div className="dash__await">
+          <div className="dash__await-card">
+            <span className="dash__await-eyebrow">ready to run</span>
+            <span className="dash__await-scn">{picked}</span>
+            <span className="dash__await-hint">Press Run to execute this test and inspect its trace.</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="dash__body">
+            <section className="dash__graph">
+              <TraceGraph
+                graph={data.graph}
+                status={data.status}
+                phase={phase}
+                selectedId={selectedId}
+                onSelect={selectNode}
+              />
+            </section>
+            <aside className="dash__inspect">
+              <Inspector
+                node={selectedNode}
+                steps={data.trace.steps}
+                attribution={data.attribution}
+                runMeta={data.meta}
+                monitor={data.monitor}
+                onReplay={onReplay}
+                replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
+              />
+            </aside>
+          </div>
+          <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
+        </>
+      )}
     </div>
   )
 }
