@@ -83,6 +83,18 @@
 .rb__verdict { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h2);
   letter-spacing: var(--track-verdict); }
 .rb__verdict--fail { color: var(--blast); } .rb__verdict--pass { color: var(--pass); }
+.rb__verdict--ready { color: var(--text-faint); }
+
+/* "Ready to run" — shown when a test is picked but not yet run, instead of the prior run's graph */
+.dash__await { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-8) var(--space-4); }
+.dash__await-card { display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  text-align: center; font-family: var(--font-mono); }
+.dash__await-eyebrow { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; color: var(--text-dim); }
+.dash__await-scn { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h3);
+  color: var(--text-bright); letter-spacing: var(--track-display); }
+.dash__await-hint { font-size: var(--t-step); color: var(--text-faint); }
 /* minmax(0,…) + min-width:0 stop a wide inspector payload (long code in a <pre>)
    from collapsing the graph column — the long line scrolls inside the inspector. */
 .dash__body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); flex: 1; min-height: 0; }

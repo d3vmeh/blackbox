@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import './dashboard.css'
 
 export function ReadoutBar({ runId, task, verdict, meta, runtime, monitorDecision }: {
-  runId: string; task: string; verdict: 'FAIL' | 'PASS'; meta: string
+  runId: string; task: string; verdict: 'FAIL' | 'PASS' | 'READY'; meta: string
   runtime?: string
   monitorDecision?: 'auto_apply' | 'escalate' | null
 }) {
