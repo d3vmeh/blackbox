@@ -1,8 +1,54 @@
-import type { Attribution, Json, Step } from '../../types'
+import type { Attribution, Json, ReplayResult, Step } from '../../types'
 import type { ActionNode } from '../types'
 import { CodeBlock } from './CodeBlock'
 import { Field, RawPayload, Section } from './sections'
 import '../dashboard.css'
+
+// After a replay, spell out exactly WHAT was changed (field: bad → good, or the
+// corrected code) and whether the outcome flipped — so the proof is legible, not implicit.
+function ReplayOutcome({ result, agent, output }: {
+  result: ReplayResult; agent: string; output: Json
+}) {
+  const injected = result.injected_value
+  const fields = injected && typeof injected === 'object' && !Array.isArray(injected)
+    ? Object.entries(injected) : []
+  const before = (k: string) =>
+    output && typeof output === 'object' && !Array.isArray(output) ? output[k] : undefined
+  const passed = result.outcomes.filter(Boolean).length
+  const names = fields.map(([k]) => k).join(', ') || 'output'
+  return (
+    <div className={`insp__replay insp__replay--${result.flipped ? 'pass' : 'reject'}`}>
+      <div className="insp__replayhd">{result.flipped ? '✓ FIX CONFIRMED' : '✗ NOT THE CAUSE'}</div>
+      {fields.length > 0 && (
+        <div className="insp__fix">
+          {fields.map(([k, v]) =>
+            typeof v === 'string' && (v.includes('\n') || k === 'code' || k === 'tests') ? (
+              <div key={k} className="insp__fixcode">
+                <div className="insp__codek">corrected {k}</div>
+                <CodeBlock code={v} />
+              </div>
+            ) : (
+              <div key={k} className="insp__fixrow">
+                <span className="insp__fixk">{k}</span>
+                <span className="insp__fixbefore">{String(before(k))}</span>
+                <span className="insp__fixarrow">→</span>
+                <span className="insp__fixafter">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+      {result.flipped && result.explanation && (
+        <p className="insp__replayexpl">{result.explanation}</p>
+      )}
+      <p className="insp__replaywhy">
+        {result.flipped
+          ? `Re-ran with ${agent}'s ${names} corrected → the run flipped FAIL → PASS (${passed}/${result.n} replays). That intervention proves ${agent} is the root cause.`
+          : `Re-ran with ${agent}'s output corrected → no change, still FAIL (${passed}/${result.n}). That proves ${agent} is not the cause.`}
+      </p>
+    </div>
+  )
+}
 
 function previewInputs(inputs: Record<string, Json>): string {
   return Object.entries(inputs)
@@ -40,11 +86,12 @@ function ProducedOutput({ output }: { output: Json }) {
 
 const VERDICT_LABEL = { root: '● ROOT CAUSE', blast: '● AFFECTED', ok: 'OK' } as const
 
-export function Inspector({ node, steps, attribution, onReplay }: {
+export function Inspector({ node, steps, attribution, onReplay, replayResult }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
   onReplay: (stepId: string) => void
+  replayResult?: ReplayResult | null
 }) {
   if (!node) {
     return <div className="insp insp--empty">Select a node to inspect its telemetry.</div>
@@ -106,6 +153,8 @@ export function Inspector({ node, steps, attribution, onReplay }: {
             : 'fork here · re-run → expect no change (proves it is not the cause)'}
         </span>
       </div>
+
+      {replayResult && <ReplayOutcome result={replayResult} agent={node.label} output={step.output} />}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { TraceGraph } from './graph/TraceGraph'
 import { Inspector } from './inspector/Inspector'
 import { LogConsole } from './console/LogConsole'
 import { phaseForReplay, PHASE_STATUS, type Phase } from './phase'
+import type { ReplayResult } from '../types'
 import './dashboard.css'
 
 export function Dashboard() {
@@ -20,10 +21,16 @@ export function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(rootNodeId)
   // Reduced motion: skip the cascade and render the localized view directly.
   const [phase, setPhase] = useState<Phase>(reduce ? 'analyze' : 'idle')
+  // The last replay outcome (what was injected + whether it flipped), shown in the inspector.
+  const [replayInfo, setReplayInfo] = useState<{ stepId: string; result: ReplayResult } | null>(null)
+
+  // Selecting a different node clears the stale replay result.
+  const selectNode = (id: string | null) => { setSelectedId(id); setReplayInfo(null) }
 
   // Each new run (data change) re-focuses the root cause and replays the cascade.
   useEffect(() => {
     setSelectedId(rootNodeId)
+    setReplayInfo(null)
     if (reduce) { setPhase('analyze'); return }
     setPhase('idle')
     const t1 = window.setTimeout(() => setPhase('blast'), 600)
@@ -41,6 +48,7 @@ export function Dashboard() {
   const onReplay = async (stepId: string) => {
     // The corrected value comes from the pre-generated replay result, keyed by step.
     const result = await replay(stepId, null)
+    setReplayInfo({ stepId, result })
     setPhase(phaseForReplay(result))
   }
 
@@ -69,7 +77,7 @@ export function Dashboard() {
             status={data.status}
             phase={phase}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectNode}
           />
         </section>
         <aside className="dash__inspect">
@@ -78,6 +86,7 @@ export function Dashboard() {
             steps={data.trace.steps}
             attribution={data.attribution}
             onReplay={onReplay}
+            replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
           />
         </aside>
       </div>

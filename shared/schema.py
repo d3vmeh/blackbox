@@ -87,3 +87,4 @@ class ReplayResult(BaseModel):
     flipped: bool                    # did the outcome flip fail->pass at all
     confirmation_rate: float         # fraction of n re-runs that passed, in [0, 1]
     outcomes: list[bool]             # per-run pass/fail
+    explanation: Optional[str] = None  # plain-English "why this fix works" (optional; LLM or template)
