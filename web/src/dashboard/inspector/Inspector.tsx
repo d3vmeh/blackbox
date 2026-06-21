@@ -39,15 +39,27 @@ export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay
 
       {runMeta.runtime === 'langgraph' && (
         <Section title="LangGraph" aside={runMeta.engine}>
-          <Field k="apis" v={runMeta.apis.join(' · ')} />
-          <Field k="checkpoints" v={`${runMeta.checkpoints} saved`} />
-          <Field k="capture" v={runMeta.capture_path} />
-          {isRoot && (
+          <Field k="apis" v={(runMeta.apis ?? []).join(' · ')} />
+          <Field k="checkpoints" v={`${runMeta.checkpoints ?? 0} saved`} />
+          <Field k="capture" v={runMeta.capture_path ?? '—'} />
+          {isRoot && runMeta.fork_node && (
             <Field
               k="fork replay"
               v={`update_state(as_node=${runMeta.fork_node}) → invoke`}
               tone="good"
             />
+          )}
+        </Section>
+      )}
+
+      {runMeta.runtime === 'multi-agent' && (
+        <Section title="multi-agent hand-off" aside={runMeta.engine}>
+          <Field k="agent" v={String(step.raw.display ?? step.raw.agent ?? '—')} />
+          {runMeta.parallel_agents && (
+            <Field k="parallel" v={runMeta.parallel_agents.join(' ∥ ')} />
+          )}
+          {isRoot && runMeta.fork_agent && (
+            <Field k="fork replay" v={`inject at ${runMeta.fork_agent} → re-run pipeline`} tone="good" />
           )}
         </Section>
       )}

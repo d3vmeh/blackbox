@@ -1,0 +1,32 @@
+{
+  "runtime": "multi-agent",
+  "domain": "insurance-claims",
+  "engine": "5-agent pipeline \u00b7 COVERAGE \u2225 FRAUD concurrent",
+  "pipeline": [
+    "record",
+    "localize",
+    "confirm",
+    "supervise"
+  ],
+  "agent_labels": {
+    "extractor": "INTAKE",
+    "matcher": "COVERAGE",
+    "fraud": "FRAUD",
+    "approver": "ADJUDICATOR",
+    "payment": "PAYOUT"
+  },
+  "scenario": "acme_amount",
+  "invoice_text": "INVOICE \u2014 Acme Corp\nPO: PO-7781\nAmount due: $4,200.00\nDue date: 2026-07-15\n",
+  "parallel_agents": [
+    "matcher",
+    "fraud"
+  ],
+  "fork_agent": "extractor",
+  "observability": {
+    "otel": "agent/otel.emit_trace",
+    "arize": "python -m eval.arize_pipeline --demo-only",
+    "sentry": "api/sentry_issue.file_issue (on escalate)",
+    "redis": "commit only replay-confirmed hand-offs"
+  },
+  "monitor_decision": "auto_apply"
+}

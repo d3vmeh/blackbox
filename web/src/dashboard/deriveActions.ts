@@ -11,6 +11,10 @@ function laneFor(step: Step): Lane {
 }
 
 function labelFor(step: Step): string {
+  const display = step.raw?.display
+  if (typeof display === 'string') return display
+  const agent = step.raw?.agent
+  if (typeof agent === 'string') return agent.toUpperCase()
   if (step.tool_name) return step.tool_name
   const out = typeof step.output === 'string' ? step.output : ''
   return out.length > 48 ? `${out.slice(0, 47)}…` : out || step.kind
@@ -23,7 +27,15 @@ export function deriveActions(trace: Trace): ActionGraph {
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]
-    if (step.kind === 'tool_result') continue // consumed by its preceding call
+    const prev = steps[i - 1]
+    // Skip tool_result only when it pairs with the immediately preceding tool_call.
+    if (
+      step.kind === 'tool_result' &&
+      prev?.kind === 'tool_call' &&
+      prev.tool_name === step.tool_name
+    ) {
+      continue
+    }
     const id = `a${nodes.length}`
     const stepIds = [step.id]
     const next = steps[i + 1]

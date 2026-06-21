@@ -1,7 +1,7 @@
 /**
- * Landing-page demo spine — mirrors shared/fixtures/flight_run/trace.json
- * (LangGraph flight agent + injected parse_date fault). Keep ROOT_INDEX /
- * BLAST_END in sync with agent.flight.export_run.
+ * Landing-page demo spine — mirrors shared/fixtures/claim_run/trace.json
+ * (insurance claims multi-agent pipeline + injected INTAKE amount fault).
+ * Keep ROOT_INDEX / BLAST_END in sync with agent.ap.export_run.
  */
 
 export type StepStatus = 'neutral' | 'root' | 'blast' | 'pass'
@@ -14,31 +14,26 @@ export interface DemoStep {
 }
 
 export const DEMO_TRACE: DemoStep[] = [
-  { id: 's1', kind: 'reason', label: 'plan("AUS · Jul 12 · under $500")' },
-  { id: 's2', kind: 'tool_call', label: 'search_flights(AUS, 2026-07-12)' },
-  { id: 's3', kind: 'tool_result', label: 'UA-441 @ $412 · depart 2026-07-12' },
-  { id: 's4', kind: 'reason', label: 'parse_date(raw) → 2026-12-07' },
-  { id: 's5', kind: 'decision', label: 'select UA-441 for 2026-12-07' },
-  { id: 's6', kind: 'tool_call', label: 'check_budget(412, cap=500)' },
-  { id: 's7', kind: 'tool_result', label: 'budget ok' },
-  { id: 's8', kind: 'tool_call', label: 'book_flight(UA-441 · 2026-12-07)' },
-  { id: 's9', kind: 'reason', label: 'compose_email(depart 2026-12-07)' },
-  { id: 's10', kind: 'final', label: 'send_itinerary(6 recipients)' },
+  { id: 's1', kind: 'tool_result', label: 'INTAKE read claim → amount $42,000' },
+  { id: 's2', kind: 'decision', label: 'COVERAGE verify policy · amount passes' },
+  { id: 's3', kind: 'decision', label: 'FRAUD risk check · low risk' },
+  { id: 's4', kind: 'decision', label: 'ADJUDICATOR approve $42,000 payout' },
+  { id: 's5', kind: 'final', label: 'PAYOUT sent to Acme Corp · oracle FAIL' },
 ]
 
-/** parse_date (s4) — earliest wrong step in flight_run. */
-export const ROOT_INDEX = 3
-/** Forward slice through send_itinerary (s10). */
-export const BLAST_END = 9
+/** INTAKE (s1) — earliest corrupted hand-off. */
+export const ROOT_INDEX = 0
+/** Forward slice through PAYOUT (s5). */
+export const BLAST_END = 4
 
 export type Phase = 'idle' | 'blast' | 'analyze' | 'confirm'
 
 /** What the readout status line says during each beat. */
 export const PHASE_STATUS: Record<Phase, string> = {
   idle: 'trace recorded · awaiting analysis',
-  blast: 'tracing blast radius…',
-  analyze: 'localizing root cause…',
-  confirm: 'fix confirmed · fail → pass',
+  blast: 'tracing blast radius across agents…',
+  analyze: 'localizing earliest corrupted hand-off…',
+  confirm: 'replay confirmed · fail → pass',
 }
 
 export function statusFor(index: number, phase: Phase): StepStatus {

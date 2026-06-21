@@ -47,9 +47,9 @@ export function Dashboard() {
         runId={data.trace.id}
         task={data.trace.task}
         verdict={verdict}
-        runtime={`${data.meta.engine}`}
+        runtime={data.meta.domain ?? data.meta.runtime}
         monitorDecision={monitorLabel}
-        meta={`${data.trace.steps.length} steps · ${data.meta.checkpoints} checkpoints · ${PHASE_STATUS[phase]}`}
+        meta={`${data.trace.steps.length} agents · ${data.meta.engine} · ${PHASE_STATUS[phase]}`}
       />
       <div className="dash__body">
         <section className="dash__graph">

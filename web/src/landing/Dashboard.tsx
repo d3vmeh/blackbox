@@ -33,7 +33,7 @@ const STAGGER_MS = 75
 const BLAST_COUNT = BLAST_END - ROOT_INDEX
 
 const RECENT_RUNS = [
-  { id: 'flight_run', task: 'flight-agent', state: 'active' },
+  { id: 'claim_run', task: 'claims-adjudication', state: 'active' },
   { id: 'run_3f81', task: 'support-triage', state: 'pass' },
   { id: 'run_3f77', task: 'sql-writer', state: 'pass' },
   { id: 'run_3f60', task: 'web-shopper', state: 'pass' },
@@ -50,22 +50,21 @@ function inspectorFields(phase: Phase): Field[] {
     case 'idle':
       return [
         { label: 'oracle', value: 'FAIL', tone: 'blast' },
-        { label: 'reason', value: 'booking placed on the wrong date' },
+        { label: 'reason', value: 'payout $42,000 exceeds policy limit for claim' },
       ]
     case 'blast':
       return [
-        { label: 'symptom', value: 'wrong booking date propagated' },
-        { label: 'blast radius', value: `${BLAST_COUNT} steps · s${ROOT_INDEX + 1}–s${BLAST_END}`, tone: 'blast' },
+        { label: 'symptom', value: 'wrong payout amount at PAYOUT agent' },
+        { label: 'blast radius', value: `${BLAST_COUNT} agents · COVERAGE → PAYOUT`, tone: 'blast' },
       ]
     case 'analyze':
       return [
-        { label: 'input', value: 'raw depart "2026-07-12"' },
-        { label: 'output', value: '2026-12-07', tone: 'blast' },
-        { label: 'root cause', value: 'parse_date swapped month/day on the search payload', tone: 'root' },
+        { label: 'hand-off', value: 'amount: $42,000 (should be $4,200)' },
+        { label: 'root cause', value: 'INTAKE decimal slip on billed amount', tone: 'root' },
       ]
     case 'confirm':
       return [
-        { label: 'fix', value: 'inject departure = 2026-07-12', tone: 'pass' },
+        { label: 'fix', value: 'inject amount = 4200.0 at INTAKE', tone: 'pass' },
         { label: 'replay', value: 'n = 5 re-runs' },
         { label: 'confirmation', value: '5 / 5 passed', tone: 'pass' },
       ]
@@ -144,7 +143,7 @@ export function Dashboard() {
         <header className="dash__head">
           <div className="dash__headid">
             <span className="eyebrow">trace</span>
-            <span className="dash__run-title tnum">flight_run · flight-agent · LangGraph</span>
+            <span className="dash__run-title tnum">claim_run · claims-adjudication · multi-agent</span>
           </div>
           <div className="dash__verdict">
             <span className="dash__status">{PHASE_STATUS[phase]}</span>

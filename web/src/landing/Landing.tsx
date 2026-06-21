@@ -72,10 +72,10 @@ export function Landing() {
           <div className="code__bar"><span className="code__file tnum">quickstart.py</span></div>
           <pre className="code__body">
 <span className="c-dim">$ pip install blackbox langgraph</span>{'\n\n'}
-<span className="c-key">from</span> agent.flight.graph <span className="c-key">import</span> run_agent_graph{'\n\n'}
-trace, app = run_agent_graph()  <span className="c-dim"># LangGraph checkpoints</span>{'\n'}
-<span className="c-dim"># on FAIL: localize root + replay-confirm via fork:</span>{'\n'}
-<span className="c-dim">$ blackbox replay flight_run --confirm</span>
+<span className="c-key">from</span> agent.ap.export_run <span className="c-key">import</span> build_artifacts{'\n\n'}
+build_artifacts()  <span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → PAYOUT</span>{'\n'}
+<span className="c-dim"># on FAIL: localize root + replay-confirm before trust gate:</span>{'\n'}
+<span className="c-dim">$ python -m agent.ap.export_run && open /#dashboard</span>
           </pre>
         </motion.div>
       </motion.section>
