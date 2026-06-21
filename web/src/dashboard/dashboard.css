@@ -1,0 +1,23 @@
+/* web/src/dashboard/dashboard.css — dashboard-scoped, tokens only (see DESIGN.md) */
+.tg { position: relative; }
+.tg__edges { position: absolute; inset: 0; pointer-events: none; }
+.tg__node {
+  position: absolute; width: 138px; min-height: 34px; display: flex; flex-direction: column;
+  justify-content: center; gap: 1px; padding: var(--space-1) var(--space-2);
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-3);
+  cursor: pointer; transition: outline-color var(--dur-micro) var(--ease-out);
+  font-family: var(--font-mono);
+}
+.tg__node .nk { font-size: var(--t-label); color: var(--text-faint); letter-spacing: .05em; }
+.tg__node .nl {
+  font-size: var(--t-step); color: var(--text); line-height: var(--lh-data);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tg__node[data-status='root'] { border-color: var(--root); box-shadow: var(--ring-root); background: #1c1813; }
+.tg__node[data-status='root'] .nl { color: var(--root); }
+.tg__node[data-status='blast'] { box-shadow: inset 2px 0 0 var(--blast); }
+.tg__node[data-status='blast'] .nl { color: #c79aa0; }
+.tg__node[data-status='decoy'] { border-style: dashed; }
+.tg__node[data-status='pass'] { box-shadow: inset 2px 0 0 var(--pass); }
+.tg__node[data-status='pass'] .nl { color: var(--pass); }
+.tg__node[data-selected='true'] { outline: 2px solid var(--text-dim); outline-offset: 2px; }
