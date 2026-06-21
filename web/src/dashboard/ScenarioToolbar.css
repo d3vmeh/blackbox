@@ -80,11 +80,13 @@
   border: var(--hair) solid var(--line);
   color: var(--text-dim);
 }
-.scn-bar__tier--hero { color: var(--root); border-color: color-mix(in srgb, var(--root) 35%, var(--line)); }
-.scn-bar__tier--research { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
-.scn-bar__tier--sponsor { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 35%, var(--line)); }
-.scn-bar__tier--ops { color: var(--blast); border-color: color-mix(in srgb, var(--blast) 35%, var(--line)); }
-.scn-bar__tier--coding { color: var(--coding); border-color: color-mix(in srgb, var(--coding) 35%, var(--line)); }
+/* Tier chips are CATEGORY metadata, not failure signals — kept neutral so the
+   reserved hues (root/blast/pass) only ever mean WHERE the failure is. */
+.scn-bar__tier--hero,
+.scn-bar__tier--research,
+.scn-bar__tier--sponsor,
+.scn-bar__tier--ops,
+.scn-bar__tier--coding { color: var(--text-dim); border-color: var(--line); }
 
 .scn-bar__menu {
   position: absolute;

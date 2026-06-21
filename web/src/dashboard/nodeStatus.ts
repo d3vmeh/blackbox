@@ -16,9 +16,12 @@ export function nodeStatus(graph: ActionGraph, attribution: Attribution): Status
   return map
 }
 
-// An edge is "poisoned" when the root cause / blast flows into a downstream blast
-// (or the decoy) node — these connectors carry --blast in the graph view.
-const SRC = new Set<NodeStatus>(['root', 'blast'])
+// An edge is "poisoned" when a downstream blast node feeds another blast (or the
+// decoy) node — these connectors carry --blast in the graph view. The root's own
+// outgoing wires stay neutral: the root is already the loud gold focal, so its
+// wires don't double up the signal. (Mirrors deriveTopology, keeping the two
+// views consistent — blast-source only.)
+const SRC = new Set<NodeStatus>(['blast'])
 const DST = new Set<NodeStatus>(['blast', 'decoy'])
 
 export function isPoisonEdge(edge: ActionEdge, status: StatusMap): boolean {
