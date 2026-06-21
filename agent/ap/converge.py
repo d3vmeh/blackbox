@@ -33,8 +33,8 @@ from eval.ap_oracle import evaluate_ap
 from shared.schema import Trace
 
 from . import monitor
-from .ap_graph import run_ap
-from .ap_scenarios import SCENARIOS, Scenario
+from .graph import run_ap
+from .scenarios import SCENARIOS, Scenario
 
 
 def _step_to_agent(trace: Trace, step_id: Optional[str]) -> Optional[str]:
