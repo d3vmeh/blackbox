@@ -25,6 +25,9 @@ def setup_tracing() -> None:
     if _INSTRUMENTED:
         return
 
+    from dotenv import load_dotenv  # load .env so creds resolve under pytest / CLI alike
+    load_dotenv()
+
     space_id = os.environ.get("ARIZE_SPACE_ID")
     api_key = os.environ.get("ARIZE_API_KEY")
     if not space_id or not api_key:
