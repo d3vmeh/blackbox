@@ -19,7 +19,10 @@ export interface RunData {
   replays: Record<string, ReplayResult>
 }
 
-interface RunResponse { trace: Trace; attribution: Attribution; replay: Record<string, ReplayResult> }
+interface RunResponse {
+  trace: Trace; attribution: Attribution; replay: Record<string, ReplayResult>
+  meta?: RunMeta; monitor?: MonitorDecision   // the coding backend supplies these; claims fixtures don't
+}
 
 function toRunData(
   trace: Trace,
@@ -57,7 +60,8 @@ export function useRun() {
       })
       if (!r.ok) throw new Error(`run failed (${r.status})`)
       const body: RunResponse = await r.json()
-      setData(toRunData(body.trace, body.attribution, body.replay))
+      // use the backend's meta/monitor when present (coding runs); else the static defaults
+      setData(toRunData(body.trace, body.attribution, body.replay, body.meta, body.monitor))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'run failed')
     } finally {
