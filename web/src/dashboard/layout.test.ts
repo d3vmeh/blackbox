@@ -1,60 +1,75 @@
-// web/src/dashboard/layout.test.ts
 import { describe, it, expect } from 'vitest'
-import { layout, ROW_GAP, TOP } from './layout'
+import { layout, STEP_Y, BAND_GAP, GUTTER_W, LANE_X, NODE_H } from './layout'
+import { deriveBands } from './deriveBands'
 import type { ActionGraph } from './types'
+import type { StatusMap } from './nodeStatus'
 
-// linear: a0 -> a1
-const linear: ActionGraph = {
+// extractor (a0,a1) → matcher (a2) → handoff (a3, matcher→fraud) → fraud (a4)
+const graph: ActionGraph = {
   nodes: [
-    { id: 'a0', stepIds: ['s0'], kind: 'reason', label: 'plan', lane: 'reason' },
-    { id: 'a1', stepIds: ['s1'], kind: 'decision', label: 'decide', lane: 'reason' },
-  ],
-  edges: [{ from: 'a0', to: 'a1', longHop: false }],
-}
-
-// diamond: a0 -> a1, a0 -> a2, a1 -> a3, a2 -> a3 (spec → impl+test → review)
-const diamond: ActionGraph = {
-  nodes: [
-    { id: 'a0', stepIds: ['s0'], kind: 'decision', label: 'spec', lane: 'reason' },
-    { id: 'a1', stepIds: ['s1'], kind: 'decision', label: 'impl', lane: 'reason' },
-    { id: 'a2', stepIds: ['s2'], kind: 'decision', label: 'test', lane: 'reason' },
-    { id: 'a3', stepIds: ['s3'], kind: 'final', label: 'review', lane: 'reason' },
+    { id: 'a0', stepIds: ['s0'], kind: 'reason', label: 'plan', lane: 'reason', agentId: 'extractor' },
+    { id: 'a1', stepIds: ['s1'], kind: 'tool_call', label: 'read', lane: 'tool', agentId: 'extractor' },
+    { id: 'a2', stepIds: ['s2'], kind: 'tool_call', label: 'match', lane: 'tool', agentId: 'matcher' },
+    { id: 'a3', stepIds: ['s3'], kind: 'handoff', label: 'handoff', lane: 'reason', agentId: 'matcher' },
+    { id: 'a4', stepIds: ['s4'], kind: 'decision', label: 'score', lane: 'parallel', agentId: 'fraud' },
   ],
   edges: [
-    { from: 'a0', to: 'a1', longHop: false },
-    { from: 'a0', to: 'a2', longHop: false },
-    { from: 'a1', to: 'a3', longHop: false },
-    { from: 'a2', to: 'a3', longHop: false },
+    { from: 'a0', to: 'a1', longHop: false }, // intra extractor
+    { from: 'a1', to: 'a2', longHop: false }, // cross extractor→matcher
+    { from: 'a2', to: 'a3', longHop: false }, // intra matcher (a3 is handoff kind → cross)
+    { from: 'a3', to: 'a4', longHop: false }, // cross matcher→fraud (handoff kind)
   ],
 }
+const status: StatusMap = { a0: 'neutral', a1: 'neutral', a2: 'root', a3: 'neutral', a4: 'neutral' }
 
-describe('layout', () => {
-  it('stacks a linear trace in one centered column, one row per depth', () => {
-    const l = layout(linear, { a0: 'root', a1: 'blast' })
-    const [p0, p1] = l.positions
-    expect(p0.y).toBe(TOP)
-    expect(p1.y).toBe(TOP + ROW_GAP)
-    expect(p0.x).toBe(p1.x) // single-node rows share the centerline
+describe('layout — band-aware', () => {
+  it('produces one BandLayout per deriveBands band', () => {
+    const l = layout(graph, status)
+    expect(l.bands.length).toBe(deriveBands(graph).length)
   })
 
-  it('spreads siblings across a row and converges them (diamond)', () => {
-    const l = layout(diamond, {})
-    const by = Object.fromEntries(l.positions.map((p) => [p.id, p]))
-    expect(by.a1.y).toBe(by.a2.y)          // impl + test share the middle row
-    expect(by.a1.x).toBeLessThan(by.a2.x)  // and sit side by side
-    expect(by.a0.x).toBe(by.a3.x)          // spec + review share the centerline
-    expect(by.a3.y).toBe(TOP + 2 * ROW_GAP) // review is two rows below spec
+  it('keeps STEP_Y spacing within a band and adds BAND_GAP between bands', () => {
+    const l = layout(graph, status)
+    const y = (id: string) => l.positions.find((p) => p.id === id)!.y
+    // intra-band (extractor a0→a1)
+    expect(y('a1') - y('a0')).toBe(STEP_Y)
+    // inter-band (extractor a1 → matcher a2)
+    expect(y('a2') - y('a1')).toBe(STEP_Y + BAND_GAP)
   })
 
-  it('emits an edge path string and flags poison', () => {
-    const l = layout(linear, { a0: 'root', a1: 'blast' })
-    expect(l.edges[0].poison).toBe(true)
-    expect(l.edges[0].d.startsWith('M')).toBe(true)
+  it('offsets node x by GUTTER_W on top of the lane x', () => {
+    const l = layout(graph, status)
+    const a0 = l.positions.find((p) => p.id === 'a0')!
+    expect(a0.x).toBe(GUTTER_W + LANE_X.reason)
+    const a4 = l.positions.find((p) => p.id === 'a4')!
+    expect(a4.x).toBe(GUTTER_W + LANE_X.parallel)
   })
 
-  it('reports a positive canvas size', () => {
-    const l = layout(diamond, {})
-    expect(l.width).toBeGreaterThan(0)
-    expect(l.height).toBeGreaterThan(0)
+  it('records a separator between each pair of bands at the gap midpoint', () => {
+    const l = layout(graph, status)
+    expect(l.separators.length).toBe(l.bands.length - 1)
+    // first separator lands between extractor band bottom and matcher band top
+    const extractor = l.bands.find((b) => b.agentId === 'extractor')!
+    const matcher = l.bands.find((b) => b.agentId === 'matcher')!
+    const sep = l.separators[0]
+    expect(sep.y).toBeGreaterThan(extractor.bottom - NODE_H)
+    expect(sep.y).toBeLessThan(matcher.top)
+  })
+
+  it('flags crossAgent edges when endpoints differ or touch a handoff node', () => {
+    const l = layout(graph, status)
+    const edge = (from: string, to: string) => l.edges.find((e) => e.from === from && e.to === to)!
+    expect(edge('a0', 'a1').crossAgent).toBe(false) // intra extractor
+    expect(edge('a1', 'a2').crossAgent).toBe(true) // extractor → matcher
+    expect(edge('a2', 'a3').crossAgent).toBe(true) // a3 is handoff kind
+    expect(edge('a3', 'a4').crossAgent).toBe(true) // matcher → fraud + handoff
+  })
+
+  it('marks isRoot on the band containing the root-status node', () => {
+    const l = layout(graph, status)
+    const matcher = l.bands.find((b) => b.agentId === 'matcher')!
+    const extractor = l.bands.find((b) => b.agentId === 'extractor')!
+    expect(matcher.isRoot).toBe(true)
+    expect(extractor.isRoot).toBe(false)
   })
 })

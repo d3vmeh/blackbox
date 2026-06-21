@@ -1,60 +1,77 @@
 /* ============================================================================
    blackbox — design tokens + base.  Source of truth: /DESIGN.md
    Never hardcode a value in a component; reference a token from here.
+
+   Aesthetic: flat, deliberate, near-black. Elevation reads as a lighter neutral
+   surface + a 1px white-8% border — never a drop shadow, glow, or gradient.
    ========================================================================= */
 :root {
-  /* ---- Neutral base: ordinary steps recede here ---- */
-  --bg:           #0A0C10;
-  --panel:        #0F1217;
-  --inset:        #15181B;
-  --raised:       #1A1F27;
-  --overlay:      #21262F;
-  --line:         #1E232C;
-  --line-hi:      rgba(255, 255, 255, 0.06);
-  --edge:         #283039;  /* graph connector stroke (neutral, non-signal) */
-  --grid:         rgba(255, 255, 255, 0.022);
+  /* ---- Neutral base (no blue tint): ordinary steps recede here ---- */
+  --bg:           #0d0e10;  /* canvas, near-black (the rail sits on this) */
+  --panel:        #121315;  /* the work-area tile — only a hair lighter, so it blends */
+  --inset:        #17181b;  /* elevated surface / data wells */
+  --raised:       #1d1e21;  /* popovers / floating panels */
+  --overlay:      #232427;  /* modals / confirm layer */
 
-  /* ---- Text tiers (high / med / low / faint) ---- */
-  --text-bright:  #EAEEF3;
-  --text:         #C7CDD2;
-  --text-dim:     #59636F;
-  --text-faint:   #39414B;
+  /* ---- Separation: 1px borders, white at low opacity. Never shadows/glows. ---- */
+  --line:       rgba(255, 255, 255, 0.07); /* default 1px border */
+  --line-hi:    rgba(255, 255, 255, 0.06); /* subtle top edge on raised */
+  --line-soft:  rgba(255, 255, 255, 0.05); /* ultra-faint inner separator */
+  --edge:       rgba(255, 255, 255, 0.12); /* graph connector stroke (neutral) */
+  --hair:       1px;                       /* border weight (1px, deliberate) */
 
-  /* ---- Three reserved signals (warm -> warm -> cool); desaturated to stay calm ---- */
-  --root:         #D9954A;
-  --blast:        #D75C6C;
-  --pass:         #4FB98C;
-  --root-glow:    #D9954A1F;
-  --blast-glow:   #D75C6C1F;
-  --pass-glow:    #4FB98C1F;
+  /* ---- Text tiers (white alpha; weight + opacity create hierarchy) ---- */
+  --text-bright:  rgba(255, 255, 255, 0.92); /* focused / selected */
+  --text:         rgba(255, 255, 255, 0.72); /* default readable */
+  --text-dim:     rgba(255, 255, 255, 0.55); /* secondary / ordinary */
+  --text-faint:   rgba(255, 255, 255, 0.35); /* disabled / scaffolding */
 
-  /* ---- Spacing (4/8pt grid) ---- */
+  /* ---- Three reserved SEMANTIC signals (the product's whole point: WHERE the
+     failure is). Applied as thin edge + text only — never tinted fills or glows. ---- */
+  --root:         #d9954a;  /* ROOT CAUSE   muted amber */
+  --blast:        #d75c6c;  /* BLAST RADIUS dusty rose */
+  --pass:         #4fb98c;  /* CONFIRMED    sage emerald */
+  --root-glow:    transparent;  /* glows removed — flat */
+  --blast-glow:   transparent;
+  --pass-glow:    transparent;
+
+  /* ---- One restrained interactive accent: active / selected / focus / links ONLY.
+     Distinct from the 3 semantic signals; never used for decoration. ---- */
+  --accent:       #5b7cb0;
+  --accent-dim:   rgba(91, 124, 176, 0.45);
+
+  /* ---- Spacing (4px base scale) ---- */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
 
-  /* ---- Radius ---- */
-  --r-1: 3px; --r-2: 5px; --r-3: 8px; --r-4: 12px;
+  /* ---- Radius (subtle; 8px max, no pills) ---- */
+  --r-1: 3px; --r-2: 5px; --r-3: 6px; --r-4: 8px;
 
-  /* ---- Elevation: shadow + glow ---- */
-  --shadow-1:   0 1px 2px rgba(0, 0, 0, 0.40);
-  --shadow-2:   0 4px 12px rgba(0, 0, 0, 0.50);
-  --shadow-pop: 0 8px 30px rgba(0, 0, 0, 0.60);
-  --ring-root:  0 0 0 1px var(--root), 0 0 24px var(--root-glow);
-  --ring-pass:  0 0 0 1px var(--pass), 0 0 24px var(--pass-glow);
-  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px var(--text-dim);
+  /* ---- Elevation: NO shadows. Lighter surface + 1px border only. ---- */
+  --shadow-1:   none;
+  --shadow-2:   none;
+  --shadow-pop: none;
+  --shadow-stack: none;
+  --ring-root:  0 0 0 1px var(--root);  /* border-only, no glow */
+  --ring-pass:  0 0 0 1px var(--pass);
+  --focus-ring: 0 0 0 1px var(--accent);
 
   /* ---- Z-index ---- */
   --z-base: 0; --z-trace: 10; --z-inspector: 20; --z-overlay: 100; --z-toast: 1000;
 
-  /* ---- Type ---- */
-  --font-display: "Archivo Variable", sans-serif;
-  --font-mono:    "IBM Plex Mono", ui-monospace, monospace;
-  --t-label:   11px; --t-step: 13px; --t-body: 15px; --t-h3: 20px;
-  --t-h2:      32px; --t-verdict: 72px;
-  --lh-tight: 1.05; --lh-data: 1.3; --lh-body: 1.5;
-  --track-display: -0.03em;
-  --track-verdict: -0.04em;
-  --track-upper:    0.08em;
+  /* ---- Type: system font stack for UI, mono ONLY for data/IDs/payloads ---- */
+  --font-ui:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                  "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-ui);  /* verdicts/headings = same system stack, weight-led */
+  --font-mono:    ui-monospace, SFMono-Regular, Menlo, Consolas,
+                  "Liberation Mono", monospace;
+  --t-label:   11px; --t-step: 13px; --t-body: 14px; --t-h3: 18px;
+  --t-h2:      26px; --t-verdict: 40px;
+  --lh-tight: 1.1; --lh-data: 1.25; --lh-body: 1.4;
+  --track-display: -0.01em;
+  --track-verdict: -0.02em;
+  --track-upper:    0.06em;
+  --track-tight:   -0.01em;
 
   /* ---- Motion ---- */
   --dur-micro: 140ms;
@@ -64,6 +81,22 @@
   --ease-out:   cubic-bezier(0.16, 1, 0.30, 1);
   --ease-in:    cubic-bezier(0.40, 0, 1, 1);
   --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---- Selection: neutral surface brighten + 1px border (accent only when active) ---- */
+  --sel-bg:     #1a1b1e;
+  --sel-line:   rgba(255, 255, 255, 0.12);
+
+  /* ---- Dashboard rails & bars ---- */
+  --rail-nav:   240px;   /* left: monitor rail (on bare bg, outside the tile) */
+  --rail-insp:  320px;   /* right: inspector */
+  --h-bar:      48px;    /* readout header height */
+
+  --glyph:      13px;    /* status-ring glyph */
+
+  /* ---- Iconography (lucide-react): neutral affordance only, never a signal hue. ---- */
+  --icon:        16px;
+  --icon-stroke: 1.5px;
+  --gap-icon:    var(--space-2);
 
   color-scheme: dark;
   font-synthesis: none;
@@ -79,26 +112,19 @@ html { overflow-x: hidden; }
 
 body {
   margin: 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: var(--t-body);
   line-height: var(--lh-body);
   color: var(--text);
-  background-color: var(--bg);
-  /* Instrument readout: faint graph-paper grid + central vignette. Kept quiet. */
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
-    radial-gradient(ellipse 80% 60% at 50% 28%, rgba(120, 140, 180, 0.05), transparent 70%);
-  background-size: 32px 32px, 32px 32px, 100% 100%;
-  background-attachment: fixed;
+  background-color: var(--bg);  /* flat — no grid, no vignette, no gradient */
 }
 
 /* All numeric/tabular data: fixed-width digits, disambiguated zero. */
 .tnum { font-variant-numeric: tabular-nums slashed-zero; }
 
-/* Mono UPPERCASE tracked eyebrow label. */
+/* Small UPPERCASE tracked eyebrow label (system sans, quiet). */
 .eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: var(--t-label);
   font-weight: 600;
   letter-spacing: var(--track-upper);
@@ -106,7 +132,7 @@ body {
   color: var(--text-dim);
 }
 
-/* Keyboard-shortcut chip (pattern: affordance only, never a signal hue). */
+/* Keyboard-shortcut chip — mono (it is a key), affordance only, never a signal hue. */
 .kbd {
   display: inline-flex;
   align-items: center;
@@ -114,7 +140,7 @@ body {
   font-size: var(--t-label);
   color: var(--text-dim);
   background: var(--inset);
-  border: 1px solid var(--line);
+  border: var(--hair) solid var(--line);
   border-radius: var(--r-1);
   padding: 1px var(--space-2);
 }

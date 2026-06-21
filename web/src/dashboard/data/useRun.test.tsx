@@ -3,24 +3,23 @@ import { renderHook, act } from '@testing-library/react'
 import { useRun } from './useRun'
 
 describe('useRun', () => {
-  it('first paint shows the claims fallback run + derived graph', () => {
+  it('exposes the multi-agent trace, attribution, monitor decision, and a derived graph', () => {
     const { result } = renderHook(() => useRun())
-    expect(result.current.data.trace.id).toBe('claim_run')
-    expect(result.current.data.meta.runtime).toBe('multi-agent')
-    expect(result.current.data.meta.domain).toBe('insurance-claims')
-    expect(result.current.data.monitor.decision).toBe('auto_apply')
-    expect(result.current.data.attribution.root_step_id).toBe('s1')
+    expect(result.current.data.trace.id).toBe('ap_overpay')
+    expect(result.current.data.attribution.root_step_id).toBe('s2')
+    expect(result.current.data.monitor.root_step_id).toBe('s2')
     expect(result.current.data.graph.nodes.length).toBeGreaterThanOrEqual(4)
-    expect(result.current.loading).toBe(false)
+    expect(result.current.data.status[result.current.data.graph.nodes[0].id]).toBeDefined()
   })
 
-  it('replay reads the current run’s replay map: root flips, decoy does not', async () => {
+  it('replays: root step (s2) flips, decoy (s8) does not', async () => {
     const { result } = renderHook(() => useRun())
     let root!: Awaited<ReturnType<typeof result.current.replay>>
     let decoy!: Awaited<ReturnType<typeof result.current.replay>>
-    await act(async () => { root = await result.current.replay('s1', null) })
-    await act(async () => { decoy = await result.current.replay('s4', null) })
+    await act(async () => { root = await result.current.replay('s2', { amount: 124000 }) })
+    await act(async () => { decoy = await result.current.replay('s8', { risk: 'high' }) })
     expect(root.flipped).toBe(true)
+    expect(root.confirmation_rate).toBe(1)
     expect(decoy.flipped).toBe(false)
   })
 })

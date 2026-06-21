@@ -1,9 +1,12 @@
+import { agentOf } from '../../types'
 import type { Attribution, Json, MonitorDecision, ReplayResult, Step } from '../../types'
 import type { ActionNode } from '../types'
 import type { RunMeta } from '../data/loadMeta'
 import { CodeBlock } from './CodeBlock'
-import { Field, RawPayload, Section } from './sections'
+import { Field, ProvenanceList, RawPayload, Section } from './sections'
+import type { ParentLink } from './sections'
 import '../dashboard.css'
+import './Inspector.css'
 
 function ReplayOutcome({ result, agent, output }: {
   result: ReplayResult; agent: string; output: Json
@@ -49,12 +52,6 @@ function ReplayOutcome({ result, agent, output }: {
   )
 }
 
-function previewInputs(inputs: Record<string, Json>): string {
-  return Object.entries(inputs)
-    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
-    .join('  ·  ')
-}
-
 function ProducedOutput({ output }: { output: Json }) {
   if (output === null || typeof output !== 'object' || Array.isArray(output)) {
     return <RawPayload value={output} />
@@ -80,15 +77,20 @@ function ProducedOutput({ output }: { output: Json }) {
   )
 }
 
-const VERDICT_LABEL = { root: '● ROOT CAUSE', blast: '● AFFECTED', ok: 'OK' } as const
-
-export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay, replayResult }: {
+export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect, runMeta, monitor, replayResult }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
-  runMeta: RunMeta
-  monitor: MonitorDecision
   onReplay: (stepId: string) => void
+  /** all action nodes — used to resolve a cross-agent parent's owning node for the jump */
+  nodes?: ActionNode[]
+  /** jump to another action node (e.g. a cross-agent producer) by node id */
+  onSelect?: (nodeId: string) => void
+  /** runtime metadata — drives the LangGraph / multi-agent provenance sections when present */
+  runMeta?: RunMeta
+  /** the trust-gate decision — shown on the root step when present */
+  monitor?: MonitorDecision
+  /** the last replay outcome for this step (before → after + flip) */
   replayResult?: ReplayResult | null
 }) {
   if (!node) {
@@ -99,52 +101,59 @@ export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay
   const step = byId.get(focusId)
   if (!step) return <div className="insp insp--empty">Step {focusId} not found.</div>
 
+  // Cross-agent provenance: resolve each parent's owning agent + the node that
+  // contains it, so a parent produced by a DIFFERENT agent becomes a clickable jump.
+  const selfAgent = agentOf(step)
+  const parentLinks: ParentLink[] = step.parents.map((pid) => {
+    const parent = byId.get(pid)
+    const parentAgent = parent ? agentOf(parent) : null
+    const owningNode = nodes?.find((n) => n.stepIds.includes(pid)) ?? null
+    return {
+      stepId: pid,
+      agentLabel: parentAgent,
+      crossAgent: parentAgent != null && parentAgent !== selfAgent,
+      nodeId: owningNode?.id ?? null,
+    }
+  })
+  const crossAgentCount = parentLinks.filter((p) => p.crossAgent).length
   const candidate = attribution.candidates.find((c) => node.stepIds.includes(c.step_id))
   const isRoot = node.stepIds.includes(attribution.root_step_id)
-  const isBlast = !isRoot && node.stepIds.some((s) => attribution.blast_radius.includes(s))
-  const verdict = isRoot ? 'root' : isBlast ? 'blast' : 'ok'
+  const blast = new Set(attribution.blast_radius)
+  const isBlast = !isRoot && node.stepIds.some((s) => blast.has(s))
+  // One-word classification for the header pill (shape/label, not color-only).
+  const klass = isRoot ? 'root' : isBlast ? 'blast' : candidate ? 'suspect' : 'ordinary'
+  const KLASS_LABEL: Record<string, string> = {
+    root: '● root cause', blast: '▸ blast radius', suspect: '◌ suspect', ordinary: '· ordinary',
+  }
 
   return (
     <div className="insp">
-      <div className="insp__head">
-        <span className="insp__agent">{node.label}</span>
-        <span className={`insp__pill insp__pill--${verdict}`}>{VERDICT_LABEL[verdict]}</span>
+      <div className="insp__scroll">
+      <div className="insp__hd">
+        <span className="insp__hdid tnum">{step.id}</span>
+        <span className="insp__hdkind">{step.tool_name ?? step.kind}</span>
+        <span className="insp__pill" data-klass={klass}>{KLASS_LABEL[klass]}</span>
       </div>
 
-      {isRoot && candidate && (
-        <div className="insp__call insp__call--root">
-          <div className="insp__callk">What went wrong</div>
-          <div className="insp__callv">{candidate.reason}</div>
-          <div className="insp__callsub">leading suspect · suspicion {candidate.suspicion}</div>
-        </div>
-      )}
-      {isRoot && attribution.rationale && (
-        <p className="insp__why">{attribution.rationale}</p>
-      )}
-      {isBlast && candidate && (
-        <div className="insp__call insp__call--blast">
-          <div className="insp__callk">Affected by the root cause</div>
-          <div className="insp__callv">{candidate.reason}</div>
-          <div className="insp__callsub">suspicion {candidate.suspicion}</div>
-        </div>
+      {/* Lead with the finding — the one thing that explains WHY this step is flagged. */}
+      {candidate && (
+        <Section title="what went wrong" aside={`suspicion ${candidate.suspicion.toFixed(2)}`}>
+          <div className="insp__judge" data-klass={isRoot ? 'root' : 'neutral'}>{candidate.reason}</div>
+        </Section>
       )}
 
-      {runMeta.runtime === 'langgraph' && (
+      {runMeta?.runtime === 'langgraph' && (
         <Section title="LangGraph" aside={runMeta.engine}>
           <Field k="apis" v={(runMeta.apis ?? []).join(' · ')} />
           <Field k="checkpoints" v={`${runMeta.checkpoints ?? 0} saved`} />
           <Field k="capture" v={runMeta.capture_path ?? '—'} />
           {isRoot && runMeta.fork_node && (
-            <Field
-              k="fork replay"
-              v={`update_state(as_node=${runMeta.fork_node}) → invoke`}
-              tone="good"
-            />
+            <Field k="fork replay" v={`update_state(as_node=${runMeta.fork_node}) → invoke`} tone="good" />
           )}
         </Section>
       )}
 
-      {runMeta.runtime === 'multi-agent' && (
+      {runMeta?.runtime === 'multi-agent' && (
         <Section title="multi-agent hand-off" aside={runMeta.engine}>
           <Field k="agent" v={String(step.raw.display ?? step.raw.agent ?? '—')} />
           {runMeta.parallel_agents && (
@@ -160,11 +169,22 @@ export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay
         <ProducedOutput output={step.output} />
       </Section>
 
-      <Section title="inputs" aside={`${step.parents.length} source(s)`}>
-        <div className="insp__diff">{previewInputs(step.inputs) || '—'}</div>
+      {Object.keys(step.inputs).length > 0 && (
+        <Section title="inputs">
+          <RawPayload value={step.inputs} />
+        </Section>
+      )}
+
+      <Section
+        title="came from"
+        aside={crossAgentCount > 0
+          ? `${step.parents.length} parent · ${crossAgentCount} cross-agent`
+          : `${step.parents.length} parent`}
+      >
+        <ProvenanceList parents={parentLinks} onJump={onSelect} />
       </Section>
 
-      {isRoot && (
+      {isRoot && monitor && (
         <Section title="supervise · trust gate" aside={monitor.decision}>
           <Field k="trusted" v={monitor.trusted ? 'yes' : 'no'} tone={monitor.trusted ? 'good' : undefined} />
           <Field k="decision" v={monitor.decision} tone={monitor.trusted ? 'good' : undefined} />
@@ -172,6 +192,13 @@ export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay
         </Section>
       )}
 
+      {isRoot && (
+        <Section title="why it's the root cause">
+          <p className="insp__rationale">{attribution.rationale}</p>
+        </Section>
+      )}
+
+      </div>
       <div className="insp__actions">
         <button type="button" className="insp__btn insp__btn--primary"
           onClick={() => onReplay(focusId)}>
@@ -179,8 +206,8 @@ export function Inspector({ node, steps, attribution, runMeta, monitor, onReplay
         </button>
         <span className="insp__hint">
           {isRoot
-            ? 'fork here · inject the fix · re-run → expect FAIL → PASS'
-            : 'fork here · re-run → expect no change (proves it is not the cause)'}
+            ? <>fork at <b className="tnum">{focusId}</b> · inject the fix · re-run → expect FAIL → PASS</>
+            : <>fork at <b className="tnum">{focusId}</b> · re-run → expect no change (not the cause)</>}
         </span>
       </div>
 

@@ -5,10 +5,10 @@ import type { Attribution } from '../types'
 
 const graph: ActionGraph = {
   nodes: [
-    { id: 'a0', stepIds: ['s0'], kind: 'reason', label: 'plan', lane: 'reason' },
-    { id: 'a1', stepIds: ['s2', 's3'], kind: 'tool_call', label: 'normalize_dates', lane: 'tool' },
-    { id: 'a2', stepIds: ['s4'], kind: 'reason', label: 'confirm', lane: 'reason' },
-    { id: 'a3', stepIds: ['s14'], kind: 'reason', label: 'relax', lane: 'reason' },
+    { id: 'a0', stepIds: ['s0'], kind: 'reason', label: 'plan', lane: 'reason', agentId: null },
+    { id: 'a1', stepIds: ['s2', 's3'], kind: 'tool_call', label: 'normalize_dates', lane: 'tool', agentId: null },
+    { id: 'a2', stepIds: ['s4'], kind: 'reason', label: 'confirm', lane: 'reason', agentId: null },
+    { id: 'a3', stepIds: ['s14'], kind: 'reason', label: 'relax', lane: 'reason', agentId: null },
   ],
   edges: [
     { from: 'a1', to: 'a2', longHop: false },

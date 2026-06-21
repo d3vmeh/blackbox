@@ -3,8 +3,9 @@ import { deriveActions } from './deriveActions'
 import type { Trace } from '../types'
 
 const mk = (id: string, index: number, kind: Trace['steps'][number]['kind'],
-  parents: string[], tool_name: string | null = null): Trace['steps'][number] => ({
-  id, index, kind, inputs: {}, output: null, state: {}, parents, tool_name, raw: {},
+  parents: string[], tool_name: string | null = null,
+  raw: Trace['steps'][number]['raw'] = {}): Trace['steps'][number] => ({
+  id, index, kind, inputs: {}, output: null, state: {}, parents, tool_name, raw,
 })
 
 const trace: Trace = {
@@ -41,5 +42,37 @@ describe('deriveActions', () => {
         { from: 'a1', to: 'a2', longHop: false },
       ]),
     )
+  })
+
+  it('tags every node agentId null when steps carry no agent tag', () => {
+    const g = deriveActions(trace)
+    expect(g.nodes.every((n) => n.agentId === null)).toBe(true)
+  })
+
+  it('tags each node with the representative step agent from raw[agent]', () => {
+    const tagged: Trace = {
+      id: 't', task: 'x', final_output: null, success: false,
+      steps: [
+        mk('s0', 0, 'reason', [], null, { agent: 'extractor' }),
+        mk('s1', 1, 'handoff', ['s0'], null, { agent: 'extractor' }),
+        mk('s2', 2, 'decision', ['s1'], null, { agent: 'matcher' }),
+      ],
+    }
+    const g = deriveActions(tagged)
+    expect(g.nodes.map((n) => n.agentId)).toEqual(['extractor', 'extractor', 'matcher'])
+  })
+
+  it('takes agentId from the tool_call when merging a call+result pair', () => {
+    const merged: Trace = {
+      id: 't', task: 'x', final_output: null, success: false,
+      steps: [
+        mk('s0', 0, 'tool_call', [], 'match_po', { agent: 'matcher' }),
+        mk('s1', 1, 'tool_result', ['s0'], 'match_po', { agent: 'matcher' }),
+      ],
+    }
+    const g = deriveActions(merged)
+    expect(g.nodes).toHaveLength(1)
+    expect(g.nodes[0].stepIds).toEqual(['s0', 's1'])
+    expect(g.nodes[0].agentId).toBe('matcher')
   })
 })

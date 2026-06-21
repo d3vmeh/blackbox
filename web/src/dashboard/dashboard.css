@@ -1,6 +1,117 @@
-/* web/src/dashboard/dashboard.css — dashboard-scoped, tokens only (see DESIGN.md) */
+/* web/src/dashboard/dashboard.css — dashboard-scoped, tokens only (see DESIGN.md).
+   Layout (Linear anatomy): the LEFT monitor rail sits on the bare --bg; only the
+   RIGHT work area (readout bar + spine + inspector) is the elevated --panel tile.
+   Flat and deliberate: elevation = lighter surface + 1px border, never a shadow,
+   glow, or gradient. System sans for UI; mono only for data/IDs/payloads. */
+
+/* ============================ Shell ============================ */
+.dash {
+  height: 100vh; overflow: hidden; box-sizing: border-box;
+  display: grid; grid-template-columns: var(--rail-nav) minmax(0, 1fr);
+  gap: var(--space-2); padding: var(--space-2);
+  background: var(--bg); color: var(--text);
+}
+
+/* Hide scrollbars on the dashboard scroll panes (keep scrollability). */
+.mrail, .dash__spine-scroll, .insp, .insp__scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.mrail::-webkit-scrollbar, .dash__spine-scroll::-webkit-scrollbar,
+.insp::-webkit-scrollbar, .insp__scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* The work-area tile: the only elevated surface at the page level. */
+.dash__tile {
+  position: relative; /* anchors the full-width StatsOverlay below the readout bar */
+  min-width: 0; min-height: 0; overflow: hidden;
+  display: grid; grid-template-rows: var(--h-bar) minmax(0, 1fr);
+  background: var(--panel);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-4);
+}
+
+/* ============================ Readout bar (tile header) ============================ */
+.rb {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 0 var(--space-4); min-width: 0;
+  border-bottom: var(--hair) solid var(--line);
+}
+.rb__id { font-family: var(--font-mono); font-size: var(--t-step); font-weight: 500; color: var(--text-bright); flex: 0 0 auto; }
+/* task = plain dim text with a quiet leading separator — no pill */
+.rb__task {
+  font-size: var(--t-step); color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.rb__task::before { content: '·'; color: var(--text-faint); margin-right: var(--space-2); }
+.rb__meta {
+  font-size: var(--t-label); color: var(--text-faint); letter-spacing: var(--track-tight);
+  margin-left: var(--space-2); white-space: nowrap; flex: 0 0 auto;
+}
+.rb__spacer { flex: 1; min-width: var(--space-3); }
+.rb__eyebrow {
+  font-size: var(--t-label); letter-spacing: var(--track-upper); text-transform: uppercase;
+  color: var(--text-faint);
+}
+.rb__verdict-slot {
+  position: relative; display: inline-flex; align-items: center; justify-content: flex-end;
+  min-width: 56px; height: var(--h-bar);
+}
+.rb__verdict {
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-h3);
+  line-height: 1; letter-spacing: var(--track-verdict);
+}
+.rb__verdict--fail { color: var(--blast); }
+.rb__verdict--pass { color: var(--pass); }
+
+/* ============================ Work area (spine | inspector) ============================ */
+.dash__work {
+  min-height: 0; min-width: 0; display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail-insp);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* Pane header / eyebrow (spine + inspector) */
+.pane__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: var(--space-3); flex: 0 0 auto;
+}
+.pane__hint { font-size: var(--t-label); color: var(--text-faint); }
+
+/* ============================ Status glyph ============================ */
+.glyph { width: var(--glyph); height: var(--glyph); flex: 0 0 auto; display: block; }
+.glyph__ring { fill: none; stroke: var(--text-faint); stroke-width: 1.5; }
+.glyph__fill { fill: var(--text-dim); }
+.glyph__disc { fill: var(--text); }
+.glyph__check { fill: none; stroke: var(--bg); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.glyph[data-tone='root'] .glyph__ring { stroke: var(--root); }
+.glyph[data-tone='root'] .glyph__fill { fill: var(--root); }
+.glyph[data-tone='root'] .glyph__disc { fill: var(--root); }
+.glyph[data-tone='pass'] .glyph__disc { fill: var(--pass); }
+
+/* ============================ Trace spine (center) ============================ */
+/* position: relative so the floating MonitorPanel anchors bottom-right over it. */
+.dash__spine {
+  position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+.pane__head--spine { margin-top: var(--space-4); }
+.dash__spine-scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+/* ---- Trace graph: node-link diagram (positioned nodes + curved SVG edges) ---- */
 .tg { position: relative; }
 .tg__edges { position: absolute; inset: 0; pointer-events: none; }
+/* Per-agent grouping: a mono UPPERCASE label in the reserved left gutter (28px,
+   = GUTTER_W in layout.ts), centered on the band. Neutral --text-dim; the band
+   that owns the localized root cause earns --root (its reserved meaning). */
+.tg__band-label {
+  position: absolute; left: 0; width: 28px;
+  font-family: var(--font-mono); font-size: var(--t-label);
+  letter-spacing: var(--track-upper); text-transform: uppercase;
+  color: var(--text-dim); text-align: center; line-height: var(--lh-data);
+  transform: translateY(-50%); pointer-events: none; white-space: nowrap;
+}
+.tg__band-label[data-root='true'] { color: var(--root); }
+/* Band separator: surface-step + hairline rule (--line-soft at --hair), never a hue. */
+.tg__band-sep {
+  position: absolute; left: 0; height: var(--hair);
+  background: var(--line-soft); pointer-events: none;
+}
 .tg__node {
   position: absolute; width: 172px; min-height: 46px; display: flex; flex-direction: column;
   justify-content: center; gap: 3px; padding: var(--space-2) var(--space-3);
@@ -14,6 +125,7 @@
   font-size: var(--t-step); color: var(--text); line-height: var(--lh-data);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Signals: left-edge bar + colored label; only the root earns a faint glow/ring. */
 .tg__node[data-status='root'] { border-color: var(--root); box-shadow: var(--ring-root);
   background: linear-gradient(var(--root-glow), var(--root-glow)), var(--raised); }
 .tg__node[data-status='root'] .nl { color: var(--root); }
@@ -26,30 +138,78 @@
 .tg__node[data-status='decoy'] { border-style: dashed; }
 .tg__node[data-status='pass'] { box-shadow: inset 2px 0 0 var(--pass); }
 .tg__node[data-status='pass'] .nl { color: var(--pass); }
+/* Selection: neutral brighten + border only (never a 4th hue). */
 .tg__node[data-selected='true'] { outline: 2px solid var(--text-dim); outline-offset: 2px; }
 
-/* ---- Inspector (task 8) ---- */
-.insp { max-height: 512px; overflow: auto; font-family: var(--font-mono); }
-.insp--empty { color: var(--text-dim); padding: var(--space-4); }
-.insp__sec { margin-bottom: var(--space-4); }
-.insp__sech { display: flex; justify-content: space-between; font-size: var(--t-label);
-  letter-spacing: .09em; text-transform: uppercase; color: var(--text-dim);
-  border-bottom: 1px solid var(--line); padding-bottom: var(--space-1); margin-bottom: var(--space-2); }
-.insp__kv { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-2); padding: 2px 0;
-  font-size: var(--t-step); }
-.insp__k { color: var(--text-dim); } .insp__v { color: var(--text); font-variant-numeric: tabular-nums; }
-.insp__v--bad { color: var(--blast); } .insp__v--good { color: var(--pass); } .insp__v--root { color: var(--root); }
-.insp__pre { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-2);
-  padding: var(--space-2) var(--space-3); font-size: var(--t-step); color: var(--text); overflow: auto; }
-.insp__diff { font-size: var(--t-step); color: var(--text-dim); line-height: var(--lh-data); }
-.insp__judge { background: var(--inset); border: 1px solid var(--line); border-radius: var(--r-3);
-  padding: var(--space-2) var(--space-3); box-shadow: inset 3px 0 0 var(--root); color: var(--text); }
-.insp__actions { margin-top: var(--space-3); }
-.insp__btn { font-family: var(--font-mono); font-size: var(--t-step); padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--line); border-radius: var(--r-2); background: var(--raised); color: var(--text); cursor: pointer; }
-.insp__btn--primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+/* ============================ Inspector (right) ============================ */
+.dash__inspect {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  padding: var(--space-4); border-left: var(--hair) solid var(--line-soft); background: var(--panel);
+}
+/* Inspector = scrollable content + a pinned action footer (Replay always visible). */
+.insp { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.insp__scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-5); }
+.insp--empty { color: var(--text-dim); }
 
-/* ---- Log/event console (task 9) ---- */
+/* Inspector header: id · kind · classification pill */
+.insp__hd {
+  display: flex; align-items: center; gap: var(--space-2); flex: 0 0 auto;
+  padding-bottom: var(--space-3); border-bottom: var(--hair) solid var(--line);
+}
+.insp__hdid { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-h3); color: var(--text-bright); }
+.insp__hdkind { font-size: var(--t-step); color: var(--text-dim); }
+.insp__pill {
+  margin-left: auto; font-size: var(--t-label); letter-spacing: var(--track-tight);
+  padding: 2px var(--space-2); border-radius: var(--r-1); border: var(--hair) solid var(--line);
+  color: var(--text-dim); background: var(--inset); white-space: nowrap;
+}
+.insp__pill[data-klass='root'] { color: var(--root); border-color: color-mix(in srgb, var(--root) 40%, var(--line)); }
+.insp__pill[data-klass='blast'] { color: var(--blast); border-color: color-mix(in srgb, var(--blast) 35%, var(--line)); }
+
+.insp__sec { display: flex; flex-direction: column; gap: var(--space-2); }
+.insp__sech {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: var(--t-label); letter-spacing: var(--track-upper); text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: var(--space-1);
+}
+.insp__kv { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-3); font-size: var(--t-step); }
+.insp__k { color: var(--text-dim); }
+.insp__v { font-family: var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+.insp__v--bad { color: var(--blast); } .insp__v--good { color: var(--pass); } .insp__v--root { color: var(--root); }
+.insp__pre {
+  margin: 0; background: var(--inset); border: var(--hair) solid var(--line); border-radius: var(--r-2);
+  padding: var(--space-3); font-family: var(--font-mono); font-size: var(--t-step); color: var(--text);
+  overflow: auto; line-height: var(--lh-data);
+}
+/* a poisoned output carries a thin signal edge so the eye reads WHERE */
+.insp__pre--bad { box-shadow: inset 2px 0 0 var(--blast); }
+.insp__diff { font-family: var(--font-mono); font-size: var(--t-step); color: var(--text-dim); line-height: var(--lh-data); overflow-wrap: anywhere; }
+.insp__judge {
+  background: var(--inset); border: var(--hair) solid var(--line); border-radius: var(--r-3);
+  padding: var(--space-3); box-shadow: inset 2px 0 0 var(--text-dim);
+  color: var(--text); line-height: var(--lh-body);
+}
+.insp__judge[data-klass='root'] { box-shadow: inset 2px 0 0 var(--root); }
+.insp__rationale {
+  margin: 0; font-size: var(--t-step); line-height: var(--lh-body); color: var(--text);
+  border-left: 2px solid var(--root); padding-left: var(--space-3);
+}
+/* pinned footer: never scrolls away, separated by a hairline */
+.insp__actions { flex: 0 0 auto; margin-top: 0; padding-top: var(--space-4); border-top: var(--hair) solid var(--line); display: flex; flex-direction: column; gap: var(--space-2); }
+.insp__btn {
+  width: 100%; font-size: var(--t-step); padding: var(--space-3);
+  border: var(--hair) solid var(--line); border-radius: var(--r-2);
+  background: var(--inset); color: var(--text); cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+}
+.insp__btn:hover { background: var(--raised); border-color: var(--sel-line); }
+/* primary action uses the lone interactive accent */
+.insp__btn--primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.insp__btn--primary:hover { background: color-mix(in srgb, var(--accent) 88%, #fff); border-color: var(--accent); }
+.insp__hint { font-size: var(--t-label); color: var(--text-faint); text-align: center; }
+.insp__hint b { color: var(--text-dim); font-weight: 600; }
+
+/* ---- Log/event console (chronological readout dock) ---- */
 .lc { border-top: 1px solid var(--line); background: var(--panel); font-family: var(--font-mono); }
 .lc__head { display: flex; gap: var(--space-4); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--line); }
 .lc__tab { font-size: var(--t-label); color: var(--text-dim); } .lc__tab--on { color: var(--text-bright); }
@@ -63,10 +223,7 @@
 .lc__ln[data-flag='root'] .lc__lv, .lc__ln[data-flag='root'] .lc__msg { color: var(--root); }
 .lc__ln[data-selected] { background: var(--inset); }
 
-.dash { min-height: 100vh; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
-.rb { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--line); background: var(--panel); font-family: var(--font-mono); }
-.rb__id b { color: var(--text-bright); }
+/* ---- Readout-bar runtime + trust-gate pills (reuse existing tokens, no new hue) ---- */
 .rb__trust { margin-left: .45rem; padding: .12rem .45rem; border-radius: 999px;
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; }
 .rb__trust--apply { color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
@@ -77,34 +234,6 @@
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase;
   color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
   background: color-mix(in srgb, var(--pass) 8%, transparent); }
-.rb__meta { color: var(--text-faint); font-size: var(--t-label); }
-.rb__spacer { flex: 1; } .rb__eyebrow { font-size: var(--t-label); letter-spacing: .09em;
-  text-transform: uppercase; color: var(--text-dim); }
-.rb__verdict { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h2);
-  letter-spacing: var(--track-verdict); }
-.rb__verdict--fail { color: var(--blast); } .rb__verdict--pass { color: var(--pass); }
-.rb__verdict--ready { color: var(--text-faint); }
-
-/* "Ready to run" — shown when a test is picked but not yet run, instead of the prior run's graph */
-.dash__await { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
-  padding: var(--space-8) var(--space-4); }
-.dash__await-card { display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
-  text-align: center; font-family: var(--font-mono); }
-.dash__await-eyebrow { font-size: var(--t-label); letter-spacing: var(--track-upper);
-  text-transform: uppercase; color: var(--text-dim); }
-.dash__await-scn { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h3);
-  color: var(--text-bright); letter-spacing: var(--track-display); }
-.dash__await-hint { font-size: var(--t-step); color: var(--text-faint); }
-.dash__spinner { width: 22px; height: 22px; margin-bottom: var(--space-2); border-radius: 50%;
-  border: 2px solid var(--line); border-top-color: var(--root);
-  animation: dash-spin 0.8s linear infinite; }
-@keyframes dash-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .dash__spinner { animation: none; } }
-/* minmax(0,…) + min-width:0 stop a wide inspector payload (long code in a <pre>)
-   from collapsing the graph column — the long line scrolls inside the inspector. */
-.dash__body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); flex: 1; min-height: 0; }
-.dash__graph { padding: var(--space-5) var(--space-4); overflow: auto; display: flex; justify-content: center; min-width: 0; }
-.dash__inspect { padding: var(--space-4); border-left: 1px solid var(--line); min-width: 0; }
 
 /* ---- Run bar (scenario picker + Run) — top toolbar ---- */
 .dash__run { display: flex; align-items: center; gap: var(--space-3);
@@ -124,32 +253,6 @@
 .dash__btn:disabled { background: var(--raised); color: var(--text-dim);
   border-color: var(--line); cursor: default; }
 .dash__err { color: var(--blast); font-size: var(--t-step); }
-
-/* ---- Inspector header + diagnosis callouts (task: clarity) ---- */
-.insp__head { display: flex; align-items: center; justify-content: space-between;
-  gap: var(--space-3); margin-bottom: var(--space-4); }
-.insp__agent { font-size: var(--t-h3); color: var(--text-bright); }
-.insp__pill { font-size: var(--t-label); letter-spacing: var(--track-upper);
-  padding: 2px var(--space-2); border-radius: var(--r-1); border: 1px solid var(--line);
-  white-space: nowrap; color: var(--text-dim); }
-.insp__pill--root { color: var(--root); border-color: var(--root); }
-.insp__pill--blast { color: var(--blast); border-color: var(--blast); }
-.insp__pill--ok { color: var(--pass); border-color: var(--pass); }
-.insp__call { border: 1px solid var(--line); border-radius: var(--r-3);
-  padding: var(--space-3); margin-bottom: var(--space-3); background: var(--inset); }
-.insp__call--root { box-shadow: inset 3px 0 0 var(--root);
-  background: linear-gradient(var(--root-glow), var(--root-glow)), var(--inset); }
-.insp__call--blast { box-shadow: inset 3px 0 0 var(--blast); }
-.insp__callk { font-size: var(--t-label); letter-spacing: var(--track-upper);
-  text-transform: uppercase; color: var(--text-dim); margin-bottom: var(--space-1); }
-.insp__callv { font-size: var(--t-body); color: var(--text-bright); line-height: var(--lh-data); }
-.insp__call--root .insp__callv { color: var(--root); }
-.insp__callsub { font-size: var(--t-label); color: var(--text-faint); margin-top: var(--space-1);
-  font-variant-numeric: tabular-nums; }
-.insp__why { font-size: var(--t-step); color: var(--text); line-height: var(--lh-body);
-  margin: 0 0 var(--space-4); }
-.insp__hint { display: block; margin-top: var(--space-2); font-size: var(--t-label);
-  color: var(--text-faint); }
 
 /* ---- Rendered code output (syntax-highlighted, line-numbered) ---- */
 .insp__codewrap { margin-bottom: var(--space-3); }

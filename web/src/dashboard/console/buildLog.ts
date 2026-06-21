@@ -4,6 +4,7 @@ export interface LogLine { t: string; level: string; src: string; msg: string; s
 
 const LEVEL: Record<Step['kind'], string> = {
   reason: 'INFO', tool_call: 'TOOL', tool_result: 'TOOL', decision: 'DEC', final: 'FIN',
+  handoff: 'HOFF',
 }
 
 function clock(index: number): string {

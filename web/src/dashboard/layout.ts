@@ -1,73 +1,85 @@
 // web/src/dashboard/layout.ts
-import type { ActionGraph } from './types'
+// Node-link layout for the trace graph: nodes stack top→down by time order, with
+// an x offset per lane (reason · tool · parallel), and curved bezier connectors
+// between sequenced actions. Poisoned edges (root/blast → blast/decoy) and
+// long-hop edges are flagged here so the renderer styles them per DESIGN.md.
+//
+// Band-aware: nodes are grouped into contiguous per-agent AgentBands (deriveBands).
+// Within a band nodes keep STEP_Y row spacing; an extra BAND_GAP of whitespace is
+// inserted before each band after the first, so same-agent nodes read as a cluster.
+// A reserved GUTTER_W left gutter holds the per-agent label. Grouping is expressed
+// only by POSITION (gap), a LABEL, and a hairline SEPARATOR — never a 4th hue.
+import type { ActionGraph, ActionNode, Lane } from './types'
 import { isPoisonEdge, type StatusMap } from './nodeStatus'
+import { deriveBands } from './deriveBands'
 
-export const NODE_W = 172
-export const NODE_H = 46
-export const ROW_GAP = 96   // vertical distance between depth rows (top→down spine)
-export const COL_GAP = 36   // horizontal gap between siblings in the same row
-export const TOP = 28
-export const PAD_X = 28
+export const LANE_X: Record<Lane, number> = { reason: 14, tool: 200, parallel: 382 }
+export const STEP_Y = 44
+export const TOP = 24
+export const NODE_W = 138
+export const NODE_H = 38
+// Extra vertical whitespace inserted before each band after the first (8pt grid).
+export const BAND_GAP = 24
+// Reserved left gutter holding the per-band agent label.
+export const GUTTER_W = 28
 
 export interface NodePos { id: string; x: number; y: number }
-export interface EdgePath { from: string; to: string; d: string; poison: boolean; longHop: boolean }
-export interface GraphLayout { positions: NodePos[]; edges: EdgePath[]; width: number; height: number }
-
-// Longest-path depth from the roots, over TRUE data-flow edges. A linear trace
-// collapses to one centered column; fan-out/fan-in (spec → implementer+test_writer
-// → reviewer) spreads siblings across a row. Subject-agnostic — no lanes.
-function depths(graph: ActionGraph): Map<string, number> {
-  const preds = new Map<string, string[]>()
-  graph.nodes.forEach((n) => preds.set(n.id, []))
-  graph.edges.forEach((e) => preds.get(e.to)?.push(e.from))
-  const depth = new Map<string, number>()
-  const visit = (id: string): number => {
-    const cached = depth.get(id)
-    if (cached !== undefined) return cached
-    const ps = preds.get(id) ?? []
-    const d = ps.length ? Math.max(...ps.map(visit)) + 1 : 0
-    depth.set(id, d)
-    return d
-  }
-  graph.nodes.forEach((n) => visit(n.id))
-  return depth
+export interface EdgePath { from: string; to: string; d: string; poison: boolean; longHop: boolean; crossAgent: boolean }
+export interface BandLayout { agentId: string; label: string; top: number; bottom: number; isRoot: boolean }
+export interface SeparatorPos { y: number }
+export interface GraphLayout {
+  positions: NodePos[]
+  edges: EdgePath[]
+  bands: BandLayout[]
+  separators: SeparatorPos[]
+  width: number
+  height: number
 }
 
 export function layout(graph: ActionGraph, status: StatusMap): GraphLayout {
-  const depth = depths(graph)
-  const maxDepth = Math.max(0, ...graph.nodes.map((n) => depth.get(n.id) ?? 0))
-
-  // group node ids into rows by depth, preserving run order within a row
-  const rows: string[][] = Array.from({ length: maxDepth + 1 }, () => [])
-  graph.nodes.forEach((n) => rows[depth.get(n.id) ?? 0].push(n.id))
-
-  const rowWidth = (k: number) => k * NODE_W + Math.max(0, k - 1) * COL_GAP
-  const widest = Math.max(1, ...rows.map((r) => r.length))
-  const width = PAD_X * 2 + rowWidth(widest)
-  const centerX = width / 2
-  const height = TOP + (maxDepth + 1) * ROW_GAP
-
+  const bands = deriveBands(graph)
+  const nodeById = new Map<string, ActionNode>(graph.nodes.map((n) => [n.id, n]))
   const pos = new Map<string, NodePos>()
-  rows.forEach((ids, d) => {
-    const startX = centerX - rowWidth(ids.length) / 2
-    ids.forEach((id, i) => {
-      pos.set(id, { id, x: startX + i * (NODE_W + COL_GAP), y: TOP + d * ROW_GAP })
-    })
+  const bandLayouts: BandLayout[] = []
+  const separators: SeparatorPos[] = []
+
+  let cursor = TOP
+  bands.forEach((band, bi) => {
+    if (bi > 0) {
+      // record a separator at the midpoint of the inter-band gap, then advance.
+      separators.push({ y: cursor + BAND_GAP / 2 })
+      cursor += BAND_GAP
+    }
+    const top = cursor
+    let lastNodeTop = cursor
+    for (const nodeId of band.nodeIds) {
+      const n = nodeById.get(nodeId)
+      if (!n) continue
+      pos.set(nodeId, { id: nodeId, x: GUTTER_W + LANE_X[n.lane], y: cursor })
+      lastNodeTop = cursor
+      cursor += STEP_Y
+    }
+    const isRoot = band.nodeIds.some((id) => status[id] === 'root')
+    bandLayouts.push({ agentId: band.agentId, label: band.label, top, bottom: lastNodeTop + NODE_H, isRoot })
   })
 
-  const cx = (id: string) => pos.get(id)!.x + NODE_W / 2
-  const topY = (id: string) => pos.get(id)!.y
-  const botY = (id: string) => pos.get(id)!.y + NODE_H
-  // edges leave the parent's bottom edge and arrive at the child's top edge
+  const cx = (id: string) => (pos.get(id)!.x) + NODE_W / 2
+  const cy = (id: string) => (pos.get(id)!.y) + NODE_H / 2
+  const agentOf = (id: string) => nodeById.get(id)?.agentId ?? null
+  const kindOf = (id: string) => nodeById.get(id)?.kind
   const edges: EdgePath[] = graph.edges.map((e) => {
-    const ax = cx(e.from), ay = botY(e.from), bx = cx(e.to), by = topY(e.to)
+    const ax = cx(e.from), ay = cy(e.from), bx = cx(e.to), by = cy(e.to)
     const my = (ay + by) / 2
+    const crossAgent =
+      agentOf(e.from) !== agentOf(e.to) || kindOf(e.from) === 'handoff' || kindOf(e.to) === 'handoff'
     return {
-      from: e.from, to: e.to, longHop: e.longHop,
+      from: e.from, to: e.to, longHop: e.longHop, crossAgent,
       poison: isPoisonEdge(e, status),
       d: `M${ax} ${ay} C ${ax} ${my}, ${bx} ${my}, ${bx} ${by}`,
     }
   })
 
-  return { positions: graph.nodes.map((n) => pos.get(n.id)!), edges, width, height }
+  const width = GUTTER_W + LANE_X.parallel + NODE_W + 40
+  const height = cursor + 20
+  return { positions: graph.nodes.map((n) => pos.get(n.id)!), edges, bands: bandLayouts, separators, width, height }
 }

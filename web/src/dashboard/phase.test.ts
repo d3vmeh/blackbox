@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { displayStatus, phaseForReplay, PHASE_STATUS } from './phase'
+import {
+  displayStatus, phaseForReplay, trustForPhase,
+  PHASE_STATUS, PHASE_TRUST, type Phase,
+} from './phase'
 import type { ReplayResult } from '../types'
+
+const ALL_PHASES: Phase[] = [
+  'idle', 'blast', 'analyze', 'proving_decoy', 'proving_root', 'confirm', 'rejected',
+]
 
 describe('displayStatus', () => {
   it('shows neutral while idle regardless of base', () => {
@@ -16,6 +23,29 @@ describe('displayStatus', () => {
     expect(displayStatus('blast', 'confirm')).toBe('pass')
     expect(displayStatus('neutral', 'confirm')).toBe('neutral')
   })
+  it('keeps root/blast colored (not healed) while proving', () => {
+    expect(displayStatus('root', 'proving_decoy')).toBe('root')
+    expect(displayStatus('blast', 'proving_root')).toBe('blast')
+  })
+})
+
+describe('trustForPhase', () => {
+  it('is untrusted before proving and on rejection', () => {
+    expect(trustForPhase('idle')).toBe('untrusted')
+    expect(trustForPhase('blast')).toBe('untrusted')
+    expect(trustForPhase('analyze')).toBe('untrusted')
+    expect(trustForPhase('rejected')).toBe('untrusted')
+  })
+  it('is proving across both replay sub-states', () => {
+    expect(trustForPhase('proving_decoy')).toBe('proving')
+    expect(trustForPhase('proving_root')).toBe('proving')
+  })
+  it('only becomes trusted on the confirmed flip', () => {
+    expect(trustForPhase('confirm')).toBe('trusted')
+  })
+  it('maps every phase to a trust state', () => {
+    for (const p of ALL_PHASES) expect(PHASE_TRUST[p]).toBeDefined()
+  })
 })
 
 describe('phaseForReplay', () => {
@@ -29,6 +59,6 @@ describe('phaseForReplay', () => {
       .toBe('rejected')
   })
   it('has a status line for every phase', () => {
-    expect(Object.keys(PHASE_STATUS)).toContain('confirm')
+    for (const p of ALL_PHASES) expect(PHASE_STATUS[p]).toBeDefined()
   })
 })

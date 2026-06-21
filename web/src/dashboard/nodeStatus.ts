@@ -16,6 +16,8 @@ export function nodeStatus(graph: ActionGraph, attribution: Attribution): Status
   return map
 }
 
+// An edge is "poisoned" when the root cause / blast flows into a downstream blast
+// (or the decoy) node — these connectors carry --blast in the graph view.
 const SRC = new Set<NodeStatus>(['root', 'blast'])
 const DST = new Set<NodeStatus>(['blast', 'decoy'])
 

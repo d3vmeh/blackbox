@@ -1,0 +1,153 @@
+/* web/src/dashboard/StatsOverlay.css
+ * Full-width usage-statistics overlay over the work area. Sits in the work-area
+ * grid row (below the readout bar) at --z-overlay, so the bar + its toggle stay
+ * live above it. Neutral instrument readout only — NO signal hue (those stay
+ * reserved for the trace). All values reference DESIGN.md tokens. */
+
+.stats {
+  position: absolute;
+  top: var(--h-bar);   /* sit below the readout bar so its toggle stays live */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-overlay);
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+
+  background: var(--panel);
+  font-family: var(--font-mono);
+}
+.stats::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ---- header eyebrow + standing est. badge ---- */
+.stats__hd {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-icon);
+}
+.stats__icon {
+  color: var(--text-dim); /* neutral affordance, never a signal hue */
+}
+.stats__eyebrow {
+  font-size: var(--t-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-upper);
+  color: var(--text-dim);
+}
+.stats__badge {
+  font-size: var(--t-label);
+  color: var(--text-faint);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-1);
+  padding: 0 var(--space-1);
+  letter-spacing: var(--track-tight);
+}
+.stats__close {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: var(--hair) solid transparent;
+  border-radius: var(--r-1);
+  color: var(--text-faint);
+  transition: color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out);
+}
+.stats__close:hover { color: var(--text); background: var(--inset); }
+
+/* ---- aggregate stat tiles ---- */
+.stats__agg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+.stats__tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--inset);
+  border: var(--hair) solid var(--line);
+  border-top-color: var(--line-hi);
+  border-radius: var(--r-3);
+}
+.stats__tile-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--t-h2);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  color: var(--text-bright);
+}
+.stats__tile-label {
+  font-size: var(--t-label);
+  text-transform: uppercase;
+  letter-spacing: var(--track-upper);
+  color: var(--text-dim);
+}
+
+/* ---- per-agent breakdown table ---- */
+.stats__tablewrap {
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-3);
+  overflow: hidden;
+}
+.stats__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-step);
+}
+.stats__table th,
+.stats__table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: right; /* numeric columns right-align; agent col overrides to left */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.stats__table thead th {
+  font-size: var(--t-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-tight);
+  color: var(--text-faint);
+  border-bottom: var(--hair) solid var(--line);
+}
+.stats__th-agent { text-align: left; }
+.stats__th-share { width: 140px; }
+.stats__table tbody tr + tr td { border-top: var(--hair) solid var(--line-soft); }
+.stats__table tbody tr:hover td { background: var(--sel-bg); }
+
+.stats__agent {
+  text-align: left;
+  color: var(--text-bright);
+  text-transform: capitalize;
+}
+.stats__table td { color: var(--text); }
+.stats__strong { color: var(--text-bright); font-weight: 500; }
+
+/* token-share meter — neutral fill only (no signal hue) */
+.stats__share { width: 140px; }
+.stats__meter {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--r-1);
+  background: var(--inset);
+  overflow: hidden;
+}
+.stats__fill {
+  display: block;
+  height: 100%;
+  background: var(--text-faint);
+  border-radius: var(--r-1);
+}
