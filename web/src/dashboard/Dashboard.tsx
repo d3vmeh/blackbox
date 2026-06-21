@@ -9,7 +9,8 @@ import { phaseForReplay, PHASE_STATUS, type Phase } from './phase'
 import './dashboard.css'
 
 export function Dashboard() {
-  const { data, replay } = useRun()
+  const { data, scenarios, loading, error, run, replay } = useRun()
+  const [picked, setPicked] = useState<string>('parse_duration_units')
   const reduce = useReducedMotion()
   // First paint lands on the WHY: select the root-cause node so the inspector is never empty.
   const rootNodeId = useMemo(
@@ -32,7 +33,7 @@ export function Dashboard() {
     [data.graph.nodes, selectedId],
   )
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
-  const verdict = phase === 'confirm' ? 'PASS' : 'FAIL'
+  const verdict = data.trace.success ? 'PASS' : phase === 'confirm' ? 'PASS' : 'FAIL'
 
   const onReplay = async (stepId: string) => {
     // The corrected value comes from the pre-generated replay result, keyed by step.
@@ -42,6 +43,15 @@ export function Dashboard() {
 
   return (
     <div className="dash">
+      <div className="dash__run">
+        <select value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="test">
+          {scenarios.map((s) => <option key={s.name} value={s.name}>{s.label}</option>)}
+        </select>
+        <button type="button" onClick={() => run(picked)} disabled={loading}>
+          {loading ? 'running… (real Claude)' : 'Run'}
+        </button>
+        {error && <span className="dash__err">{error}</span>}
+      </div>
       <ReadoutBar
         runId={data.trace.id}
         task={data.trace.task}
