@@ -1,6 +1,9 @@
 """P1 — CLI demo of the AP system + the Blackbox monitor (single scenario).
 
     python -m agent.run_ap
+    python -m agent.run_ap --arize   # export spans to Arize AX (https://app.arize.com)
+    python -m eval.arize_pipeline    # export + code/LLM evals + meta + experiment report
+    python -m agent.run_ap --otel    # export spans to local Phoenix (run `phoenix serve` first)
 
 Runs the invoice-paying agents (with an injected misread), shows the company pay the
 wrong bill, then the monitor localizes the agent that started it, PROVES the fix by
@@ -10,6 +13,7 @@ different fault sites, see `python -m agent.run_ap_suite`.
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from . import ap_graph
@@ -27,11 +31,33 @@ def _money(x: Any) -> str:
         return str(x)
 
 
-def _verdict(trace) -> str:
-    return "PASS" if trace.success else "FAIL"
+def _scenario_meta(scn, v=None, *, healed: bool = False) -> dict:
+    meta = {
+        "scenario": scn.name,
+        "invoice_text": scn.invoice_text(),
+        "expected": {
+            "vendor": scn.vendor,
+            "amount": scn.amount,
+            "due_date": scn.due_date,
+            "po": scn.po,
+            "expect": scn.expect,
+        },
+    }
+    if v and v.root_agent:
+        meta.update(
+            root_agent=v.root_agent,
+            root_step_id=v.root_step_id or "",
+            replay_confirmed=v.replay_confirmed,
+            confirmation_rate=v.confirmation_rate,
+        )
+    if healed:
+        meta["healed"] = True
+    return meta
 
 
 def main() -> None:
+    use_otel = "--otel" in sys.argv
+    use_arize = "--arize" in sys.argv
     scn = DEFAULT
     print("=" * 66)
     print(f"ACCOUNTS-PAYABLE AGENTS  ·  invoice {scn.po} ({scn.vendor})")
@@ -71,6 +97,22 @@ def main() -> None:
     if healed is not None:
         hp = healed.final_output
         print(f"     re-run → PAID {_money(hp['amount_paid'])} to {hp['vendor']}   VERDICT: {_verdict(healed)}")
+
+    if use_arize or use_otel:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        from .otel import emit_trace
+
+        backend = "arize" if use_arize else "phoenix"
+        monitor_meta = _scenario_meta(scn, v if v.failed else None)
+
+        label = "Arize AX (https://app.arize.com)" if use_arize else "Phoenix (http://localhost:6006)"
+        print(f"\n[trace] exporting AP spans to {label}:")
+        emit_trace(trace, backend=backend, monitor=monitor_meta)
+        if healed is not None:
+            emit_trace(healed, backend=backend, monitor=_scenario_meta(scn, v, healed=True))
+
     print("=" * 66)
 
 
