@@ -33,3 +33,12 @@ def test_parse_impl_fault_is_at_implementer():
 def test_parse_clean_has_no_fault():
     scn = next(s for s in SCENARIOS if s.name == "parse_duration_clean")
     assert scn.fault is None
+
+def test_celsius_task_has_spec_and_impl_faults():
+    names = {s.name for s in SCENARIOS}
+    assert {"celsius_spec", "celsius_impl"} <= names
+    spec = next(s for s in SCENARIOS if s.name == "celsius_spec")
+    impl = next(s for s in SCENARIOS if s.name == "celsius_impl")
+    assert spec.function_name == "celsius_to_fahrenheit"
+    assert spec.fault.agent == "spec_interpreter"
+    assert impl.fault.agent == "implementer"

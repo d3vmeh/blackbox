@@ -82,6 +82,34 @@ def _ref_review(scn: "CodeScenario", up: dict) -> dict:
 _PARSE_REF = {"spec_interpreter": _ref_spec, "implementer": _ref_impl,
               "test_writer": _ref_tests, "reviewer": _ref_review}
 
+# --- task: celsius_to_fahrenheit (return int Fahrenheit) ---
+_TEMP_CORRECT = "def celsius_to_fahrenheit(c):\n    return int(c * 9 / 5 + 32)\n"
+_TEMP_CELSIUS = "def celsius_to_fahrenheit(c):\n    return int(c)\n"        # spec said celsius
+_TEMP_BAD_CODE = "def celsius_to_fahrenheit(c):\n    return int(c * 9 / 5)\n"  # forgets + 32
+_TEMP_ACCEPTANCE = ("assert celsius_to_fahrenheit(100) == 212\n"
+                    "assert celsius_to_fahrenheit(0) == 32\n"
+                    "assert celsius_to_fahrenheit(37) == 98\n")
+
+
+def _ref_spec_temp(scn, up):
+    return {"signature": "def celsius_to_fahrenheit(c: int) -> int",
+            "unit": "fahrenheit", "summary": "convert celsius to fahrenheit, floored to int"}
+
+
+def _ref_impl_temp(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    return {"code": _TEMP_CORRECT if unit == "fahrenheit" else _TEMP_CELSIUS}
+
+
+def _ref_tests_temp(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    expected = 212 if unit == "fahrenheit" else 100
+    return {"tests": f"assert celsius_to_fahrenheit(100) == {expected}\n"}
+
+
+_TEMP_REF = {"spec_interpreter": _ref_spec_temp, "implementer": _ref_impl_temp,
+             "test_writer": _ref_tests_temp, "reviewer": _ref_review}
+
 SCENARIOS: list[CodeScenario] = [
     CodeScenario(
         name="parse_duration_units",
@@ -103,6 +131,25 @@ SCENARIOS: list[CodeScenario] = [
                      "Return the TOTAL NUMBER OF SECONDS as an int."),
         reference=_PARSE_REF, acceptance_tests=_ACCEPTANCE, function_name="parse_duration",
         fault=None,
+    ),
+]
+
+SCENARIOS += [
+    CodeScenario(
+        name="celsius_spec",
+        requirement="Implement celsius_to_fahrenheit(c). Return the temperature in "
+                    "FAHRENHEIT as an int (floored).",
+        reference=_TEMP_REF, acceptance_tests=_TEMP_ACCEPTANCE,
+        function_name="celsius_to_fahrenheit",
+        fault=CodeFault("spec_interpreter", "unit", "celsius"),
+    ),
+    CodeScenario(
+        name="celsius_impl",
+        requirement="Implement celsius_to_fahrenheit(c). Return the temperature in "
+                    "FAHRENHEIT as an int (floored).",
+        reference=_TEMP_REF, acceptance_tests=_TEMP_ACCEPTANCE,
+        function_name="celsius_to_fahrenheit",
+        fault=CodeFault("implementer", "code", _TEMP_BAD_CODE),
     ),
 ]
 
