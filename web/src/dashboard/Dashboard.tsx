@@ -35,7 +35,8 @@ export function Dashboard() {
   const verdict = phase === 'confirm' ? 'PASS' : 'FAIL'
 
   const onReplay = async (stepId: string) => {
-    const result = await replay(stepId, '2024-07-12')
+    // The corrected value comes from the pre-generated replay result, keyed by step.
+    const result = await replay(stepId, null)
     setPhase(phaseForReplay(result))
   }
 
@@ -43,7 +44,7 @@ export function Dashboard() {
     <div className="dash">
       <ReadoutBar
         runId={data.trace.id}
-        task="flight-agent"
+        task={data.trace.task}
         verdict={verdict}
         meta={`${data.trace.steps.length} steps · ${PHASE_STATUS[phase]}`}
       />
