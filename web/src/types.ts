@@ -111,6 +111,8 @@ export interface Attribution {
   candidates: Candidate[]
   /** plain-English explanation of the root cause */
   rationale: string
+  /** corrected output for the root step, usable as a replay injected_value (optional) */
+  suggested_fix?: Json | null
 }
 
 /**
