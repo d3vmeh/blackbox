@@ -90,8 +90,9 @@ def _meta(app, config: dict, monitor: MonitorDecision) -> dict:
         "thread_id": _TRACE_ID,
         "observability": {
             "otel": "agent/otel.emit_trace",
-            "arize": "ARIZE_* env → https://app.arize.com (use --arize on export)",
-            "project_default": "blackbox-ap",
+            "arize": "python -m agent.flight.export_run --arize",
+            "arize_project_env": "ARIZE_PROJECT_NAME",
+            "arize_traces": ["flight_run", "flight_healed"],
         },
         "monitor_decision": monitor.decision,
     }
@@ -137,23 +138,12 @@ def _healed_trace() -> Trace:
     return _tag_langgraph(t)
 
 
-def _emit_arize(trace: Trace, monitor: MonitorDecision, healed: Trace | None = None) -> None:
+def _emit_arize(trace: Trace, monitor: MonitorDecision, healed: Trace | None = None) -> bool:
     from dotenv import load_dotenv
 
     load_dotenv()
-    from ..otel import emit_trace
-
-    meta = {
-        "root_step_id": monitor.root_step_id,
-        "root_node": _FORK_NODE,
-        "replay_confirmed": monitor.replay.flipped,
-        "confirmation_rate": monitor.replay.confirmation_rate,
-        "monitor_decision": monitor.decision,
-        "runtime": "langgraph",
-    }
-    emit_trace(trace, backend="arize", monitor=meta)
-    if healed is not None:
-        emit_trace(healed, backend="arize", monitor={**meta, "healed": True})
+    from .arize_export import emit_flight_pair
+    return emit_flight_pair(trace, monitor, healed)
 
 
 def build_artifacts() -> dict:
@@ -226,8 +216,10 @@ def main() -> None:
     if args.arize:
         monitor = MonitorDecision.model_validate(art["monitor"])
         trace = Trace.model_validate(art["trace"])
-        _emit_arize(trace, monitor, healed)
-        print("[arize] flight_run + flight_healed -> https://app.arize.com")
+        ok = _emit_arize(trace, monitor, healed)
+        if not ok:
+            raise SystemExit(1)
+        print("[arize] LangGraph flight_run + flight_healed exported")
 
 
 if __name__ == "__main__":

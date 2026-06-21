@@ -32,8 +32,12 @@
   "thread_id": "flight_run",
   "observability": {
     "otel": "agent/otel.emit_trace",
-    "arize": "ARIZE_* env \u2192 https://app.arize.com (use --arize on export)",
-    "project_default": "blackbox-ap"
+    "arize": "python -m agent.flight.export_run --arize",
+    "arize_project_env": "ARIZE_PROJECT_NAME",
+    "arize_traces": [
+      "flight_run",
+      "flight_healed"
+    ]
   },
   "monitor_decision": "auto_apply"
 }
