@@ -26,11 +26,14 @@ from pydantic import BaseModel
 from agent.code.export_run import build_artifacts as code_build
 from agent.code.scenarios import SCENARIOS as CODE_SCENARIOS
 from agent.domains.export_run import build_artifacts as domain_build
+from agent.team.export_run import build_artifacts as team_build
+from agent.team.scenarios import SCENARIOS as TEAM_SCENARIOS
 from shared.scenarios.manifest import BY_ID, DOMAINS
 
 app = FastAPI(title="Blackbox API")
 
 _CODE_BY_NAME = {s.name: s for s in CODE_SCENARIOS}
+_TEAM_BY_NAME = {s.name: s for s in TEAM_SCENARIOS}
 # Agent → short display label for the multi-agent inspector / band graph.
 _CODE_AGENT_LABELS = {"spec_interpreter": "SPEC", "implementer": "IMPL",
                       "test_writer": "TESTS", "reviewer": "REVIEW"}
@@ -75,8 +78,9 @@ def health() -> dict[str, str]:
 @app.get("/api/scenarios")
 def scenarios() -> list[dict[str, str]]:
     domains = [{"name": d.id, "label": d.label} for d in DOMAINS]
+    team = [{"name": s.name, "label": "software team · billing"} for s in TEAM_SCENARIOS]
     coding = [{"name": s.name, "label": f"coding · {s.name.replace('_', ' ')}"} for s in CODE_SCENARIOS]
-    return domains + coding
+    return domains + team + coding
 
 
 class RunRequest(BaseModel):
@@ -102,6 +106,22 @@ def run(req: RunRequest) -> dict:
         meta, monitor = _coding_meta_and_monitor(scn, art, req.live)
         return {"trace": art["trace"], "attribution": art["attribution"],
                 "replay": art["replays"], "meta": meta, "monitor": monitor}
+
+    # --- software-team (billing) pipeline ---
+    tscn = _TEAM_BY_NAME.get(req.scenario)
+    if tscn is not None:
+        think = None
+        if req.live:
+            from agent.llm import make_think
+            from agent.team.graph import TEAM_MODEL
+            think = make_think(use_real_llm=True, model=TEAM_MODEL, max_tokens=600)
+        try:
+            art = team_build(tscn, think=think)
+        except Exception as exc:
+            raise HTTPException(status_code=502,
+                                detail=f"team run failed: {type(exc).__name__}: {exc}")
+        return {"trace": art["trace"], "attribution": art["attribution"],
+                "replay": art["replays"], "meta": art["meta"], "monitor": art["monitor"]}
 
     # --- demo domains (deterministic by default; procurement_gpu's browser runs LIVE when live=True) ---
     if req.scenario not in BY_ID:

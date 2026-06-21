@@ -42,6 +42,9 @@
   /* Scenario-tier chip hue for the live CODING family (a calm violet, distinct from the
      blue accent + the 3 reserved signals). Category label only, never a failure signal. */
   --coding:       #9d8df1;
+  /* Scenario-tier chip hue for the live SOFTWARE-TEAM family (a calm cyan, distinct from the
+     coding violet, blue accent + the 3 reserved signals). Category label only, never a signal. */
+  --team:         #45b3c2;
 
   /* ---- Spacing (4px base scale) ---- */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;

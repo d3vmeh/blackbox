@@ -9,14 +9,22 @@ const TIER_LABEL: Record<string, string> = {
   sponsor: 'Sponsor',
   ops: 'Ops',
   coding: 'Coding',
+  team: 'Software',
+}
+
+const TIER_HINT: Record<string, string> = {
+  coding: 'live real-LLM coding pipeline',
+  team: 'live real-LLM software team',
 }
 
 const MANIFEST_BY_ID = Object.fromEntries(SCENARIO_MANIFEST.map((s) => [s.id, s]))
 
-// Domains are in the manifest with a tier; everything else is a live CODING-pipeline scenario.
-const tierOf = (name: string): string => MANIFEST_BY_ID[name]?.tier ?? 'coding'
+// Domains are in the manifest with a tier; the billing subject is the software-team pipeline;
+// everything else is a live CODING-pipeline scenario.
+const tierOf = (name: string): string =>
+  MANIFEST_BY_ID[name]?.tier ?? (name.startsWith('billing') ? 'team' : 'coding')
 const hintOf = (name: string): string | undefined =>
-  MANIFEST_BY_ID[name]?.tagline ?? (tierOf(name) === 'coding' ? 'live real-LLM coding pipeline' : undefined)
+  MANIFEST_BY_ID[name]?.tagline ?? TIER_HINT[tierOf(name)]
 
 export interface ScenarioToolbarProps {
   scenarios: { name: string; label: string }[]
