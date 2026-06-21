@@ -78,7 +78,10 @@ def health() -> dict[str, str]:
 @app.get("/api/scenarios")
 def scenarios() -> list[dict[str, str]]:
     domains = [{"name": d.id, "label": d.label} for d in DOMAINS]
-    team = [{"name": s.name, "label": "software team · billing"} for s in TEAM_SCENARIOS]
+    team_label = {"billing_tax_rounding_natural": "software team · billing",
+                  "billing_op_order": "software team · billing (scripted)"}
+    team = [{"name": s.name, "label": team_label.get(s.name, f"software team · {s.name}")}
+            for s in TEAM_SCENARIOS]
     coding = [{"name": s.name, "label": f"coding · {s.name.replace('_', ' ')}"} for s in CODE_SCENARIOS]
     return domains + team + coding
 

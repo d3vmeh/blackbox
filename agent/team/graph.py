@@ -45,23 +45,6 @@ def _llm_module(think: Think, signature: str, summary: str) -> Optional[dict]:
     return {"code": code} if f"def {name}" in code else None
 
 
-# Only the 3 leaf modules are live; everything else is deterministic reference.
-_LLM = {
-    "pricing": lambda think: _llm_module(
-        think, "subtotal_cents(items, catalog)",
-        "catalog maps each item's 'sku' to an integer unit price in cents. Return the sum of "
-        "catalog[item['sku']] * item['qty'] over items."),
-    "discount": lambda think: _llm_module(
-        think, "discount_cents(subtotal, tier_rate_pct)",
-        "Return round-half-up of subtotal * tier_rate_pct / 100 as an int "
-        "(use math.floor(x + 0.5))."),
-    "tax": lambda think: _llm_module(
-        think, "tax_cents(taxable, region_bp)",
-        "region_bp is a tax rate in basis points. Return round-half-up of "
-        "taxable * region_bp / 10000 as an int (use math.floor(x + 0.5))."),
-}
-
-
 @dataclass
 class TeamContext:
     rec: Recorder
@@ -78,10 +61,12 @@ def _agent_output(ctx: TeamContext, agent: str) -> tuple[dict, bool, dict]:
     leaf modules, then the scenario fault (if any) overrides one field."""
     correct = ctx.scn.reference[agent](ctx.scn, ctx.up)
     out = dict(correct)
-    if ctx.think is not None and agent in _LLM:
-        llm = _LLM[agent](ctx.think)
-        if llm is not None:
-            out = llm
+    if ctx.think is not None:
+        spec = ctx.scn.live.get(agent)        # (signature, summary) for this agent's live impl, or None
+        if spec is not None:
+            llm = _llm_module(ctx.think, spec[0], spec[1])
+            if llm is not None:
+                out = llm
     fault = ctx.scn.fault
     is_fault = bool(fault and fault.agent == agent)
     if is_fault:
