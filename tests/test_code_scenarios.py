@@ -42,3 +42,9 @@ def test_celsius_task_has_spec_and_impl_faults():
     assert spec.function_name == "celsius_to_fahrenheit"
     assert spec.fault.agent == "spec_interpreter"
     assert impl.fault.agent == "implementer"
+
+def test_kib_task_has_spec_and_impl_faults_and_total_is_seven():
+    names = {s.name for s in SCENARIOS}
+    assert {"kib_spec", "kib_impl"} <= names
+    assert next(s for s in SCENARIOS if s.name == "kib_spec").function_name == "kib"
+    assert len(SCENARIOS) == 7        # 3 parse + 2 celsius + 2 kib

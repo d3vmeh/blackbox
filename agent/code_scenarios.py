@@ -153,4 +153,49 @@ SCENARIOS += [
     ),
 ]
 
+# --- task: kib (bytes -> kibibytes, floor) ---
+_KIB_CORRECT = "def kib(n_bytes):\n    return n_bytes // 1024\n"
+_KIB_MEBI = "def kib(n_bytes):\n    return n_bytes // 1024 // 1024\n"   # spec said mebibytes
+_KIB_BAD_CODE = "def kib(n_bytes):\n    return n_bytes // 1000\n"        # KB not KiB
+_KIB_ACCEPTANCE = ("assert kib(1024) == 1\n"
+                   "assert kib(1048576) == 1024\n"
+                   "assert kib(1000000) == 976\n")
+
+
+def _ref_spec_kib(scn, up):
+    return {"signature": "def kib(n_bytes: int) -> int",
+            "unit": "kibibytes", "summary": "bytes to kibibytes via floor division by 1024"}
+
+
+def _ref_impl_kib(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    return {"code": _KIB_CORRECT if unit == "kibibytes" else _KIB_MEBI}
+
+
+def _ref_tests_kib(scn, up):
+    unit = up["spec_interpreter"]["unit"]
+    expected = 1 if unit == "kibibytes" else 0
+    return {"tests": f"assert kib(1024) == {expected}\n"}
+
+
+_KIB_REF = {"spec_interpreter": _ref_spec_kib, "implementer": _ref_impl_kib,
+            "test_writer": _ref_tests_kib, "reviewer": _ref_review}
+
+SCENARIOS += [
+    CodeScenario(
+        name="kib_spec",
+        requirement="Implement kib(n_bytes). Return the size in KIBIBYTES (KiB) as an int, "
+                    "floor-dividing the byte count by 1024.",
+        reference=_KIB_REF, acceptance_tests=_KIB_ACCEPTANCE, function_name="kib",
+        fault=CodeFault("spec_interpreter", "unit", "mebibytes"),
+    ),
+    CodeScenario(
+        name="kib_impl",
+        requirement="Implement kib(n_bytes). Return the size in KIBIBYTES (KiB) as an int, "
+                    "floor-dividing the byte count by 1024.",
+        reference=_KIB_REF, acceptance_tests=_KIB_ACCEPTANCE, function_name="kib",
+        fault=CodeFault("implementer", "code", _KIB_BAD_CODE),
+    ),
+]
+
 DEFAULT = SCENARIOS[0]
