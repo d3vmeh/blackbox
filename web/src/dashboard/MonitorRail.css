@@ -70,25 +70,31 @@
 
 .mrail__body { padding: 0 var(--space-4) var(--space-4); }
 
-/* ---- Run identity (not collapsible) ---- */
-.mrail__sec--id { padding: var(--space-4); }
-.mrail__id { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2); }
+/* ---- Run identity (not collapsible): the loaded case header ---- */
+.mrail__sec--id { padding: var(--space-4); display: flex; flex-direction: column; }
+/* Kicker over the case name (its own line — no longer colliding inline with the id). */
 .mrail__idk {
   font-size: var(--t-label); text-transform: uppercase; letter-spacing: var(--track-upper);
-  color: var(--text-faint);
+  color: var(--text-faint); margin-bottom: var(--space-1);
 }
-.mrail__idv { font-family: var(--font-mono); font-size: var(--t-step); color: var(--text-bright); }
+/* The case name reads as the subject headline of this rail. */
+.mrail__idv {
+  font-family: var(--font-mono); font-size: var(--t-body); color: var(--text-bright);
+  letter-spacing: var(--track-tight); line-height: var(--lh-tight);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: var(--space-3);
+}
 .mrail__task {
   margin: 0 0 var(--space-3); font-size: var(--t-step); line-height: var(--lh-data);
-  color: var(--text-dim); letter-spacing: var(--track-tight);
-  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  color: var(--text); letter-spacing: var(--track-tight);
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.mrail__idmeta { display: flex; gap: var(--space-2); }
-.mrail__idtag {
-  font-size: var(--t-label); color: var(--text-dim);
-  background: var(--inset); border: var(--hair) solid var(--line);
-  border-radius: var(--r-1); padding: 1px var(--space-2);
+/* Agent count as quiet inline metadata (icon + label), not a floating pill. */
+.mrail__idmeta {
+  display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start;
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-dim);
 }
+.mrail__idmeta svg { color: var(--text-faint); flex: 0 0 auto; }
 
 /* Data values read in mono (IDs, scores, counts). */
 .cand__id, .cand__score, .cand__verdict { font-family: var(--font-mono); }

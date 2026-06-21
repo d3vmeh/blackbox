@@ -142,13 +142,12 @@ function Rail({ phase, localized, selectedId, onSelect }: {
       </div>
 
       <section className="mrail__sec mrail__sec--id">
-        <div className="mrail__id">
-          <span className="mrail__idk">trace</span>
-          <span className="mrail__idv tnum">{RUN_ID}</span>
-        </div>
+        <span className="mrail__idk">Trace</span>
+        <span className="mrail__idv tnum" title={RUN_ID}>{RUN_ID}</span>
         <p className="mrail__task">{RUN_TASK}</p>
         <div className="mrail__idmeta">
-          <span className="mrail__idtag">{AGENTS.length} agents</span>
+          <Users size={13} strokeWidth={1.5} aria-hidden="true" />
+          <span>{AGENTS.length} agents</span>
         </div>
       </section>
 

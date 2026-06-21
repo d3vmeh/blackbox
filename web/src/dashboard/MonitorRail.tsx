@@ -217,15 +217,14 @@ export function MonitorRail({
       {/* 2..6 — trace sections (only once a run is loaded; otherwise no stale trace) */}
       {!pending && (
         <>
-          {/* 2 — RUN IDENTITY */}
+          {/* 2 — RUN IDENTITY: the loaded case — trace id · task · agent count */}
           <section className="mrail__sec mrail__sec--id">
-            <div className="mrail__id">
-              <span className="mrail__idk">trace</span>
-              <span className="mrail__idv tnum">{trace.id}</span>
-            </div>
+            <span className="mrail__idk">Trace</span>
+            <span className="mrail__idv tnum" title={trace.id}>{trace.id}</span>
             <p className="mrail__task">{trace.task}</p>
             <div className="mrail__idmeta">
-              <span className="mrail__idtag">{agentLabel}</span>
+              <Users size={13} strokeWidth={1.5} aria-hidden="true" />
+              <span>{agentLabel}</span>
             </div>
           </section>
 
