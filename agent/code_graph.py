@@ -25,7 +25,9 @@ from .llm import Think
 _THINK_FIELD = {"spec_interpreter": "unit"}     # other agents stay reference-only in Phase 1
 _THINK_PROMPT = {
     "spec_interpreter": ("You convert a coding requirement into a structured spec. "
-                         "What unit must parse_duration RETURN? Answer one word.",
+                         "In what TIME UNIT must parse_duration's integer result be "
+                         "expressed — seconds, minutes, or hours? Answer with exactly "
+                         "one of those words.",
                          "Requirement:\n{requirement}"),
 }
 
