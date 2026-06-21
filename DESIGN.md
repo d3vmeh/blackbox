@@ -119,7 +119,7 @@
     0 3px 6px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.28);
 
   /* ---- Dashboard rails & bars (three-column case-file layout) ---- */
-  --rail-nav:   256px;   /* left: case navigator */
+  --rail-nav:   300px;   /* left: case navigator — run switcher + collapsible sections */
   --rail-insp:  336px;   /* right: inspector */
   --h-bar:      53px;    /* readout header height */
 
