@@ -79,3 +79,13 @@ def _run(ctx: CodeContext) -> Trace:
 def run_code(scenario: CodeScenario = DEFAULT, *, think: Optional[Think] = None,
              trace_id: str = "code_live") -> Trace:
     return _run(CodeContext(rec=Recorder(trace_id, scenario.name), scn=scenario, think=think))
+
+
+def replay_code(scenario: CodeScenario, fork_agent: Optional[str] = None,
+                override: Optional[dict] = None, *, think: Optional[Think] = None,
+                trace_id: str = "code_replay") -> Trace:
+    """Counterfactual: re-run with the scenario fault present, optionally injecting a
+    correction right after `fork_agent`. override=None → baseline (still broken)."""
+    ctx = CodeContext(rec=Recorder(trace_id, scenario.name), scn=scenario, think=think,
+                      fork_agent=fork_agent, override=override)
+    return _run(ctx)
