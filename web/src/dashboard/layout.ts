@@ -13,13 +13,13 @@ import type { ActionGraph, ActionNode, Lane } from './types'
 import { isPoisonEdge, type StatusMap } from './nodeStatus'
 import { deriveBands } from './deriveBands'
 
-export const LANE_X: Record<Lane, number> = { reason: 14, tool: 200, parallel: 382 }
-export const STEP_Y = 44
+export const LANE_X: Record<Lane, number> = { reason: 14, tool: 232, parallel: 462 }
+export const STEP_Y = 58
 export const TOP = 24
-export const NODE_W = 138
-export const NODE_H = 38
+export const NODE_W = 190   // must match .tg__node width in dashboard.css
+export const NODE_H = 50    // must match .tg__node min-height in dashboard.css
 // Extra vertical whitespace inserted before each band after the first (8pt grid).
-export const BAND_GAP = 24
+export const BAND_GAP = 30
 // Reserved left gutter holding the per-band agent label.
 export const GUTTER_W = 28
 

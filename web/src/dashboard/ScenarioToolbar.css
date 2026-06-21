@@ -84,6 +84,7 @@
 .scn-bar__tier--research { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .scn-bar__tier--sponsor { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 35%, var(--line)); }
 .scn-bar__tier--ops { color: var(--blast); border-color: color-mix(in srgb, var(--blast) 35%, var(--line)); }
+.scn-bar__tier--coding { color: var(--coding); border-color: color-mix(in srgb, var(--coding) 35%, var(--line)); }
 
 .scn-bar__menu {
   position: absolute;

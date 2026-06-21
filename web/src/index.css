@@ -39,6 +39,9 @@
      Distinct from the 3 semantic signals; never used for decoration. ---- */
   --accent:       #5b7cb0;
   --accent-dim:   rgba(91, 124, 176, 0.45);
+  /* Scenario-tier chip hue for the live CODING family (a calm violet, distinct from the
+     blue accent + the 3 reserved signals). Category label only, never a failure signal. */
+  --coding:       #9d8df1;
 
   /* ---- Spacing (4px base scale) ---- */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
@@ -88,7 +91,7 @@
 
   /* ---- Dashboard rails & bars ---- */
   --rail-nav:   240px;   /* left: monitor rail (on bare bg, outside the tile) */
-  --rail-insp:  380px;   /* right: inspector (split compare) */
+  --rail-insp:  460px;   /* right: inspector (split compare) — wider for readable code diffs */
   --h-bar:      48px;    /* readout header height */
   --h-toolbar:  52px;    /* scenario picker row */
 

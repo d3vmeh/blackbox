@@ -128,7 +128,7 @@
   background: var(--line-soft); pointer-events: none;
 }
 .tg__node {
-  position: absolute; width: 172px; min-height: 46px; display: flex; flex-direction: column;
+  position: absolute; width: 190px; min-height: 50px; display: flex; flex-direction: column;
   justify-content: center; gap: 3px; padding: var(--space-2) var(--space-3);
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-3);
   cursor: pointer; transition: outline-color var(--dur-micro) var(--ease-out);
@@ -137,7 +137,7 @@
 .tg__node .nk { font-size: var(--t-label); color: var(--text-faint);
   letter-spacing: var(--track-upper); text-transform: uppercase; }
 .tg__node .nl {
-  font-size: var(--t-step); color: var(--text); line-height: var(--lh-data);
+  font-size: var(--t-body); color: var(--text); line-height: var(--lh-data);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* Signals: left-edge bar + colored label; only the root earns a faint glow/ring. */

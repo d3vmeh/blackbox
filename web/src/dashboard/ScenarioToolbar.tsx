@@ -8,9 +8,15 @@ const TIER_LABEL: Record<string, string> = {
   research: 'Research',
   sponsor: 'Sponsor',
   ops: 'Ops',
+  coding: 'Coding',
 }
 
 const MANIFEST_BY_ID = Object.fromEntries(SCENARIO_MANIFEST.map((s) => [s.id, s]))
+
+// Domains are in the manifest with a tier; everything else is a live CODING-pipeline scenario.
+const tierOf = (name: string): string => MANIFEST_BY_ID[name]?.tier ?? 'coding'
+const hintOf = (name: string): string | undefined =>
+  MANIFEST_BY_ID[name]?.tagline ?? (tierOf(name) === 'coding' ? 'live real-LLM coding pipeline' : undefined)
 
 export interface ScenarioToolbarProps {
   scenarios: { name: string; label: string }[]
@@ -33,7 +39,6 @@ export function ScenarioToolbar({
 }: ScenarioToolbarProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
-  const pickedMeta = MANIFEST_BY_ID[picked]
   const pickedLabel = scenarios.find((s) => s.name === picked)?.label ?? picked
   const pending = picked !== loaded
 
@@ -69,11 +74,9 @@ export function ScenarioToolbar({
           onClick={() => setOpen((v) => !v)}
         >
           <span className="scn-bar__trigger-text">
-            {pickedMeta && (
-              <span className={`scn-bar__tier scn-bar__tier--${pickedMeta.tier}`}>
-                {TIER_LABEL[pickedMeta.tier] ?? pickedMeta.tier}
-              </span>
-            )}
+            <span className={`scn-bar__tier scn-bar__tier--${tierOf(picked)}`}>
+              {TIER_LABEL[tierOf(picked)] ?? tierOf(picked)}
+            </span>
             <span className="scn-bar__name">{pickedLabel}</span>
           </span>
           <ChevronDown className="scn-bar__chev" aria-hidden="true" size={14} strokeWidth={1.75} />
@@ -82,7 +85,8 @@ export function ScenarioToolbar({
         {open && (
           <ul className="scn-bar__menu" role="listbox" aria-label="Scenarios">
             {scenarios.map((s) => {
-              const meta = MANIFEST_BY_ID[s.name]
+              const tier = tierOf(s.name)
+              const hint = hintOf(s.name)
               const active = s.name === picked
               return (
                 <li key={s.name} role="option" aria-selected={active}>
@@ -91,14 +95,12 @@ export function ScenarioToolbar({
                     className={`scn-bar__opt${active ? ' scn-bar__opt--active' : ''}`}
                     onClick={() => { onPick(s.name); close() }}
                   >
-                    {meta && (
-                      <span className={`scn-bar__tier scn-bar__tier--${meta.tier}`}>
-                        {TIER_LABEL[meta.tier] ?? meta.tier}
-                      </span>
-                    )}
+                    <span className={`scn-bar__tier scn-bar__tier--${tier}`}>
+                      {TIER_LABEL[tier] ?? tier}
+                    </span>
                     <span className="scn-bar__opt-body">
                       <span className="scn-bar__opt-label">{s.label}</span>
-                      {meta && <span className="scn-bar__opt-hint">{meta.tagline}</span>}
+                      {hint && <span className="scn-bar__opt-hint">{hint}</span>}
                     </span>
                   </button>
                 </li>
