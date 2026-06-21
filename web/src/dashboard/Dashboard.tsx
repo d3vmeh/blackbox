@@ -21,12 +21,15 @@ export function Dashboard() {
   // Reduced motion: skip the cascade and render the localized view directly.
   const [phase, setPhase] = useState<Phase>(reduce ? 'analyze' : 'idle')
 
+  // Each new run (data change) re-focuses the root cause and replays the cascade.
   useEffect(() => {
-    if (reduce) return
+    setSelectedId(rootNodeId)
+    if (reduce) { setPhase('analyze'); return }
+    setPhase('idle')
     const t1 = window.setTimeout(() => setPhase('blast'), 600)
     const t2 = window.setTimeout(() => setPhase('analyze'), 3200)
     return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
-  }, [reduce])
+  }, [data, rootNodeId, reduce])
 
   const selectedNode = useMemo(
     () => data.graph.nodes.find((n) => n.id === selectedId) ?? null,
