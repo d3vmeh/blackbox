@@ -79,11 +79,13 @@ function ProducedOutput({ output }: { output: Json }) {
   )
 }
 
-export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect, runMeta, monitor, replayResult }: {
+export function Inspector({ node, steps, attribution, onReplay, replaying = false, nodes, onSelect, runMeta, monitor, replayResult }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
   onReplay: (stepId: string) => void
+  /** a replay is in flight — disable the action and show progress */
+  replaying?: boolean
   /** all action nodes — used to resolve a cross-agent parent's owning node for the jump */
   nodes?: ActionNode[]
   /** jump to another action node (e.g. a cross-agent producer) by node id */
@@ -206,11 +208,16 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect,
       </div>
       <div className="insp__actions">
         <button type="button" className="insp__btn insp__btn--primary"
-          onClick={() => onReplay(focusId)}>
-          {isRoot ? '↻ Replay with fix' : '↻ Replay candidate'}
+          onClick={() => onReplay(focusId)}
+          disabled={replaying} aria-busy={replaying || undefined}>
+          {replaying
+            ? <><span className="insp__btnspin" aria-hidden="true" />Replaying…</>
+            : isRoot ? '↻ Replay with fix' : '↻ Replay candidate'}
         </button>
-        <span className="insp__hint">
-          {isRoot
+        <span className="insp__hint" aria-live="polite">
+          {replaying
+            ? <>forking at <b className="tnum">{focusId}</b> · re-running pipeline…</>
+            : isRoot
             ? <>fork at <b className="tnum">{focusId}</b> · inject the fix · re-run → expect FAIL → PASS</>
             : <>fork at <b className="tnum">{focusId}</b> · re-run → expect no change (not the cause)</>}
         </span>

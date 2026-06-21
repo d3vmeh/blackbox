@@ -1,6 +1,6 @@
 import type { Step } from '../../types'
 
-export interface LogLine { t: string; level: string; src: string; msg: string; stepId: string }
+export interface LogLine { t: string; level: string; kind: Step['kind']; src: string; msg: string; stepId: string }
 
 const LEVEL: Record<Step['kind'], string> = {
   reason: 'INFO', tool_call: 'TOOL', tool_result: 'TOOL', decision: 'DEC', final: 'FIN',
@@ -22,6 +22,7 @@ export function buildLog(steps: Step[]): LogLine[] {
   return steps.map((s) => ({
     t: clock(s.index),
     level: LEVEL[s.kind],
+    kind: s.kind,
     src: s.tool_name ?? (typeof s.raw.span === 'string' ? s.raw.span : s.kind),
     msg: msgFor(s),
     stepId: s.id,

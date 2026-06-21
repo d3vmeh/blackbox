@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import type { ActionGraph } from '../types'
 import type { NodeStatus } from '../types'
+import type { AgentId } from '../../types'
 import type { StatusMap } from '../nodeStatus'
 import { layout } from '../layout'
 import { displayStatus, type Phase } from '../phase'
@@ -20,11 +21,12 @@ const BLAST_STAGGER = 1300
 // CSS plays the scan animation automatically when data-status flips to 'pass'.
 const HEAL_STAGGER = 1900
 
-export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
+export function TraceGraph({ graph, status, phase, selectedId, selectedAgentId = null, onSelect }: {
   graph: ActionGraph
   status: StatusMap
   phase: Phase
   selectedId: string | null
+  selectedAgentId?: AgentId | null
   onSelect: (id: string) => void
 }) {
   const reduce = useReducedMotion()
@@ -145,6 +147,7 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
           key={`band-${band.agentId}-${i}`}
           className="tg__band-label"
           data-root={band.isRoot}
+          data-dimmed={selectedAgentId != null && band.agentId !== selectedAgentId ? 'true' : undefined}
           style={{ top: (band.top + band.bottom) / 2 }}
         >
           {band.label}
@@ -153,13 +156,16 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
       {graph.nodes.map((n, i) => {
         const p = posById.get(n.id)!
         const st = effectiveStatus(n.id)
+        // Cross-highlight from topology: when an agent is picked, its sibling
+        // agents' rows recede so the spine reads as the same selection as the map.
+        const dimmed = selectedAgentId != null && n.agentId !== selectedAgentId
         return (
           <motion.div
             key={n.id}
             style={{ position: 'absolute', left: p.x, top: p.y }}
             initial={reduce ? false : { opacity: 0.6, scale: 0.98 }}
             animate={{
-              opacity: 1,
+              opacity: dimmed ? 0.32 : 1,
               scale: st === 'blast' ? [1, 1.14, 1] : st === 'pass' ? [1, 1.07, 1] : 1,
             }}
             transition={reduce ? { duration: 0 } : {

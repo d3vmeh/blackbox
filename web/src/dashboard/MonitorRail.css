@@ -1,6 +1,6 @@
 /* ============================ Monitor rail (left) ============================
    Live monitor rail, reframed from Linear's nav. A persistent shell: brand → run
-   switcher → run identity → collapsible sections (Agents · Supervise · Candidates
+   switcher → run identity → collapsible sections (Agents · Monitor · Candidates
    · Usage). Section headers toggle their body. Rows read at --text; only the
    SELECTED row brightens to --text-bright + --sel-bg pill. Icons are NEUTRAL
    affordance (--text-dim). Closed token set only — the 3 signal hues mean exactly
@@ -8,8 +8,12 @@
 
 /* The rail sits on the bare --bg (outside the tile) — no panel surface, no border. */
 .mrail {
-  height: 100%; min-height: 0; overflow: auto; display: flex; flex-direction: column;
+  height: 100%; min-height: 0; display: flex; flex-direction: column;
+  /* scroll vertically as one column; never horizontally (the run menu is fixed-positioned) */
+  overflow-x: hidden; overflow-y: auto;
   background: transparent; font-family: var(--font-ui);
+  /* breathing room so the last section never butts against the viewport edge */
+  padding-bottom: var(--space-5);
 }
 
 /* ---- 0. Brand (logo at the top of the nav, Linear-style) ---- */
@@ -28,8 +32,9 @@
   display: flex; flex-direction: column;
   border-bottom: var(--hair) solid var(--line-soft);
 }
-.mrail__sec--grow { flex: 1 1 auto; min-height: 0; }
-.mrail__sec--grow .mrail__body { overflow: auto; }
+/* Grow to fill spare space (pins Usage toward the bottom) but never shrink below
+   its content — when the rail is tall the whole rail scrolls, so Usage isn't squished. */
+.mrail__sec--grow { flex: 1 0 auto; }
 .mrail__sec:last-child { border-bottom: none; }
 
 /* ---- Section heading: a full-width toggle (chevron + icon + title + badge/count) ---- */
@@ -65,25 +70,31 @@
 
 .mrail__body { padding: 0 var(--space-4) var(--space-4); }
 
-/* ---- Run identity (not collapsible) ---- */
-.mrail__sec--id { padding: var(--space-4); }
-.mrail__id { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2); }
+/* ---- Run identity (not collapsible): the loaded case header ---- */
+.mrail__sec--id { padding: var(--space-4); display: flex; flex-direction: column; }
+/* Kicker over the case name (its own line — no longer colliding inline with the id). */
 .mrail__idk {
   font-size: var(--t-label); text-transform: uppercase; letter-spacing: var(--track-upper);
-  color: var(--text-faint);
+  color: var(--text-faint); margin-bottom: var(--space-1);
 }
-.mrail__idv { font-family: var(--font-mono); font-size: var(--t-step); color: var(--text-bright); }
+/* The case name reads as the subject headline of this rail. */
+.mrail__idv {
+  font-family: var(--font-mono); font-size: var(--t-body); color: var(--text-bright);
+  letter-spacing: var(--track-tight); line-height: var(--lh-tight);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: var(--space-3);
+}
 .mrail__task {
   margin: 0 0 var(--space-3); font-size: var(--t-step); line-height: var(--lh-data);
-  color: var(--text-dim); letter-spacing: var(--track-tight);
-  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  color: var(--text); letter-spacing: var(--track-tight);
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.mrail__idmeta { display: flex; gap: var(--space-2); }
-.mrail__idtag {
-  font-size: var(--t-label); color: var(--text-dim);
-  background: var(--inset); border: var(--hair) solid var(--line);
-  border-radius: var(--r-1); padding: 1px var(--space-2);
+/* Agent count as quiet inline metadata (icon + label), not a floating pill. */
+.mrail__idmeta {
+  display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start;
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-dim);
 }
+.mrail__idmeta svg { color: var(--text-faint); flex: 0 0 auto; }
 
 /* Data values read in mono (IDs, scores, counts). */
 .cand__id, .cand__score, .cand__verdict { font-family: var(--font-mono); }
@@ -115,13 +126,43 @@
   font-size: var(--t-label); color: var(--root); letter-spacing: var(--track-upper);
   text-transform: uppercase;
 }
-
-/* ---- 4. Supervise stepper ---- */
-.sup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.sup__step {
-  display: grid; grid-template-columns: var(--glyph) var(--icon) 1fr auto; align-items: center;
-  gap: var(--gap-icon); padding: 6px var(--space-3); min-height: 30px;
+/* Right cluster: root tag · step count · focus affordance. */
+.roster__meta { display: inline-flex; align-items: center; gap: var(--space-2); }
+/* Step count gives the row data substance (so it reads as a focusable record). */
+.roster__steps {
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
 }
+/* The interaction piece: a Focus icon that advertises "click to focus this agent."
+   Hidden at rest (no shift — it always occupies its box), revealed on hover/select. */
+.roster__focus {
+  width: 14px; height: 14px; color: var(--text-faint); flex: none; opacity: 0;
+  transition: opacity var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.roster__row:hover:not(:disabled) .roster__focus { opacity: 1; }
+.roster__row[data-selected] .roster__focus { opacity: 1; color: var(--text); }
+.roster__row:disabled .roster__focus { display: none; }
+
+/* ---- 4. Monitor stepper (LIVE STATUS, not controls) ----
+   A connected timeline: a hairline spine runs between the glyph centers so the
+   three beats read as one sequential pipeline advancing on its own — never as a
+   row of pressable buttons (which is what the interactive roster/candidate rows
+   are). The active step carries a pulsing live note narrating what it's doing. */
+.sup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sup__step {
+  position: relative;
+  display: grid; grid-template-columns: var(--glyph) var(--icon) 1fr auto; align-items: center;
+  gap: var(--gap-icon); padding: 7px var(--space-3); min-height: 34px;
+}
+/* connector spine between consecutive glyph centers (drawn behind the glyphs). */
+.sup__step:not(:last-child)::before {
+  content: ''; position: absolute; z-index: 0;
+  left: calc(var(--space-3) + (var(--glyph) - var(--hair)) / 2);
+  top: calc(50% + var(--glyph) / 2 - 1px);
+  height: calc(100% - var(--glyph) + 2px);
+  width: var(--hair); background: var(--line);
+}
+.sup__step > * { position: relative; z-index: 1; }
 .sup__icon { width: var(--icon); height: var(--icon); color: var(--text-faint); flex: none; }
 .sup__label {
   font-size: var(--t-step); color: var(--text-dim); letter-spacing: var(--track-tight);
@@ -132,6 +173,18 @@
 .sup__step[data-state='done'] .sup__icon { color: var(--text-dim); }
 .sup__step[data-state='active'] .sup__label { color: var(--text-bright); }
 .sup__step[data-state='done'] .sup__label { color: var(--text); }
+/* Live active step: a neutral pulsing dot + brighter note = "this is happening now". */
+.sup__step[data-live] .sup__note {
+  color: var(--text); display: inline-flex; align-items: center; gap: var(--space-2);
+}
+.sup__step[data-live] .sup__note::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; flex: none;
+  background: var(--text-dim); animation: sup-pulse 1.4s var(--ease-inout) infinite;
+}
+@keyframes sup-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .sup__step[data-live] .sup__note::before { animation: none; opacity: 1; }
+}
 
 /* ---- 5. Candidates ---- */
 .cand { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }

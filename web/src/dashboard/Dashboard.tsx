@@ -39,6 +39,8 @@ export function Dashboard() {
   // Otherwise the delayed "analyze" callback can fire mid-heal and reset the
   // phase, which made first-click replay appear stuck while the second worked.
   const introTimersRef = useRef<number[]>([])
+  // True while a replay request is in flight — drives the inspector's busy/disabled state.
+  const [replaying, setReplaying] = useState(false)
 
   // Topology is derived once and drives the agent-wiring strip above the graph.
   const topology = useMemo(
@@ -47,6 +49,17 @@ export function Dashboard() {
   )
   // Usage statistics — per-agent + aggregate, derived once from the trace.
   const stats = useMemo(() => deriveStats(data.trace), [data.trace])
+
+  // Log dock SOURCE column: map each step to its emitting agent/action label
+  // (from the graph) so the readout says WHO produced the line, not just its kind.
+  const sourceByStep = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const node of data.graph.nodes) {
+      const src = node.agentId ?? node.label
+      for (const sid of node.stepIds) map[sid] = src
+    }
+    return map
+  }, [data.graph.nodes])
 
   // Selecting a different node clears the stale replay result.
   const selectNode = useCallback((id: string | null) => { setSelectedId(id); setReplayInfo(null) }, [])
@@ -103,10 +116,17 @@ export function Dashboard() {
   // monitor proves the decoy first (no flip), re-targets, then the root flips →
   // confirm. A non-root candidate replays straight to the rejection beat.
   const onReplay = useCallback(async (stepId: string) => {
+    if (replaying) return // ignore re-entrant triggers while a replay is in flight
     introTimersRef.current.forEach(window.clearTimeout)
     introTimersRef.current = []
     setMonitorDismissed(false) // a fresh replay re-opens the monitor
-    const result = await replay(stepId, null)
+    setReplaying(true)
+    let result: ReplayResult
+    try {
+      result = await replay(stepId, null)
+    } finally {
+      setReplaying(false)
+    }
     setReplayInfo({ stepId, result })
     const settled = phaseForReplay(result) // 'confirm' | 'rejected'
     if (reduce || settled === 'rejected') {
@@ -117,7 +137,7 @@ export function Dashboard() {
     setPhase('proving_decoy')
     window.setTimeout(() => setPhase('proving_root'), DECOY_MS)
     window.setTimeout(() => setPhase('confirm'), DECOY_MS * 2)
-  }, [replay, reduce])
+  }, [replay, reduce, replaying])
 
   // The floating monitor's live play-by-play, driven by the phase machine.
   const monitorOpen = !monitorDismissed &&
@@ -238,7 +258,7 @@ export function Dashboard() {
                   <span className="eyebrow">Topology · agent wiring</span>
                   <span className="pane__hint tnum">{topology.agents.length} agents · {topology.handoffs.length} handoffs</span>
                 </div>
-                <Topology topology={topology} phase={phase} />
+                <Topology topology={topology} phase={phase} selectedAgentId={selectedAgentId} onSelectAgent={onSelectAgent} />
                 <div className="pane__head pane__head--spine">
                   <span className="eyebrow">Provenance · trace</span>
                   <span className="pane__hint tnum">{data.graph.nodes.length} actions · {data.trace.steps.length} steps</span>
@@ -249,6 +269,7 @@ export function Dashboard() {
                     status={data.status}
                     phase={phase}
                     selectedId={selectedId}
+                    selectedAgentId={selectedAgentId}
                     onSelect={selectNode}
                   />
                 </div>
@@ -266,13 +287,14 @@ export function Dashboard() {
                   runMeta={data.meta}
                   monitor={data.monitor}
                   onReplay={onReplay}
+                  replaying={replaying}
                   nodes={data.graph.nodes}
                   onSelect={selectNode}
                   replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
                 />
               </aside>
             </div>
-            <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
+            <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} sourceByStep={sourceByStep} />
           </>
         )}
         </div>

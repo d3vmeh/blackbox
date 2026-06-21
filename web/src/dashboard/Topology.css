@@ -1,52 +1,74 @@
 /* web/src/dashboard/Topology.css
- * The compact agent-wiring DAG strip atop the spine panel. Small, quiet, mono.
- * Every value references a DESIGN.md token. The three reserved signals are the
- * ONLY color used here (root agent / blast agents / poisoned wires); everything
- * else stays neutral (--text-dim node text, --edge connector stroke). Poison
- * tint is a stacked overlay toggled by OPACITY only (transform/opacity rule). */
+ * The agent-wiring DAG atop the spine — the macro lens. Agents are positioned by
+ * layoutTopology (left→right causal columns, rows for branches); SVG edges flow
+ * between them. Every value references a DESIGN.md token. The three reserved
+ * signals are the ONLY color (root agent / poisoned handoff wire); everything else
+ * stays neutral. Poison tint is a stacked SVG path toggled by OPACITY (motion). */
 
 .topo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
   padding: var(--space-3) var(--space-3) var(--space-4);
   font-family: var(--font-mono);
+  overflow-x: auto;
 }
 
-/* ---- node row (agents left → right) ---- */
-.topo__row {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0;
+/* the positioned DAG surface — nodes are absolute, edges are one SVG behind */
+.topo__canvas {
+  position: relative;
 }
-.topo__cell {
-  display: flex;
-  align-items: center;
+.topo__edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-/* agent node chip — neutral by default; carries a signal only via data-status */
+/* ---- agent node chip — neutral by default; a signal only via data-status ---- */
 .topo__node {
+  position: absolute;
   display: inline-flex;
   align-items: center;
-  height: 24px;
+  justify-content: center;
   padding: 0 var(--space-3);
   background: var(--inset);
   border: var(--hair) solid var(--line);
-  border-radius: var(--r-1);
+  border-radius: var(--r-2);
 
+  font-family: var(--font-mono);
   font-size: var(--t-label);
   font-weight: 500;
   letter-spacing: var(--track-tight);
   text-transform: uppercase;
   color: var(--text-dim);
   white-space: nowrap;
+  cursor: pointer;
   transition: color var(--dur-micro) var(--ease-inout),
     border-color var(--dur-micro) var(--ease-inout),
+    background var(--dur-micro) var(--ease-inout),
+    opacity var(--dur-micro) var(--ease-inout),
     box-shadow var(--dur-base) var(--ease-inout);
+}
+.topo__node:disabled {
+  cursor: default;
+}
+/* hover/focus = neutral brighten + border only (never a 4th hue) */
+.topo__node:not(:disabled):hover {
+  color: var(--text);
+  border-color: var(--sel-line);
+  background: var(--sel-bg);
+}
+.topo__node:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* selected: cross-highlight with the spine — neutral brighten + border */
+.topo__node[data-selected] {
+  color: var(--text-bright);
+  border-color: var(--sel-line);
+  background: var(--sel-bg);
+}
+/* an unrelated agent recedes while one is selected (the spine dims in step) */
+.topo__node[data-dimmed] {
+  opacity: 0.4;
 }
 
 /* root agent — the lone glowing focal node (it owns the localized root cause) */
@@ -55,45 +77,30 @@
   border-color: var(--root);
   box-shadow: var(--ring-root);
 }
-/* blast agents — on the poisoned forward slice. Kept NEUTRAL here so the signal
-   isn't sprayed across two redundant views; the provenance graph carries blast. */
+/* blast agents stay neutral here — the poisoned WIRE carries the signal in this
+   view, not the node, so the strip stays quiet and the handoff reads as the story */
 .topo__node[data-status='blast'] {
   color: var(--text);
   border-color: var(--line);
 }
-/* confirmed-fix sweep (confirm beat lifts blast/root → pass at agent grain) */
+/* confirmed-fix sweep (confirm beat lifts root → pass at agent grain) */
 .topo__node[data-status='pass'] {
   color: var(--pass);
   border-color: var(--pass);
+  box-shadow: var(--ring-pass);
 }
 
-/* ---- inline connector between adjacent agents in the row ---- */
-.topo__edge {
-  position: relative;
-  display: inline-block;
-  width: var(--space-5);
-  height: var(--hair);
-  margin: 0 var(--space-1);
-}
-/* neutral base line */
-.topo__edge-line,
-.topo__edge-poison {
-  position: absolute;
-  inset: 0;
-  height: var(--hair);
-  border-radius: var(--r-1);
-}
+/* ---- handoff edges ---- */
 .topo__edge-line {
-  background: var(--edge);
+  stroke: var(--edge);
+  stroke-width: 1;
 }
-/* the cell has no handoff between these two agents → faint scaffolding */
-.topo__edge[data-has-handoff='false'] .topo__edge-line {
-  background: var(--line);
-}
-/* poison overlay — toggled by opacity (motion). Muted toward neutral so the
-   topology strip stays quiet; the provenance graph below carries the blast. */
+/* poison overlay — the protagonist. Full --blast (not muted): in this view the
+   wire is the headline. Toggled by opacity (motion); --pass takes over on heal. */
 .topo__edge-poison {
-  background: color-mix(in srgb, var(--blast) 45%, var(--edge));
+  stroke: var(--blast);
+  stroke-width: 1.5;
+  pointer-events: stroke;
 }
 
 @media (prefers-reduced-motion: reduce) {
