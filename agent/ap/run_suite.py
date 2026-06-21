@@ -1,6 +1,6 @@
 """P1 — Run the monitor across a labeled suite of AP scenarios.
 
-    python -m agent.run_ap_suite
+    python -m agent.ap.run_suite
 
 Each scenario injects a fault at a (possibly different) agent. For each, we run the
 system, let the monitor localize + replay-confirm, and check it fingered the RIGHT agent.
@@ -10,8 +10,8 @@ This is the AP analogue of the flight benchmark: proof the monitor isn't hardcod
 
 from __future__ import annotations
 
-from . import ap_graph
-from .ap_scenarios import SCENARIOS
+from . import graph
+from .scenarios import SCENARIOS
 from .monitor import investigate
 
 
@@ -22,7 +22,7 @@ def main() -> None:
 
     loc_hits = faulted = confirmed = 0
     for scn in SCENARIOS:
-        trace = ap_graph.run_ap(scn)
+        trace = graph.run_ap(scn)
         v = investigate(trace, scn, n=5)
 
         injected = f"{scn.fault.agent}.{scn.fault.field}" if scn.fault else "— (clean)"

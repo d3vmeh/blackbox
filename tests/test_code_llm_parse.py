@@ -1,5 +1,5 @@
-from agent.code_graph import _LLM, _llm_impl, _llm_spec, _strip_code
-from agent.code_scenarios import SCENARIOS
+from agent.code.graph import _LLM, _llm_impl, _llm_spec, _strip_code
+from agent.code.scenarios import SCENARIOS
 
 PARSE = next(s for s in SCENARIOS if s.name == "parse_duration_units")
 

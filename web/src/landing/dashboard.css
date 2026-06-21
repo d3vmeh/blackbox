@@ -1,0 +1,244 @@
+/* The temp blackbox app shell: sidebar · trace spine · inspector.
+   Lives inside <BrowserFrame>. Tokens only — see /DESIGN.md. */
+
+.dash {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr) 288px;
+  height: 560px;
+  background: var(--bg);
+  font-family: var(--font-mono);
+}
+
+/* ---- Sidebar ---- */
+.dash__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+.dash__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--t-h3);
+  letter-spacing: var(--track-display);
+  color: var(--text-bright);
+}
+.dash__mark {
+  width: 13px; height: 13px;
+  border-radius: var(--r-1);
+  background: var(--bg);
+  border: 1px solid var(--text-dim);
+  box-shadow: inset 0 0 6px var(--root-glow);
+}
+.dash__nav { display: flex; flex-direction: column; gap: 1px; }
+.dash__navitem {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-2);
+  font-size: var(--t-step);
+  color: var(--text-dim);
+}
+.dash__navitem--on { background: var(--inset); color: var(--text-bright); }
+
+.dash__sectlabel { margin: var(--space-2) 0 0; }
+.dash__runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.dash__run {
+  display: grid;
+  grid-template-columns: 10px auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-2);
+  border: 1px solid transparent;
+}
+.dash__run--on { background: var(--inset); border-color: var(--line); }
+.dash__rundot { width: 7px; height: 7px; border-radius: 50%; }
+.dash__rundot--fail { background: var(--blast); box-shadow: 0 0 8px var(--blast-glow); }
+.dash__rundot--pass { background: var(--pass); }
+.dash__runid { font-size: var(--t-step); color: var(--text); }
+.dash__runtask { font-size: var(--t-label); color: var(--text-faint); justify-self: end; }
+
+/* ---- Main column ---- */
+.dash__main { display: flex; flex-direction: column; min-width: 0; }
+.dash__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--inset);
+}
+.dash__headid { display: flex; flex-direction: column; gap: 2px; }
+.dash__run-title { font-size: var(--t-step); color: var(--text-dim); }
+.dash__verdict { display: flex; align-items: center; gap: var(--space-4); }
+.dash__status { font-size: var(--t-label); color: var(--text-dim); }
+
+/* Two-tone verdict: only this word carries a signal hue. Normal width, weight 700. */
+.verdict {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1;
+  letter-spacing: var(--track-verdict);
+  display: inline-block;
+}
+.verdict--fail { color: var(--blast); }
+.verdict--pass { color: var(--pass); }
+
+/* ---- Spine ---- */
+.spine {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 40px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-2);
+  font-size: var(--t-step);
+  line-height: var(--lh-data);
+  color: var(--text-dim);
+  transition: color var(--dur-base) var(--ease-out);
+}
+.step > span:not(.step__edge) { position: relative; z-index: 2; }
+
+/* Colored signal edge bar (width animates in for the cascade). */
+.step__edge {
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  z-index: 3;
+  width: 3px;
+  border-radius: 3px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.step__idx { color: var(--text-faint); }
+.step__kind {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-upper);
+  color: var(--text-faint);
+}
+.step__label { color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step__marker {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-upper);
+  text-transform: uppercase;
+  color: inherit;
+}
+
+/* Restraint: signal via a colored left-edge bar + text, not a full-row fill.
+   Only the root step earns a faint tint as the lone focal accent. */
+.step--root { color: var(--root); background: var(--root-glow); }
+.step--root .step__edge { transform: scaleX(1); top: 4px; bottom: 4px; }
+.step--blast { color: var(--blast); }
+.step--blast .step__edge { transform: scaleX(1); }
+.step--pass { color: var(--pass); }
+.step--pass .step__edge { transform: scaleX(1); }
+.spine--analyzing .step:not(.step--root) { opacity: 0.32; }
+
+.dash__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--line);
+  background: var(--inset);
+}
+.dash__hint { font-size: var(--t-label); color: var(--text-dim); margin-right: var(--space-3); }
+.dash__foot-spacer { flex: 1; }
+.dash__replaybtn {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  padding: 2px var(--space-2);
+  transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+}
+.dash__replaybtn:hover { color: var(--text-bright); border-color: var(--text-dim); }
+
+/* ---- Inspector ---- */
+.dash__inspect {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+}
+.dash__inspect-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--inset);
+}
+.dash__pill {
+  font-size: var(--t-label);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  padding: 1px var(--space-2);
+}
+.dash__inspect-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  flex: 1;
+}
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field__label {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-upper);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.field__value { font-size: var(--t-step); color: var(--text); line-height: var(--lh-data); }
+.field__value--root { color: var(--root); }
+.field__value--blast { color: var(--blast); }
+.field__value--pass { color: var(--pass); }
+.dash__note { margin: 0; font-size: var(--t-label); color: var(--text-dim); line-height: var(--lh-body); }
+
+.dash__replay {
+  margin: var(--space-4);
+  margin-top: 0;
+  padding: var(--space-3);
+  border-radius: var(--r-2);
+  border: 1px solid var(--line);
+  background: var(--inset);
+  color: var(--text-bright);
+  font-size: var(--t-step);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ---- Mobile: drop side panels, keep the trace spine (the core story) ---- */
+@media (max-width: 760px) {
+  .dash { grid-template-columns: 1fr; height: auto; }
+  .dash__side,
+  .dash__inspect { display: none; }
+  .step__label { white-space: normal; }
+}

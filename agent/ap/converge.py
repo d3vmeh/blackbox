@@ -16,7 +16,7 @@ For every labeled scenario we take the GOLD root agent from the injected fault
 and with each other.
 
 Run from repo root:
-    python -m agent.converge_ap
+    python -m agent.ap.converge
 
 attribute()'s node-judges call Claude Haiku — set ANTHROPIC_API_KEY for real
 semantic judging. WITHOUT a key the judges fall back to 0.5 and P2 degenerates to
@@ -33,8 +33,8 @@ from eval.ap_oracle import evaluate_ap
 from shared.schema import Trace
 
 from . import monitor
-from .ap_graph import run_ap
-from .ap_scenarios import SCENARIOS, Scenario
+from .graph import run_ap
+from .scenarios import SCENARIOS, Scenario
 
 
 def _step_to_agent(trace: Trace, step_id: Optional[str]) -> Optional[str]:

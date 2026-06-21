@@ -1,0 +1,343 @@
+{
+  "id": "trace_flight_fail_001",
+  "task": "Book the cheapest DIRECT round-trip flight from SFO to JFK, departing July 12 2024, returning one week later, for 1 passenger. Budget under $500.",
+  "success": false,
+  "final_output": {
+    "status": "booked",
+    "confidence": 0.98,
+    "summary": "All set! I booked your round-trip from SFO to JFK. Departing Saturday, December 7 2024 and returning December 14 2024. Flight UA1187 (1 stop via ORD), total $462 for 1 passenger. Confirmation: ABC8842.",
+    "booking": {
+      "confirmation": "ABC8842",
+      "origin": "SFO",
+      "destination": "JFK",
+      "depart_date": "2024-12-07",
+      "return_date": "2024-12-14",
+      "flight": "UA1187",
+      "stops": 1,
+      "price_usd": 462,
+      "passengers": 1
+    }
+  },
+  "steps": [
+    {
+      "id": "s0",
+      "index": 0,
+      "kind": "reason",
+      "inputs": { "task": "Book cheapest direct round-trip SFO->JFK, depart July 12 2024, return one week later, 1 pax, under $500." },
+      "output": "I need to: (1) resolve the dates, (2) search SFO->JFK, (3) pick the cheapest direct flight under $500, (4) book it.",
+      "state": { "phase": "planning", "params": {} },
+      "parents": [],
+      "raw": { "span": "agent.plan" }
+    },
+    {
+      "id": "s1",
+      "index": 1,
+      "kind": "reason",
+      "inputs": { "plan": "resolve dates, search, select, book" },
+      "output": "Parameters to fill: origin=SFO, destination=JFK, depart=July 12 2024, return=depart+7 days, passengers=1, constraint=direct, budget=500.",
+      "state": { "phase": "param_extraction", "params": { "origin": "SFO", "destination": "JFK", "passengers": 1, "direct_only": true, "budget_usd": 500 } },
+      "parents": ["s0"],
+      "raw": { "span": "agent.extract_params" }
+    },
+    {
+      "id": "s2",
+      "index": 2,
+      "kind": "tool_call",
+      "tool_name": "normalize_dates",
+      "inputs": { "depart_text": "July 12 2024", "return_rule": "one week after depart" },
+      "output": { "call": "normalize_dates(depart_text='July 12 2024', return_rule='+7d')" },
+      "state": { "phase": "date_normalization", "params": { "origin": "SFO", "destination": "JFK", "passengers": 1, "direct_only": true, "budget_usd": 500 } },
+      "parents": ["s1"],
+      "raw": { "span": "tool.normalize_dates.call" }
+    },
+    {
+      "id": "s3",
+      "index": 3,
+      "kind": "tool_result",
+      "tool_name": "normalize_dates",
+      "inputs": { "depart_text": "July 12 2024", "return_rule": "+7d" },
+      "output": { "depart_date": "2024-12-07", "return_date": "2024-12-14", "note": "interpreted as DD-MM (day 07, month 12)" },
+      "state": { "phase": "dates_resolved", "params": { "origin": "SFO", "destination": "JFK", "passengers": 1, "direct_only": true, "budget_usd": 500, "depart_date": "2024-12-07", "return_date": "2024-12-14" } },
+      "parents": ["s2"],
+      "raw": { "span": "tool.normalize_dates.result", "ROOT_CAUSE": "Parsed 'July 12' as 2024-12-07 (month/day swapped). Correct value is 2024-07-12; return should be 2024-07-19." }
+    },
+    {
+      "id": "s4",
+      "index": 4,
+      "kind": "reason",
+      "inputs": { "params": { "origin": "SFO", "destination": "JFK", "depart_date": "2024-12-07", "return_date": "2024-12-14", "passengers": 1, "direct_only": true, "budget_usd": 500 } },
+      "output": "Search parameters confirmed. Will look for direct SFO->JFK departing 2024-12-07, returning 2024-12-14.",
+      "state": { "phase": "search_ready", "params": { "origin": "SFO", "destination": "JFK", "depart_date": "2024-12-07", "return_date": "2024-12-14", "passengers": 1, "direct_only": true, "budget_usd": 500 } },
+      "parents": ["s1", "s3"],
+      "raw": { "span": "agent.confirm_params" }
+    },
+    {
+      "id": "s5",
+      "index": 5,
+      "kind": "tool_call",
+      "tool_name": "browser_navigate",
+      "inputs": { "url": "https://flights.example.com" },
+      "output": { "call": "browser_navigate('https://flights.example.com')" },
+      "state": { "phase": "browser_opening", "page": null },
+      "parents": ["s0"],
+      "raw": { "span": "stagehand.navigate.call" }
+    },
+    {
+      "id": "s6",
+      "index": 6,
+      "kind": "tool_result",
+      "tool_name": "browser_navigate",
+      "inputs": { "url": "https://flights.example.com" },
+      "output": { "page": "search", "status": 200 },
+      "state": { "phase": "browser_ready", "page": "search" },
+      "parents": ["s5"],
+      "raw": { "span": "stagehand.navigate.result" }
+    },
+    {
+      "id": "s7",
+      "index": 7,
+      "kind": "tool_call",
+      "tool_name": "browser_fill_form",
+      "inputs": { "origin": "SFO", "destination": "JFK", "depart_date": "2024-12-07", "return_date": "2024-12-14", "passengers": 1 },
+      "output": { "call": "fill_search_form(SFO, JFK, 2024-12-07, 2024-12-14, pax=1)" },
+      "state": { "phase": "form_filling", "page": "search", "form": { "depart_date": "2024-12-07", "return_date": "2024-12-14" } },
+      "parents": ["s3", "s6"],
+      "raw": { "span": "stagehand.fill.call" }
+    },
+    {
+      "id": "s8",
+      "index": 8,
+      "kind": "tool_result",
+      "tool_name": "browser_fill_form",
+      "inputs": { "form": "search" },
+      "output": { "filled": true, "screenshot": "form_filled.png", "shown_depart": "Sat, Dec 7 2024" },
+      "state": { "phase": "form_filled", "page": "search", "form": { "depart_date": "2024-12-07", "return_date": "2024-12-14" } },
+      "parents": ["s7"],
+      "raw": { "span": "stagehand.fill.result" }
+    },
+    {
+      "id": "s9",
+      "index": 9,
+      "kind": "tool_call",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Search button" },
+      "output": { "call": "click('Search')" },
+      "state": { "phase": "searching", "page": "search" },
+      "parents": ["s8"],
+      "raw": { "span": "stagehand.click.call" }
+    },
+    {
+      "id": "s10",
+      "index": 10,
+      "kind": "tool_result",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Search button" },
+      "output": { "page": "results", "result_count": 11, "date_header": "Departing Dec 7, 2024" },
+      "state": { "phase": "results_loaded", "page": "results" },
+      "parents": ["s9"],
+      "raw": { "span": "stagehand.click.result" }
+    },
+    {
+      "id": "s11",
+      "index": 11,
+      "kind": "reason",
+      "inputs": { "page": "results", "date_header": "Departing Dec 7, 2024" },
+      "output": "Results loaded for the requested date. Extracting flight options to compare.",
+      "state": { "phase": "parsing_results", "page": "results" },
+      "parents": ["s10"],
+      "raw": { "span": "agent.read_results" }
+    },
+    {
+      "id": "s12",
+      "index": 12,
+      "kind": "tool_call",
+      "tool_name": "extract_options",
+      "inputs": { "page": "results" },
+      "output": { "call": "extract_flight_options()" },
+      "state": { "phase": "extracting", "page": "results" },
+      "parents": ["s11"],
+      "raw": { "span": "tool.extract.call" }
+    },
+    {
+      "id": "s13",
+      "index": 13,
+      "kind": "tool_result",
+      "tool_name": "extract_options",
+      "inputs": { "page": "results" },
+      "output": { "options": [ { "flight": "B6701", "stops": 0, "price": 540 }, { "flight": "DL355", "stops": 0, "price": 515 }, { "flight": "UA1187", "stops": 1, "price": 462 }, { "flight": "AA88", "stops": 1, "price": 489 } ] },
+      "state": { "phase": "options_extracted", "options_count": 4 },
+      "parents": ["s12"],
+      "raw": { "span": "tool.extract.result" }
+    },
+    {
+      "id": "s14",
+      "index": 14,
+      "kind": "reason",
+      "inputs": { "options": [ { "flight": "B6701", "stops": 0, "price": 540 }, { "flight": "DL355", "stops": 0, "price": 515 }, { "flight": "UA1187", "stops": 1, "price": 462 } ], "budget_usd": 500, "direct_only": true },
+      "output": "No DIRECT flight is under the $500 budget (cheapest direct is DL355 at $515). I'll relax the direct-only constraint to stay under budget.",
+      "state": { "phase": "constraint_relaxed", "direct_only": false, "note": "deviated from direct-only requirement" },
+      "parents": ["s13"],
+      "raw": { "span": "agent.relax_constraint", "DECOY": "Plausible-but-wrong: violates the 'direct' requirement. Looks like the error, but correcting it does NOT flip the outcome (date is still wrong). Replay here should NOT flip -> candidate rejected." }
+    },
+    {
+      "id": "s15",
+      "index": 15,
+      "kind": "tool_call",
+      "tool_name": "filter_options",
+      "inputs": { "allow_stops": 1, "max_price": 500 },
+      "output": { "call": "filter_options(allow_stops=1, max_price=500)" },
+      "state": { "phase": "filtering", "direct_only": false },
+      "parents": ["s14"],
+      "raw": { "span": "tool.filter.call" }
+    },
+    {
+      "id": "s16",
+      "index": 16,
+      "kind": "tool_result",
+      "tool_name": "filter_options",
+      "inputs": { "allow_stops": 1, "max_price": 500 },
+      "output": { "options": [ { "flight": "UA1187", "stops": 1, "price": 462 }, { "flight": "AA88", "stops": 1, "price": 489 } ] },
+      "state": { "phase": "filtered", "options_count": 2 },
+      "parents": ["s15"],
+      "raw": { "span": "tool.filter.result" }
+    },
+    {
+      "id": "s17",
+      "index": 17,
+      "kind": "reason",
+      "inputs": { "options": [ { "flight": "UA1187", "stops": 1, "price": 462 }, { "flight": "AA88", "stops": 1, "price": 489 } ] },
+      "output": "UA1187 at $462 is the cheapest remaining option under budget.",
+      "state": { "phase": "ranked", "top_choice": "UA1187" },
+      "parents": ["s16"],
+      "raw": { "span": "agent.rank" }
+    },
+    {
+      "id": "s18",
+      "index": 18,
+      "kind": "decision",
+      "inputs": { "choice": "UA1187", "depart_date": "2024-12-07", "return_date": "2024-12-14", "price": 462 },
+      "output": { "selected": "UA1187", "depart_date": "2024-12-07", "return_date": "2024-12-14" },
+      "state": { "phase": "selected", "selection": { "flight": "UA1187", "depart_date": "2024-12-07" } },
+      "parents": ["s3", "s16", "s17"],
+      "raw": { "span": "agent.select" }
+    },
+    {
+      "id": "s19",
+      "index": 19,
+      "kind": "tool_call",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Select UA1187" },
+      "output": { "call": "click('Select UA1187')" },
+      "state": { "phase": "selecting_flight" },
+      "parents": ["s18"],
+      "raw": { "span": "stagehand.click.call" }
+    },
+    {
+      "id": "s20",
+      "index": 20,
+      "kind": "tool_result",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Select UA1187" },
+      "output": { "page": "fare_details", "flight": "UA1187", "depart": "Dec 7, 2024", "price": 462 },
+      "state": { "phase": "fare_details", "page": "fare_details" },
+      "parents": ["s19"],
+      "raw": { "span": "stagehand.click.result" }
+    },
+    {
+      "id": "s21",
+      "index": 21,
+      "kind": "reason",
+      "inputs": { "fare": { "flight": "UA1187", "depart": "Dec 7, 2024", "price": 462 }, "expected": { "depart_date": "2024-12-07", "passengers": 1 } },
+      "output": "Fare matches my resolved parameters (Dec 7, 1 passenger, $462 < $500). Proceeding to checkout.",
+      "state": { "phase": "verified", "note": "verified against own (wrong) resolved date -> self-consistent but wrong" },
+      "parents": ["s3", "s20"],
+      "raw": { "span": "agent.verify", "blast": "Verifies against s3's wrong date, so the error is rubber-stamped." }
+    },
+    {
+      "id": "s22",
+      "index": 22,
+      "kind": "tool_call",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Proceed to checkout" },
+      "output": { "call": "click('Proceed to checkout')" },
+      "state": { "phase": "checkout_opening" },
+      "parents": ["s21"],
+      "raw": { "span": "stagehand.click.call" }
+    },
+    {
+      "id": "s23",
+      "index": 23,
+      "kind": "tool_result",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Proceed to checkout" },
+      "output": { "page": "passenger_details" },
+      "state": { "phase": "passenger_form", "page": "passenger_details" },
+      "parents": ["s22"],
+      "raw": { "span": "stagehand.click.result" }
+    },
+    {
+      "id": "s24",
+      "index": 24,
+      "kind": "tool_call",
+      "tool_name": "browser_fill_form",
+      "inputs": { "passengers": 1, "name": "demo passenger" },
+      "output": { "call": "fill_passenger_details(pax=1)" },
+      "state": { "phase": "filling_passenger", "page": "passenger_details" },
+      "parents": ["s23"],
+      "raw": { "span": "stagehand.fill.call" }
+    },
+    {
+      "id": "s25",
+      "index": 25,
+      "kind": "tool_result",
+      "tool_name": "browser_fill_form",
+      "inputs": { "form": "passenger_details" },
+      "output": { "page": "payment", "filled": true },
+      "state": { "phase": "payment", "page": "payment" },
+      "parents": ["s24"],
+      "raw": { "span": "stagehand.fill.result" }
+    },
+    {
+      "id": "s26",
+      "index": 26,
+      "kind": "tool_call",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Confirm booking" },
+      "output": { "call": "click('Confirm booking')" },
+      "state": { "phase": "confirming" },
+      "parents": ["s25"],
+      "raw": { "span": "stagehand.click.call" }
+    },
+    {
+      "id": "s27",
+      "index": 27,
+      "kind": "tool_result",
+      "tool_name": "browser_click",
+      "inputs": { "target": "Confirm booking" },
+      "output": { "page": "confirmation", "confirmation": "ABC8842", "flight": "UA1187", "depart_date": "2024-12-07", "return_date": "2024-12-14", "price": 462 },
+      "state": { "phase": "booked", "confirmation": "ABC8842", "depart_date": "2024-12-07" },
+      "parents": ["s26"],
+      "raw": { "span": "stagehand.click.result" }
+    },
+    {
+      "id": "s28",
+      "index": 28,
+      "kind": "reason",
+      "inputs": { "confirmation": "ABC8842", "depart_date": "2024-12-07", "price": 462 },
+      "output": "Booking confirmed successfully. I'll report the itinerary to the user with high confidence.",
+      "state": { "phase": "summarizing", "confidence": 0.98 },
+      "parents": ["s27"],
+      "raw": { "span": "agent.summarize" }
+    },
+    {
+      "id": "s29",
+      "index": 29,
+      "kind": "final",
+      "inputs": { "confirmation": "ABC8842", "depart_date": "2024-12-07", "return_date": "2024-12-14", "flight": "UA1187", "price": 462 },
+      "output": "All set! I booked your round-trip from SFO to JFK. Departing Saturday, December 7 2024 and returning December 14 2024. Flight UA1187 (1 stop via ORD), total $462 for 1 passenger. Confirmation: ABC8842.",
+      "state": { "phase": "done", "confidence": 0.98 },
+      "parents": ["s27", "s28"],
+      "raw": { "span": "agent.final" }
+    }
+  ]
+}

@@ -37,3 +37,6 @@ venv/
 *.njsproj
 *.sln
 *.sw?
+
+# brainstorming visual companion scratch
+.superpowers/

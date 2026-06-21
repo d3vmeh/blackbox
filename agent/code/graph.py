@@ -19,9 +19,9 @@ from typing import Any, Optional
 from eval.code_oracle import evaluate_code
 from shared.schema import Trace
 
-from .capture import Recorder
-from .code_scenarios import AGENTS, DEFAULT, CodeScenario
-from .llm import Think
+from ..capture import Recorder
+from .scenarios import AGENTS, DEFAULT, CodeScenario
+from ..llm import Think
 
 # --- real-LLM agent implementations (used when a `think` is wired; otherwise the
 #     deterministic reference output stands in). Each returns its full output dict, or
