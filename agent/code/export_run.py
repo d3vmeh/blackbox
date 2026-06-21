@@ -25,11 +25,8 @@ def _step_for_agent(trace, agent: str):
 
 
 def _replay_result(scn: CodeScenario, step_id: str, agent: str, override: dict) -> ReplayResult:
-    outcomes = []
-    for _ in range(_N):
-        fixed = replay_code(scn, agent, override)
-        base = replay_code(scn, None, None)
-        outcomes.append(bool(fixed.success and not base.success))
+    base_failed = not replay_code(scn, None, None).success   # deterministic — compute once
+    outcomes = [bool(replay_code(scn, agent, override).success and base_failed) for _ in range(_N)]
     return ReplayResult(trace_id="code_run", step_id=step_id, injected_value=override,
                         n=_N, flipped=any(outcomes),
                         confirmation_rate=sum(outcomes) / len(outcomes), outcomes=outcomes)
@@ -47,8 +44,12 @@ def build_artifacts(scn: CodeScenario = DEFAULT) -> dict:
 
     # candidates + rationale from the root's ground-truth wrong->correct diff
     correct = root.correct_output or {}
-    field, bad, good = next((k, root.output.get(k), correct.get(k))
-                            for k in correct if root.output.get(k) != correct.get(k))
+    diffs = ((k, root.output.get(k), correct.get(k))
+             for k in correct if root.output.get(k) != correct.get(k))
+    try:
+        field, bad, good = next(diffs)
+    except StopIteration:
+        raise ValueError(f"root step {root.id} has no output↔correct_output diff to attribute")
     candidates = [Candidate(step_id=root.id, suspicion=0.92,
                             reason=f"{verdict.root_agent} set {field}={bad!r}; should be {good!r}")]
     candidates += [Candidate(step_id=sid, suspicion=0.30, reason="inherited the wrong value")
