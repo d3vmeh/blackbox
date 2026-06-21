@@ -31,6 +31,10 @@ def _money(x: Any) -> str:
         return str(x)
 
 
+def _verdict(trace) -> str:
+    return "PASS" if trace.success else "FAIL"
+
+
 def _scenario_meta(scn, v=None, *, healed: bool = False) -> dict:
     meta = {
         "scenario": scn.name,
