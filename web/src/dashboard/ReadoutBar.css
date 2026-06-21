@@ -1,0 +1,40 @@
+/* ReadoutBar — TrustBadge + verdict focal cluster (owned by ReadoutBar, not dashboard.css). */
+
+/* The badge and the verdict word sit as one right-aligned cluster so the eye lands
+   on them together. Layout-only: no signal hue lives here (TrustBadge owns its own
+   treatment; the verdict word keeps its two-tone color from dashboard.css). */
+.rb__readout {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--h-bar);
+}
+
+/* Statistics view-switch — neutral instrument affordance (never a signal hue),
+   with a keyboard-shortcut chip (DESIGN.md: blackbox is keyboard-first). */
+.rb__stats {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-2);
+  color: var(--text-dim);
+  transition: color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out);
+}
+.rb__stats:hover { color: var(--text); background: var(--inset); }
+.rb__stats[data-active] { color: var(--text-bright); background: var(--inset); border-color: var(--sel-line); }
+.rb__stats:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rb__stats-key {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--text-faint);
+  background: var(--inset);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-1);
+  padding: 0 var(--space-1);
+  line-height: 1.4;
+}

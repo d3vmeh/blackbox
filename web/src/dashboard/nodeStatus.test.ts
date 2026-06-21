@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { nodeStatus } from './nodeStatus'
+import { nodeStatus, isPoisonEdge } from './nodeStatus'
 import type { ActionGraph } from './types'
 import type { Attribution } from '../types'
 
 const graph: ActionGraph = {
   nodes: [
-    { id: 'a0', stepIds: ['s0'], kind: 'reason', label: 'plan', lane: 'reason' },
-    { id: 'a1', stepIds: ['s2', 's3'], kind: 'tool_call', label: 'normalize_dates', lane: 'tool' },
-    { id: 'a2', stepIds: ['s4'], kind: 'reason', label: 'confirm', lane: 'reason' },
-    { id: 'a3', stepIds: ['s14'], kind: 'reason', label: 'relax', lane: 'reason' },
+    { id: 'a0', stepIds: ['s0'], kind: 'reason', label: 'plan', lane: 'reason', agentId: null },
+    { id: 'a1', stepIds: ['s2', 's3'], kind: 'tool_call', label: 'normalize_dates', lane: 'tool', agentId: null },
+    { id: 'a2', stepIds: ['s4'], kind: 'reason', label: 'confirm', lane: 'reason', agentId: null },
+    { id: 'a3', stepIds: ['s14'], kind: 'reason', label: 'relax', lane: 'reason', agentId: null },
   ],
   edges: [
     { from: 'a1', to: 'a2', longHop: false },
@@ -28,5 +28,13 @@ describe('nodeStatus', () => {
   it('marks root, blast, decoy, neutral with the right precedence', () => {
     const s = nodeStatus(graph, attribution)
     expect(s).toEqual({ a0: 'neutral', a1: 'root', a2: 'blast', a3: 'decoy' })
+  })
+})
+
+describe('isPoisonEdge', () => {
+  it('is true when poison flows from root/blast into blast/decoy', () => {
+    const s = nodeStatus(graph, attribution)
+    expect(isPoisonEdge({ from: 'a1', to: 'a2', longHop: false }, s)).toBe(true)
+    expect(isPoisonEdge({ from: 'a0', to: 'a1', longHop: false }, s)).toBe(false)
   })
 })

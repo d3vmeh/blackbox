@@ -125,6 +125,11 @@
 
   --glyph:      13px;    /* status ring glyph (the small circular marker) */
   --track-tight: -0.01em; /* tighten small mono labels; open only true eyebrows */
+
+  /* ---- Iconography (lucide-react): neutral affordance only, never a signal hue ---- */
+  --icon:        16px;           /* lucide icon box */
+  --icon-stroke: 1.5px;          /* lucide strokeWidth */
+  --gap-icon:    var(--space-2); /* icon -> label gap */
 }
 ```
 
@@ -215,6 +220,30 @@ color alone: `pending` = faint hollow ring, `active` = partial pie, `done` = fil
 with check. Used for the pipeline stepper and suspect rows. Glyphs are **neutral
 affordance** (text tiers) — the one exception is the confirmed root suspect, which earns
 `--root` because it *is* the localized root cause (per the color-mapping rule).
+
+### Iconography (lucide-react)
+
+Icons come from **lucide-react** at `--icon` (16px) with `strokeWidth` = `--icon-stroke`
+(1.5px); icon→label gap is `--gap-icon`. Icons are **neutral affordance only**: default
+`--text-dim`, `--text` on hover/active — **never** a signal hue (`--root`/`--blast`/`--pass`)
+and never a 4th hue. State is carried by the status-ring **Glyph** (shape + fill), not by
+icon color. Use icons to label/clarify rows and actions, not to signal failure.
+
+### TrustBadge states (monitor verdict, reuses existing tokens — no new hue)
+
+The TrustBadge tracks the monitor's `TrustState` and reuses existing tokens only:
+
+- **untrusted** (idle / decoy rejected): `--text-dim` text on `--inset`, **dashed** `--line`
+  border. The lone calm/off state — no fill, no signal hue.
+- **proving** (replaying decoy then root): still neutral `--text-dim`, shows an `n/n`
+  confirmation count as it accrues. No `--blast`/`--pass` while proving.
+- **trusted** (the confirmed flip): `--pass` text + `--ring-pass`. This is the single focal
+  heal moment, co-timed on one spring with the FAIL→PASS verdict.
+
+**Rejected / non-flip treatment.** A candidate that does NOT flip on replay (the decoy)
+renders **neutral rejected**: `--text-dim`, dashed `--line`, a `0/n` chip. It is **never**
+`--blast` (it was never poisoned) and **never** `--pass` (it did not heal). Only the true
+root cause's confirmed flip earns `--pass`.
 
 ## Patterns
 

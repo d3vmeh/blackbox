@@ -1,25 +1,16 @@
 // web/src/dashboard/graph/TraceGraph.tsx
-// The trace is the spine: a single vertical chain, top→down, ordinary steps recede,
-// the root cause and its blast cascade are the only colored signals. (see DESIGN.md)
-// Each step is a node sitting on the thread; status reads through its dot + (for the
-// root) a tinted left edge — color stays rare so the failure path is unmistakable.
-import { useReducedMotion } from 'motion/react'
-import type { ActionGraph, ActionNode, NodeStatus } from '../types'
+// The trace as a node-link graph: time-ordered nodes stacked top→down, offset by
+// lane (reason · tool · parallel), with curved SVG connectors between them.
+// Ordinary nodes recede; only the root cause and its blast cascade carry a signal
+// hue (left-edge bar + colored label on nodes; poison-tinted edges). The analyze
+// beat ignites --ring-root on the root; confirm heals blast→pass. (see DESIGN.md)
+import { motion, useReducedMotion } from 'motion/react'
+import type { ActionGraph } from '../types'
 import type { StatusMap } from '../nodeStatus'
+import { layout } from '../layout'
 import { displayStatus, type Phase } from '../phase'
+import { GraphNode } from './GraphNode'
 import '../dashboard.css'
-
-const KIND_TAG: Record<ActionNode['kind'], string> = {
-  reason: 'RSN', tool_call: 'TOOL', tool_result: 'TOOL', decision: 'DEC', final: 'FIN',
-}
-
-// Only the root is labelled; blast/pass speak through their colored dot, keeping the
-// chain calm (color is rare). The verdict flip carries the heal moment.
-const MARKER: Partial<Record<NodeStatus, string>> = {
-  root: 'ROOT CAUSE',
-}
-
-const STAGGER_S = 0.06 // per-step poison cascade (mirrors --stagger-blast)
 
 export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
   graph: ActionGraph
@@ -29,36 +20,70 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
   onSelect: (id: string) => void
 }) {
   const reduce = useReducedMotion()
-  const rootIndex = graph.nodes.findIndex((n) => status[n.id] === 'root')
-  // Blast spreads forward from the root; confirm heals along the same path.
-  const cascading = phase === 'blast' || phase === 'confirm'
-
+  const l = layout(graph, status)
+  const posById = new Map(l.positions.map((p) => [p.id, p]))
   return (
-    <ol className={`tg${phase === 'analyze' ? ' tg--analyzing' : ''}`}>
+    <div className="tg" style={{ width: l.width, height: l.height }}>
+      <svg className="tg__edges" width={l.width} height={l.height} viewBox={`0 0 ${l.width} ${l.height}`}>
+        {l.edges.map((e) => {
+          // Poison wins over the cross-agent dash so the blast cascade reads
+          // identically. Non-poison cross-agent edges become a dashed handoff
+          // wire (neutral --edge, slightly higher opacity); intra-agent edges
+          // keep the existing solid / longHop-dash behavior.
+          const dash = e.poison
+            ? (e.longHop ? '4 4' : undefined)
+            : e.crossAgent
+              ? '5 4'
+              : e.longHop ? '4 4' : undefined
+          const opacity = e.poison ? 0.85 : e.crossAgent ? 0.62 : 0.5
+          return (
+            <path
+              key={`${e.from}-${e.to}`}
+              d={e.d}
+              fill="none"
+              stroke={e.poison ? 'var(--blast)' : 'var(--edge)'}
+              strokeWidth={e.poison ? 1.6 : 1}
+              strokeDasharray={dash}
+              opacity={opacity}
+              data-cross={!e.poison && e.crossAgent ? 'true' : undefined}
+            />
+          )
+        })}
+      </svg>
+      {l.separators.map((s, i) => (
+        <div key={`sep-${i}`} className="tg__band-sep" style={{ top: s.y, width: l.width }} />
+      ))}
+      {l.bands.map((band, i) => (
+        <span
+          key={`band-${band.agentId}-${i}`}
+          className="tg__band-label"
+          data-root={band.isRoot}
+          style={{ top: (band.top + band.bottom) / 2 }}
+        >
+          {band.label}
+        </span>
+      ))}
       {graph.nodes.map((n, i) => {
+        const p = posById.get(n.id)!
         const st = displayStatus(status[n.id] ?? 'neutral', phase)
-        const delay = !reduce && cascading && rootIndex >= 0 && i >= rootIndex
-          ? `${(i - rootIndex) * STAGGER_S}s`
-          : '0s'
         return (
-          <li key={n.id} className="tg__li">
-            <button
-              type="button"
-              data-testid={`node-${n.id}`}
-              data-status={st}
-              data-selected={selectedId === n.id}
-              className="tg__node"
-              onClick={() => onSelect(n.id)}
-            >
-              <span className="tg__dot" style={{ transitionDelay: delay }} aria-hidden="true" />
-              <span className="tg__idx">{String(i).padStart(2, '0')}</span>
-              <span className="tg__kind">{KIND_TAG[n.kind]}</span>
-              <span className="tg__label">{n.label}</span>
-              <span className="tg__marker" style={{ transitionDelay: delay }}>{MARKER[st] ?? ''}</span>
-            </button>
-          </li>
+          <motion.div
+            key={n.id}
+            style={{ position: 'absolute', left: p.x, top: p.y }}
+            initial={reduce ? false : { opacity: 0.6, scale: 0.98 }}
+            animate={{ opacity: 1, scale: st === 'blast' ? [1, 1.06, 1] : 1 }}
+            transition={reduce ? { duration: 0 } : { delay: i * 0.06, duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <GraphNode
+              node={n}
+              status={st}
+              selected={selectedId === n.id}
+              onSelect={onSelect}
+              style={{ position: 'static' }}
+            />
+          </motion.div>
         )
       })}
-    </ol>
+    </div>
   )
 }

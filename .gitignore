@@ -40,3 +40,6 @@ venv/
 
 # brainstorming visual companion scratch
 .superpowers/
+
+# Playwright MCP temp output
+.playwright-mcp/

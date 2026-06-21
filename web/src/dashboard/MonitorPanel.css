@@ -1,0 +1,127 @@
+/* web/src/dashboard/MonitorPanel.css
+ * Floating monitor card — popped-out --raised surface (lighter = higher),
+ * --r-4 corners, --line-hi top edge, --shadow-pop. Sits bottom-right over the
+ * spine at --z-inspector (above trace, below the confirm overlay). All values
+ * reference DESIGN.md tokens. */
+
+.mon {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: var(--z-inspector);
+
+  width: 256px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+
+  background: var(--raised);
+  border: var(--hair) solid var(--line);
+  border-top-color: var(--line-hi);
+  border-radius: var(--r-4);
+  box-shadow: var(--shadow-pop);
+
+  font-family: var(--font-mono);
+}
+
+/* ---- header eyebrow ---- */
+.mon__hd {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-icon);
+}
+.mon__close {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: transparent;
+  border: var(--hair) solid transparent;
+  border-radius: var(--r-1);
+  color: var(--text-faint);
+  transition: color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out);
+}
+.mon__close:hover { color: var(--text); background: var(--inset); }
+.mon__close-icon { width: 14px; height: 14px; stroke-width: var(--icon-stroke); }
+.mon__icon {
+  width: var(--icon);
+  height: var(--icon);
+  stroke-width: var(--icon-stroke);
+  color: var(--text-dim); /* icons are neutral affordance, never a signal hue */
+}
+.mon__eyebrow {
+  font-size: var(--t-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-upper);
+  color: var(--text-dim);
+}
+
+/* ---- play-by-play log ---- */
+.mon__log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.mon__line {
+  font-size: var(--t-step);
+  line-height: var(--lh-data);
+  color: var(--text);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+/* decoy rejected — neutral, NEVER a signal hue (dimmed, dashed underline) */
+.mon__line[data-tone='reject'] {
+  color: var(--text-dim);
+  text-decoration: line-through dashed var(--line);
+  text-decoration-thickness: var(--hair);
+}
+/* confirmed fix — the lone signal allowed in this component */
+.mon__line[data-tone='pass'] {
+  color: var(--pass);
+}
+
+/* ---- inline trust line (TrustBadge-equivalent, same token rules) ---- */
+.mon__trust {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--hair) solid var(--line-soft);
+}
+.mon__trust-dot {
+  width: var(--glyph);
+  height: var(--glyph);
+  border-radius: 50%;
+  border: var(--hair) solid var(--text-dim);
+  background: transparent;
+}
+.mon__trust-label {
+  font-size: var(--t-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--track-upper);
+  color: var(--text-dim);
+}
+/* proving — neutral, half-filled affordance (still untrusted, no signal hue) */
+.mon__trust[data-trust='proving'] .mon__trust-dot {
+  background: var(--text-faint);
+}
+.mon__trust[data-trust='proving'] .mon__trust-label {
+  color: var(--text);
+}
+/* trusted — the confirmed-fix signal: --pass + ring */
+.mon__trust[data-trust='trusted'] .mon__trust-dot {
+  border-color: var(--pass);
+  background: var(--pass);
+  box-shadow: var(--ring-pass);
+}
+.mon__trust[data-trust='trusted'] .mon__trust-label {
+  color: var(--pass);
+}

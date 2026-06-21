@@ -14,7 +14,7 @@ const LEGEND = [
   { tone: 'pass', label: 'confirmed fix' },
 ] as const
 
-function fadeOut(
+function useFadeOut(
   progress: ReturnType<typeof useScroll>['scrollYProgress'],
   start: number,
   end: number,
@@ -33,9 +33,9 @@ export function HeroShowcase() {
 
   /* Need tall scroll track so progress 0→1 while sticky pin holds the copy. */
   const headlineY = useTransform(scrollYProgress, [0, 0.55], [0, -32], { clamp: true })
-  const restOpacity = fadeOut(scrollYProgress, 0.04, 0.32)
-  const headlineOpacity = fadeOut(scrollYProgress, 0.18, 0.48)
-  const hintOpacity = fadeOut(scrollYProgress, 0, 0.12)
+  const restOpacity = useFadeOut(scrollYProgress, 0.04, 0.32)
+  const headlineOpacity = useFadeOut(scrollYProgress, 0.18, 0.48)
+  const hintOpacity = useFadeOut(scrollYProgress, 0, 0.12)
 
   if (reduce) {
     return (

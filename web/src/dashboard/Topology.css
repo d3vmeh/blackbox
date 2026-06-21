@@ -1,0 +1,101 @@
+/* web/src/dashboard/Topology.css
+ * The compact agent-wiring DAG strip atop the spine panel. Small, quiet, mono.
+ * Every value references a DESIGN.md token. The three reserved signals are the
+ * ONLY color used here (root agent / blast agents / poisoned wires); everything
+ * else stays neutral (--text-dim node text, --edge connector stroke). Poison
+ * tint is a stacked overlay toggled by OPACITY only (transform/opacity rule). */
+
+.topo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+}
+
+/* ---- node row (agents left → right) ---- */
+.topo__row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+}
+.topo__cell {
+  display: flex;
+  align-items: center;
+}
+
+/* agent node chip — neutral by default; carries a signal only via data-status */
+.topo__node {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--space-3);
+  background: var(--inset);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-2);
+
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--track-tight);
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: color var(--dur-micro) var(--ease-inout),
+    border-color var(--dur-micro) var(--ease-inout),
+    box-shadow var(--dur-base) var(--ease-inout);
+}
+
+/* root agent — the lone glowing focal node (it owns the localized root cause) */
+.topo__node[data-status='root'] {
+  color: var(--root);
+  border-color: var(--root);
+  box-shadow: var(--ring-root);
+}
+/* blast agents — on the poisoned forward slice: edge + text, no glow flood */
+.topo__node[data-status='blast'] {
+  color: var(--blast);
+  border-color: var(--blast);
+}
+/* confirmed-fix sweep (confirm beat lifts blast/root → pass at agent grain) */
+.topo__node[data-status='pass'] {
+  color: var(--pass);
+  border-color: var(--pass);
+}
+
+/* ---- inline connector between adjacent agents in the row ---- */
+.topo__edge {
+  position: relative;
+  display: inline-block;
+  width: var(--space-5);
+  height: var(--hair);
+  margin: 0 var(--space-1);
+}
+/* neutral base line */
+.topo__edge-line,
+.topo__edge-poison {
+  position: absolute;
+  inset: 0;
+  height: var(--hair);
+  border-radius: var(--r-1);
+}
+.topo__edge-line {
+  background: var(--edge);
+}
+/* the cell has no handoff between these two agents → faint scaffolding */
+.topo__edge[data-has-handoff='false'] .topo__edge-line {
+  background: var(--line);
+}
+/* poison overlay — toggled by opacity (motion); --blast is the only color */
+.topo__edge-poison {
+  background: var(--blast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topo__node {
+    transition: none;
+  }
+}

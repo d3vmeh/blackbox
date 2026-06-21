@@ -1,3 +1,4 @@
+import { agentOf } from '../types'
 import type { Step, Trace } from '../types'
 import type { ActionEdge, ActionGraph, ActionNode, Lane } from './types'
 
@@ -36,7 +37,15 @@ export function deriveActions(trace: Trace): ActionGraph {
       stepToNode.set(next.id, id)
     }
     stepToNode.set(step.id, id)
-    nodes.push({ id, stepIds, kind: step.kind, label: labelFor(step), lane: laneFor(step) })
+    // The representative step (`step`) owns the node; its agent tags the whole node.
+    nodes.push({
+      id,
+      stepIds,
+      kind: step.kind,
+      label: labelFor(step),
+      lane: laneFor(step),
+      agentId: agentOf(step),
+    })
   }
 
   const seq = new Map(nodes.map((n, idx) => [n.id, idx]))
