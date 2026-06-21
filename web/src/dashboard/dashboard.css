@@ -45,11 +45,14 @@
   border-bottom: var(--hair) solid var(--line);
 }
 .rb__id { font-family: var(--font-mono); font-size: var(--t-step); font-weight: 500; color: var(--text-bright); flex: 0 0 auto; }
-/* task = plain dim text with a quiet leading separator — no pill */
+/* task = plain dim text with a quiet leading separator — no pill. It's the lone
+   flexible item, so it gives up space first; a guaranteed right margin keeps the
+   ellipsis off the domain pill so the truncation reads as deliberate, not cramped. */
 .rb__task {
-  flex: 1;
+  flex: 1 1 auto;
   font-size: var(--t-step); color: var(--text-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  margin-right: var(--space-2);
 }
 .rb__task::before { content: '·'; color: var(--text-faint); margin-right: var(--space-2); }
 .rb__spacer { flex: 1; min-width: var(--space-3); }
@@ -203,7 +206,9 @@
 }
 /* Inspector = scrollable content + a pinned action footer (Replay always visible). */
 .insp { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-.insp__scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-5); }
+/* overflow-x hidden: long values wrap (never scroll sideways); padding-bottom keeps
+   the last section off the pinned footer / log dock edge. */
+.insp__scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: var(--space-5); padding-bottom: var(--space-6); }
 .insp--empty { color: var(--text-dim); }
 
 /* Inspector header: id · kind · classification pill */
@@ -315,7 +320,7 @@
 
 /* Shared column grid for the header row + every line, so they align exactly:
    time · step · source(agent) · kind-chip · output. */
-.lc__cols, .lc__ln {
+.lc__cols, .lc__row {
   display: grid;
   grid-template-columns: 56px 44px 116px 56px minmax(0, 1fr);
   gap: var(--space-3);
@@ -329,12 +334,28 @@
   border-bottom: var(--hair) solid var(--line-soft);
 }
 .lc__lines { max-height: 188px; overflow: auto; padding: var(--space-1) var(--space-4) var(--space-2); }
-/* Roomier rows: more vertical padding + a faint separator so lines don't crowd. */
+/* Each line is a wrapper: the scannable .lc__row toggle + an optional expanded
+   payload. The faint separator + vertical rhythm live on the wrapper. */
 .lc__ln {
-  font-size: var(--t-step); line-height: var(--lh-data); white-space: nowrap;
+  font-size: var(--t-step); line-height: var(--lh-data);
   padding: var(--space-2) 0; border-bottom: var(--hair) solid var(--line-soft);
 }
 .lc__ln:last-child { border-bottom: 0; }
+/* The clickable row: a transparent full-width button that hosts the column grid. */
+.lc__row {
+  width: 100%; white-space: nowrap;
+  background: none; border: 0; padding: 0; text-align: left; cursor: pointer;
+  font: inherit; color: inherit;
+}
+.lc__row:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-1); }
+.lc__row:hover .lc__msg, .lc__row:hover .lc__src { color: var(--text); }
+/* Expanded payload: full OUTPUT, wrapped monospace so the whole JSON is readable. */
+.lc__full {
+  margin: var(--space-2) 0 var(--space-1); padding: var(--space-2) var(--space-3);
+  background: var(--inset); border: var(--hair) solid var(--line-soft); border-radius: var(--r-1);
+  font-family: var(--font-mono); font-size: var(--t-step); line-height: var(--lh-data);
+  color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+}
 .lc__t { color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .lc__step { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .lc__src { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
@@ -360,7 +381,7 @@
   background: color-mix(in srgb, var(--pass) 8%, transparent); }
 .rb__trust--escalate { color: var(--blast); border: 1px solid color-mix(in srgb, var(--blast) 35%, transparent);
   background: color-mix(in srgb, var(--blast) 8%, transparent); }
-.rb__runtime { padding: 2px var(--space-2); border-radius: var(--r-1);
+.rb__runtime { flex: 0 0 auto; padding: 2px var(--space-2); border-radius: var(--r-1);
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
   color: var(--text-dim); border: 1px solid var(--line); background: var(--inset); }
 

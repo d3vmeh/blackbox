@@ -1,3 +1,10 @@
+/* The swap wrapper owns the inter-section rhythm: it is the single child of
+   .insp__scroll, so the scroll area's own gap can't reach the sections inside.
+   This flex column (re-keyed per node for the fade/slide) gives every section —
+   SplitCompare, the header, and each <Section> — consistent breathing room above
+   its eyebrow. Sits alongside motion's transform/opacity without fighting them. */
+.insp__swap { display: flex; flex-direction: column; gap: var(--space-5); }
+
 /* ============================ Cross-agent provenance ============================
    Parents of the selected step. Same-agent parents recede (--text-dim plain rows);
    a parent owned by a DIFFERENT agent is surfaced as a clickable jump with the

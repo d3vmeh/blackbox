@@ -222,24 +222,30 @@ export function MonitorRail({
 
   return (
     <nav className="mrail" aria-label="Monitor rail">
-      {/* 0 — BRAND (Linear puts the logo at the top of the nav) */}
-      <div className="mrail__brand">
-        <span className="mrail__mark" aria-hidden="true">
-          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" /><path d="M8 1.5 A6.5 6.5 0 0 1 8 14.5 Z" /></svg>
-        </span>
-        <span className="mrail__brandname">blackbox</span>
-      </div>
+      {/* 0+1 — STICKY HEADER: brand + run switcher pin to the top of the rail so the
+          identity and run controls stay reachable while the trace sections scroll
+          underneath. Opaque --bg backing prevents scrolling content showing through;
+          the run menu is position:fixed so it still opens over this header. */}
+      <div className="mrail__top">
+        {/* 0 — BRAND (Linear puts the logo at the top of the nav) */}
+        <div className="mrail__brand">
+          <span className="mrail__mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" /><path d="M8 1.5 A6.5 6.5 0 0 1 8 14.5 Z" /></svg>
+          </span>
+          <span className="mrail__brandname">blackbox</span>
+        </div>
 
-      {/* 1 — RUN SWITCHER (always shown — switch between agent-team runs) */}
-      <RailRuns
-        scenarios={scenarios}
-        picked={picked}
-        loaded={loaded}
-        onPick={onPick}
-        onRun={onRun}
-        loading={loading}
-        error={error}
-      />
+        {/* 1 — RUN SWITCHER (always shown — switch between agent-team runs) */}
+        <RailRuns
+          scenarios={scenarios}
+          picked={picked}
+          loaded={loaded}
+          onPick={onPick}
+          onRun={onRun}
+          loading={loading}
+          error={error}
+        />
+      </div>
 
       {/* 2..6 — trace sections (only once a run is loaded; otherwise no stale trace) */}
       {!pending && (

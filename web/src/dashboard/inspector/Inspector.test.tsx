@@ -51,6 +51,22 @@ describe('Inspector', () => {
     expect(screen.getByText(/what happened/i)).toBeInTheDocument()
   })
 
+  it('does not frame a CLEAN step as a problem with a fix', () => {
+    // s2/s3 are neither root, blast, decoy nor final here → clean role.
+    const cleanAttr: Attribution = {
+      trace_id: 't', root_step_id: 's9', blast_radius: [],
+      candidates: [{ step_id: 's9', suspicion: 0.91, reason: 'elsewhere' }], rationale: 'x',
+    }
+    render(<Inspector node={node} steps={steps} attribution={cleanAttr} runMeta={runMeta} onReplay={() => {}} />)
+    // The red→green problem→fix template must be absent for a clean step.
+    expect(screen.queryByText(/what happened/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/the fix/i)).not.toBeInTheDocument()
+    // A neutral readout is shown instead.
+    expect(screen.getByText('Output')).toBeInTheDocument()
+    expect(screen.getByText('Status')).toBeInTheDocument()
+    expect(screen.getByText(/looks consistent/i)).toBeInTheDocument()
+  })
+
   it('fires onReplay with the root step id', () => {
     const onReplay = vi.fn()
     render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor} onReplay={onReplay} />)
