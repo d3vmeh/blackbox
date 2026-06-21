@@ -1,0 +1,92 @@
+{
+  "id": "bench_hotel_01",
+  "task": "Find a hotel in NYC under $300 and book it.",
+  "final_output": {"hotel": "The Plaza", "price": 800},
+  "success": false,
+  "gold_root_step_id": "s4",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "reason",
+      "inputs": {"task": "Find a hotel in NYC under $300 and book it."},
+      "output": "Plan: search NYC hotels, filter < $300, pick cheapest, book.",
+      "state": {"dest": "NYC", "budget": 300},
+      "parents": [],
+      "raw": {"node": "plan"}
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "tool_call",
+      "inputs": {"dest": "NYC"},
+      "output": "search_hotel(dest='NYC')",
+      "state": {"dest": "NYC", "budget": 300},
+      "parents": ["s1"],
+      "tool_name": "search_hotel",
+      "raw": {"node": "search_hotel"}
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "tool_result",
+      "inputs": {},
+      "output": [
+        {"hotel": "The Plaza", "price": 800},
+        {"hotel": "Motel 6", "price": 150}
+      ],
+      "state": {
+        "dest": "NYC",
+        "budget": 300,
+        "results": [
+          {"hotel": "The Plaza", "price": 800},
+          {"hotel": "Motel 6", "price": 150}
+        ]
+      },
+      "parents": ["s2"],
+      "tool_name": "search_hotel",
+      "raw": {"node": "search_hotel_result"}
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "decision",
+      "inputs": {"budget": 300},
+      "output": "selected The Plaza @ $800",
+      "state": {
+        "dest": "NYC",
+        "budget": 300,
+        "results": [
+          {"hotel": "The Plaza", "price": 800},
+          {"hotel": "Motel 6", "price": 150}
+        ],
+        "selected_hotel": "The Plaza",
+        "selected_price": 800
+      },
+      "parents": ["s3"],
+      "is_injected_fault": true,
+      "correct_output": "selected Motel 6 @ $150",
+      "raw": {"node": "select_hotel"}
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "kind": "final",
+      "inputs": {"hotel": "The Plaza"},
+      "output": {"hotel": "The Plaza", "price": 800},
+      "state": {
+        "dest": "NYC",
+        "budget": 300,
+        "results": [
+          {"hotel": "The Plaza", "price": 800},
+          {"hotel": "Motel 6", "price": 150}
+        ],
+        "selected_hotel": "The Plaza",
+        "selected_price": 800,
+        "final_output": {"hotel": "The Plaza", "price": 800}
+      },
+      "parents": ["s4"],
+      "raw": {"node": "finalize"}
+    }
+  ]
+}

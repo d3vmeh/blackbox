@@ -82,7 +82,8 @@
 .rruns__tier--research,
 .rruns__tier--sponsor,
 .rruns__tier--ops,
-.rruns__tier--coding { color: var(--text-dim); border-color: var(--line); }
+.rruns__tier--coding,
+.rruns__tier--team { color: var(--text-dim); border-color: var(--line); }
 
 .rruns__menu {
   position: absolute;
