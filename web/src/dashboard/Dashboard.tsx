@@ -47,17 +47,18 @@ export function Dashboard() {
   return (
     <div className="dash">
       <div className="dash__run">
-        <select value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="test">
+        <span className="dash__lab">test</span>
+        <select className="dash__sel" value={picked} onChange={(e) => setPicked(e.target.value)} aria-label="test">
           {scenarios.map((s) => <option key={s.name} value={s.name}>{s.label}</option>)}
         </select>
-        <button type="button" onClick={() => run(picked)} disabled={loading}>
+        <button className="dash__btn" type="button" onClick={() => run(picked)} disabled={loading}>
           {loading ? 'running… (real Claude)' : 'Run'}
         </button>
         {error && <span className="dash__err">{error}</span>}
       </div>
       <ReadoutBar
         runId={data.trace.id}
-        task={data.trace.task}
+        task={picked}
         verdict={verdict}
         meta={`${data.trace.steps.length} steps · ${PHASE_STATUS[phase]}`}
       />

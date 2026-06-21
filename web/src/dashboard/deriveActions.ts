@@ -11,6 +11,10 @@ function laneFor(step: Step): Lane {
 }
 
 function labelFor(step: Step): string {
+  // multi-agent subjects (AP, coding) carry the producing agent's name here —
+  // the most legible label. Tool steps use the tool name; otherwise fall back.
+  const agent = step.raw?.agent
+  if (typeof agent === 'string' && agent) return agent
   if (step.tool_name) return step.tool_name
   const out = typeof step.output === 'string' ? step.output : ''
   return out.length > 48 ? `${out.slice(0, 47)}…` : out || step.kind
