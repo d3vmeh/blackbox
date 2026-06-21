@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from agent.code.export_run import build_artifacts as code_build
@@ -31,6 +32,16 @@ from agent.team.scenarios import SCENARIOS as TEAM_SCENARIOS
 from shared.scenarios.manifest import BY_ID, DOMAINS
 
 app = FastAPI(title="Blackbox API")
+
+# The deployed frontend calls this API from a different origin (Vercel -> Railway), so it
+# needs CORS. The API is a read-only demo with no auth, so a permissive policy is fine here;
+# tighten allow_origins to the frontend URL in production if you want.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 _CODE_BY_NAME = {s.name: s for s in CODE_SCENARIOS}
 _TEAM_BY_NAME = {s.name: s for s in TEAM_SCENARIOS}
