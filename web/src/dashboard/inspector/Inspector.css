@@ -1,0 +1,86 @@
+/* ============================ Cross-agent provenance ============================
+   Parents of the selected step. Same-agent parents recede (--text-dim plain rows);
+   a parent owned by a DIFFERENT agent is surfaced as a clickable jump with the
+   producing agent's label. Icons are NEUTRAL affordance only (never a signal hue);
+   the agent is carried by POSITION + LABEL, not by color. */
+
+.insp__prov {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* A same-agent (or untagged) parent — quiet, non-interactive. */
+.insp__provrow {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-icon);
+  font-size: var(--t-step);
+  color: var(--text-dim);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--r-2);
+}
+
+.insp__provrow .insp__provid {
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.insp__provrow .insp__provdash {
+  color: var(--text-faint);
+}
+
+/* A cross-agent parent — a clickable jump to the producing agent's node. */
+.insp__provlink {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-icon);
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--t-step);
+  color: var(--text);
+  background: var(--inset);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease-out),
+              border-color var(--dur-micro) var(--ease-out),
+              color var(--dur-micro) var(--ease-out);
+}
+
+.insp__provlink:hover {
+  background: var(--sel-bg);
+  border-color: var(--sel-line);
+  color: var(--text-bright);
+}
+
+.insp__provlink:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* lucide icon — neutral affordance; brightens with the row on hover, never a hue. */
+.insp__provlink .insp__provicon {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.insp__provlink:hover .insp__provicon {
+  color: var(--text);
+}
+
+.insp__provid {
+  font-variant-numeric: tabular-nums slashed-zero;
+  flex: 0 0 auto;
+}
+
+/* The producing agent's label chip — POSITION + LABEL identity, no per-agent hue. */
+.insp__provagent {
+  margin-left: auto;
+  font-size: var(--t-label);
+  letter-spacing: var(--track-tight);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}

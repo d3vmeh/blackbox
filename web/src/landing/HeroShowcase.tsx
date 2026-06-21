@@ -1,16 +1,7 @@
-import { motion, useReducedMotion, useScroll, useTransform, type Variants } from 'motion/react'
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { useRef } from 'react'
 import { BrowserFrame } from './BrowserFrame'
 import { Dashboard } from './Dashboard'
-
-const reveal: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0 },
-}
-const stagger: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
-}
 
 const LEGEND = [
   { tone: 'root', label: 'root cause' },
@@ -18,13 +9,11 @@ const LEGEND = [
   { tone: 'pass', label: 'confirmed fix' },
 ] as const
 
-function fadeOut(
-  progress: ReturnType<typeof useScroll>['scrollYProgress'],
-  start: number,
-  end: number,
-) {
-  return useTransform(progress, [start, end], [1, 0], { clamp: true })
-}
+const STATS = [
+  { value: '~14%', label: 'SOTA step-attribution we beat by proof' },
+  { value: 'fail→pass', label: 'every fix confirmed by replay' },
+  { value: '0', label: 'fixes trusted before replay proves them' },
+] as const
 
 export function HeroShowcase() {
   const stageRef = useRef<HTMLElement>(null)
@@ -35,66 +24,33 @@ export function HeroShowcase() {
     offset: ['start start', 'end end'],
   })
 
-  /* Need tall scroll track so progress 0→1 while sticky pin holds the copy. */
-  const headlineY = useTransform(scrollYProgress, [0, 0.55], [0, -32], { clamp: true })
-  const restOpacity = fadeOut(scrollYProgress, 0.04, 0.32)
-  const headlineOpacity = fadeOut(scrollYProgress, 0.18, 0.48)
-  const hintOpacity = fadeOut(scrollYProgress, 0, 0.12)
-
-  if (reduce) {
-    return (
-      <>
-        <header className="hero">
-          <motion.div className="hero__copy" initial="hidden" animate="show" variants={stagger}>
-            <HeroCopy />
-          </motion.div>
-        </header>
-        <ProductShowcase />
-      </>
-    )
-  }
+  /* Title stays pinned at top, then fades as you scroll into the body. */
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.4, 0.72], [1, 1, 0], { clamp: true })
 
   return (
     <>
-      <section ref={stageRef} className="hero-stage hero-stage--text" aria-label="Introduction">
+      <section ref={stageRef} className="hero-stage" aria-hidden={false}>
         <div className="hero-stage__pin">
-          <header className="hero hero--stage">
-            <div className="hero__copy">
-              <motion.div className="hero__headlines" style={{ y: headlineY, opacity: headlineOpacity }}>
-                <p className="eyebrow">Causal supervisor · flight recorder for multi-agent systems</p>
-                <h1 className="hero__title">
-                  <span className="nowrap">The payment was wrong.</span>{' '}
-                  <span className="nowrap">The mistake was three agents upstream.</span>
-                </h1>
-              </motion.div>
-
-              <motion.div className="hero__rest" style={{ opacity: restOpacity }}>
-                <HeroRest />
-              </motion.div>
-            </div>
-          </header>
-
-          <motion.div className="hero-stage__hint eyebrow" style={{ opacity: hintOpacity }} aria-hidden="true">
-            <span>Scroll</span>
-            <span className="hero-stage__chev" />
-          </motion.div>
+          <motion.header
+            className="hero hero--title"
+            aria-label="Introduction"
+            style={reduce ? undefined : { opacity: titleOpacity }}
+          >
+            <p className="eyebrow">Causal supervisor · flight recorder for multi-agent systems</p>
+            <h1 className="hero__title">
+              <span className="hero__title-line">The payment was wrong.</span>
+              <span className="hero__title-line">The mistake was three agents upstream.</span>
+            </h1>
+          </motion.header>
         </div>
       </section>
 
-      <ProductShowcase />
-    </>
-  )
-}
+      <div className="hero__body">
+        <HeroRest />
+      </div>
 
-function HeroCopy() {
-  return (
-    <>
-      <p className="eyebrow">Causal supervisor · flight recorder for multi-agent systems</p>
-      <h1 className="hero__title">
-        <span className="nowrap">The payment was wrong.</span>{' '}
-        <span className="nowrap">The mistake was three agents upstream.</span>
-      </h1>
-      <HeroRest />
+      <StatsBand />
+      <ProductShowcase />
     </>
   )
 }
@@ -110,7 +66,13 @@ function HeroRest() {
         intervention, not by asking an LLM who’s to blame.
       </p>
       <div className="hero__actions">
-        <button className="btn btn--solid btn--lg" type="button">Start free</button>
+        <button
+          className="btn btn--solid btn--lg"
+          type="button"
+          onClick={() => { window.location.hash = 'dashboard' }}
+        >
+          Start free
+        </button>
         <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
       </div>
       <p className="hero__note">Open source · self-host in 5 minutes · no credit card</p>
@@ -118,11 +80,24 @@ function HeroRest() {
   )
 }
 
+function StatsBand() {
+  return (
+    <section className="landing-stats" aria-label="Key metrics">
+      {STATS.map((s) => (
+        <div key={s.label} className="landing-stat">
+          <span className="landing-stat__value tnum">{s.value}</span>
+          <span className="landing-stat__label">{s.label}</span>
+        </div>
+      ))}
+    </section>
+  )
+}
+
 function ProductShowcase() {
   return (
     <section className="showcase showcase--persist" id="demo" aria-label="Product demo">
       <div className="showcase__glow" aria-hidden="true" />
-      <BrowserFrame url="app.blackbox.dev/runs/ap_7c2">
+      <BrowserFrame url="app.blackbox.dev/runs/claim_adjudication">
         <Dashboard />
       </BrowserFrame>
       <div className="legend">

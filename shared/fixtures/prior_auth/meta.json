@@ -1,0 +1,21 @@
+{
+  "runtime": "multi-agent",
+  "domain": "clinical-prior-auth",
+  "engine": "4-agent pipeline \u00b7 chart \u2192 guideline \u2192 auth \u2192 submit",
+  "pipeline": [
+    "record",
+    "localize",
+    "confirm",
+    "supervise"
+  ],
+  "agent_labels": {
+    "chart_reader": "CHART_READER",
+    "guideline_check": "GUIDELINE_CHECK",
+    "auth_writer": "AUTH_WRITER",
+    "submit": "SUBMIT"
+  },
+  "scenario": "prior_auth",
+  "parallel_agents": [],
+  "fork_agent": "chart_reader",
+  "monitor_decision": "auto_apply"
+}

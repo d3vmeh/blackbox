@@ -1,0 +1,196 @@
+{
+  "id": "prior_auth",
+  "task": "Prior auth lumbar MRI \u00b7 UHC \u00b7 chart CH-9921",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "tool_result",
+      "inputs": {
+        "task": "Prior auth lumbar MRI \u00b7 UHC \u00b7 chart CH-9921"
+      },
+      "output": {
+        "diagnosis": "M54.5",
+        "prior_treatments": [
+          "2025-01-02"
+        ],
+        "contraindications": []
+      },
+      "state": {
+        "up": {}
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "chart_reader",
+        "agent": "chart_reader",
+        "runtime": "multi-agent",
+        "domain": "clinical-prior-auth",
+        "display": "CHART_READER"
+      },
+      "is_injected_fault": true,
+      "correct_output": {
+        "diagnosis": "M54.5",
+        "prior_treatments": [
+          "2025-11-02"
+        ],
+        "contraindications": []
+      }
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "chart_reader"
+        ]
+      },
+      "output": {
+        "meets_criteria": true,
+        "rule_ids": [
+          "UHC-MRI-90D"
+        ]
+      },
+      "state": {
+        "up": {
+          "chart_reader": {
+            "diagnosis": "M54.5",
+            "prior_treatments": [
+              "2025-01-02"
+            ],
+            "contraindications": []
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "guideline_check",
+        "agent": "guideline_check",
+        "runtime": "multi-agent",
+        "domain": "clinical-prior-auth",
+        "display": "GUIDELINE_CHECK"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "meets_criteria": true,
+        "rule_ids": [
+          "UHC-MRI-90D"
+        ]
+      }
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "guideline_check"
+        ]
+      },
+      "output": {
+        "auth_payload": {
+          "wording": "standard",
+          "procedure": "MRI lumbar"
+        }
+      },
+      "state": {
+        "up": {
+          "chart_reader": {
+            "diagnosis": "M54.5",
+            "prior_treatments": [
+              "2025-01-02"
+            ],
+            "contraindications": []
+          },
+          "guideline_check": {
+            "meets_criteria": true,
+            "rule_ids": [
+              "UHC-MRI-90D"
+            ]
+          }
+        }
+      },
+      "parents": [
+        "s2"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "auth_writer",
+        "agent": "auth_writer",
+        "runtime": "multi-agent",
+        "domain": "clinical-prior-auth",
+        "display": "AUTH_WRITER"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "auth_payload": {
+          "wording": "standard",
+          "procedure": "MRI lumbar"
+        }
+      }
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "final",
+      "inputs": {
+        "from": [
+          "auth_writer"
+        ]
+      },
+      "output": {
+        "payer_status": "denied",
+        "reason": "insufficient conservative therapy interval (90-day rule)"
+      },
+      "state": {
+        "up": {
+          "chart_reader": {
+            "diagnosis": "M54.5",
+            "prior_treatments": [
+              "2025-01-02"
+            ],
+            "contraindications": []
+          },
+          "guideline_check": {
+            "meets_criteria": true,
+            "rule_ids": [
+              "UHC-MRI-90D"
+            ]
+          },
+          "auth_writer": {
+            "auth_payload": {
+              "wording": "standard",
+              "procedure": "MRI lumbar"
+            }
+          }
+        }
+      },
+      "parents": [
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "submit",
+        "agent": "submit",
+        "runtime": "multi-agent",
+        "domain": "clinical-prior-auth",
+        "display": "SUBMIT"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "payer_status": "denied",
+        "reason": "insufficient conservative therapy interval (90-day rule)"
+      }
+    }
+  ],
+  "final_output": {
+    "payer_status": "denied",
+    "reason": "insufficient conservative therapy interval (90-day rule)"
+  },
+  "success": false,
+  "gold_root_step_id": "s1"
+}

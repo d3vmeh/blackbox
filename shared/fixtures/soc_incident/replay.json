@@ -1,0 +1,40 @@
+{
+  "s1": {
+    "trace_id": "soc_incident",
+    "step_id": "s1",
+    "injected_value": {
+      "ioc": "cafebabe0123456789abcdef0123456789abcdef0123456789abcdef01234567"
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "explanation": null
+  },
+  "s4": {
+    "trace_id": "soc_incident",
+    "step_id": "s4",
+    "injected_value": {
+      "isolated": [
+        "srv-99"
+      ]
+    },
+    "n": 5,
+    "flipped": false,
+    "confirmation_rate": 0.0,
+    "outcomes": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "explanation": null
+  }
+}

@@ -1,0 +1,62 @@
+/* web/src/dashboard/TrustBadge.css — tokens only (see DESIGN.md).
+   The oracle trust readout. Neutral by default; only the TRUSTED state earns a
+   signal hue (--pass) + ring — it IS the confirmed fix. The icon is neutral
+   affordance in every state. */
+
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-icon);
+  height: 22px;
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-upper);
+  text-transform: uppercase;
+  border-radius: var(--r-2);
+  /* enter is a fade only — never scale — so reduced-motion needs no override */
+  transition:
+    color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+/* icon: NEUTRAL affordance only — never a signal hue, in any state */
+.trust-badge__icon {
+  width: var(--icon);
+  height: var(--icon);
+  flex: 0 0 auto;
+  color: var(--text-dim);
+}
+
+.trust-badge__label {
+  white-space: nowrap;
+}
+
+.trust-badge__count {
+  font-weight: 500;
+  letter-spacing: var(--track-tight);
+  color: var(--text);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* ---- untrusted: neutral text + dashed hairline, NO signal hue ---- */
+.trust-badge[data-state='untrusted'] {
+  color: var(--text-dim);
+  border: var(--hair) dashed var(--line);
+}
+
+/* ---- proving: neutral, live counter; still no signal hue ---- */
+.trust-badge[data-state='proving'] {
+  color: var(--text);
+  border: var(--hair) solid var(--line);
+  background: var(--inset);
+}
+
+/* ---- trusted: the lone signal use — --pass + ring (the confirmed fix) ---- */
+.trust-badge[data-state='trusted'] {
+  color: var(--pass);
+  border: var(--hair) solid transparent;
+  box-shadow: var(--ring-pass);
+}

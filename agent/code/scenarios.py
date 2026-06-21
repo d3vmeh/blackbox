@@ -37,6 +37,12 @@ _ACCEPTANCE = (
     "assert parse_duration('45s') == 45\n"
 )
 
+# The spec agent's task-specific question. Its answer is the scenario's KEY DECISION
+# (stored under the spec's "unit" field) that the implementer branches on. Constrained
+# to a small set of tokens so the deterministic reference can switch on it.
+_PARSE_Q = ("In what TIME UNIT must the function's integer result be expressed — "
+            "seconds, minutes, or hours? Answer with exactly one of those words.")
+
 
 @dataclass
 class CodeFault:
@@ -53,12 +59,15 @@ class CodeScenario:
     acceptance_tests: str                # python asserts over the function (hidden oracle)
     function_name: str = "parse_duration"  # the entry point the acceptance tests import
     fault: Optional[CodeFault] = None
+    spec_question: str = _PARSE_Q        # the constrained question the live spec agent answers
+    natural: bool = False                # True = NO injected fault; the live LLM's own bug is the fault
 
 
 def _ref_spec(scn: "CodeScenario", up: dict) -> dict:
     return {"signature": "def parse_duration(s: str) -> int",
             "unit": "seconds",
-            "summary": "sum h/m/s components into a total number of seconds"}
+            "summary": ("parse a duration string like '1h2m3s', '90s', or '2m' (h/m/s = "
+                        "hours/minutes/seconds) and return the total elapsed time as an int")}
 
 
 def _ref_impl(scn: "CodeScenario", up: dict) -> dict:
@@ -83,6 +92,8 @@ _PARSE_REF = {"spec_interpreter": _ref_spec, "implementer": _ref_impl,
               "test_writer": _ref_tests, "reviewer": _ref_review}
 
 # --- task: celsius_to_fahrenheit (return int Fahrenheit) ---
+_TEMP_Q = ("In what UNIT must the result be expressed — fahrenheit or celsius? "
+           "Answer with exactly one of those words.")
 _TEMP_CORRECT = "def celsius_to_fahrenheit(c):\n    return int(c * 9 / 5 + 32)\n"
 _TEMP_CELSIUS = "def celsius_to_fahrenheit(c):\n    return int(c)\n"        # spec said celsius
 _TEMP_BAD_CODE = "def celsius_to_fahrenheit(c):\n    return int(c * 9 / 5)\n"  # forgets + 32
@@ -93,7 +104,8 @@ _TEMP_ACCEPTANCE = ("assert celsius_to_fahrenheit(100) == 212\n"
 
 def _ref_spec_temp(scn, up):
     return {"signature": "def celsius_to_fahrenheit(c: int) -> int",
-            "unit": "fahrenheit", "summary": "convert celsius to fahrenheit, floored to int"}
+            "unit": "fahrenheit",
+            "summary": "take the input temperature in Celsius and return it, floored to an int"}
 
 
 def _ref_impl_temp(scn, up):
@@ -140,7 +152,7 @@ SCENARIOS += [
         requirement="Implement celsius_to_fahrenheit(c). Return the temperature in "
                     "FAHRENHEIT as an int (floored).",
         reference=_TEMP_REF, acceptance_tests=_TEMP_ACCEPTANCE,
-        function_name="celsius_to_fahrenheit",
+        function_name="celsius_to_fahrenheit", spec_question=_TEMP_Q,
         fault=CodeFault("spec_interpreter", "unit", "celsius"),
     ),
     CodeScenario(
@@ -148,12 +160,14 @@ SCENARIOS += [
         requirement="Implement celsius_to_fahrenheit(c). Return the temperature in "
                     "FAHRENHEIT as an int (floored).",
         reference=_TEMP_REF, acceptance_tests=_TEMP_ACCEPTANCE,
-        function_name="celsius_to_fahrenheit",
+        function_name="celsius_to_fahrenheit", spec_question=_TEMP_Q,
         fault=CodeFault("implementer", "code", _TEMP_BAD_CODE),
     ),
 ]
 
 # --- task: kib (bytes -> kibibytes, floor) ---
+_KIB_Q = ("In what UNIT must the result be expressed — kibibytes or mebibytes? "
+          "Answer with exactly one of those words.")
 _KIB_CORRECT = "def kib(n_bytes):\n    return n_bytes // 1024\n"
 _KIB_MEBI = "def kib(n_bytes):\n    return n_bytes // 1024 // 1024\n"   # spec said mebibytes
 _KIB_BAD_CODE = "def kib(n_bytes):\n    return n_bytes // 1000\n"        # KB not KiB
@@ -164,7 +178,8 @@ _KIB_ACCEPTANCE = ("assert kib(1024) == 1\n"
 
 def _ref_spec_kib(scn, up):
     return {"signature": "def kib(n_bytes: int) -> int",
-            "unit": "kibibytes", "summary": "bytes to kibibytes via floor division by 1024"}
+            "unit": "kibibytes",
+            "summary": "convert the byte count to the target unit by integer floor division"}
 
 
 def _ref_impl_kib(scn, up):
@@ -187,14 +202,130 @@ SCENARIOS += [
         requirement="Implement kib(n_bytes). Return the size in KIBIBYTES (KiB) as an int, "
                     "floor-dividing the byte count by 1024.",
         reference=_KIB_REF, acceptance_tests=_KIB_ACCEPTANCE, function_name="kib",
-        fault=CodeFault("spec_interpreter", "unit", "mebibytes"),
+        spec_question=_KIB_Q, fault=CodeFault("spec_interpreter", "unit", "mebibytes"),
     ),
     CodeScenario(
         name="kib_impl",
         requirement="Implement kib(n_bytes). Return the size in KIBIBYTES (KiB) as an int, "
                     "floor-dividing the byte count by 1024.",
         reference=_KIB_REF, acceptance_tests=_KIB_ACCEPTANCE, function_name="kib",
-        fault=CodeFault("implementer", "code", _KIB_BAD_CODE),
+        spec_question=_KIB_Q, fault=CodeFault("implementer", "code", _KIB_BAD_CODE),
+    ),
+]
+
+# --- task: merge_intervals (merge overlapping [start, end] intervals) — algorithmic, edge cases ---
+_MI_Q = ("Must intervals that only TOUCH at an endpoint (e.g. [1,4] and [4,5]) be merged? "
+         "Answer 'merge_touching' if touching intervals merge, or 'strict_overlap' if only "
+         "intervals that strictly overlap merge. Answer with exactly one of those two words.")
+_MI_REQUIREMENT = (
+    "Implement merge_intervals(intervals): given a list of [start, end] integer intervals, merge "
+    "all overlapping intervals and return them as a list of [start, end] lists sorted by start. "
+    "Intervals that only TOUCH at an endpoint (e.g. [1,4] and [4,5]) count as overlapping and must "
+    "be merged into one."
+)
+_MI_CORRECT = (
+    "def merge_intervals(intervals):\n"
+    "    out = []\n"
+    "    for start, end in sorted(intervals):\n"
+    "        if out and start <= out[-1][1]:\n"
+    "            out[-1][1] = max(out[-1][1], end)\n"
+    "        else:\n"
+    "            out.append([start, end])\n"
+    "    return out\n"
+)
+# spec said only STRICTLY-overlapping intervals merge -> touching endpoints stay split
+_MI_STRICT = _MI_CORRECT.replace("start <= out[-1][1]", "start < out[-1][1]")
+# implementer bug: assigns end instead of max(prev_end, end) -> a contained interval truncates it
+_MI_BAD_CODE = _MI_CORRECT.replace("out[-1][1] = max(out[-1][1], end)", "out[-1][1] = end")
+_MI_ACCEPTANCE = (
+    "assert merge_intervals([[1,3],[2,6],[8,10],[15,18]]) == [[1,6],[8,10],[15,18]]\n"
+    "assert merge_intervals([[1,4],[4,5]]) == [[1,5]]\n"
+    "assert merge_intervals([[1,5],[2,3]]) == [[1,5]]\n"
+    "assert merge_intervals([[6,8],[1,9],[2,4],[4,7]]) == [[1,9]]\n"
+)
+
+
+def _ref_spec_mi(scn, up):
+    return {"signature": "def merge_intervals(intervals: list[list[int]]) -> list[list[int]]",
+            "unit": "merge_touching",
+            "summary": ("sort the [start, end] intervals by start and merge overlapping ones into a "
+                        "minimal sorted list of [start, end] lists")}
+
+
+def _ref_impl_mi(scn, up):
+    rule = up["spec_interpreter"]["unit"]
+    return {"code": _MI_CORRECT if rule == "merge_touching" else _MI_STRICT}
+
+
+def _ref_tests_mi(scn, up):
+    rule = up["spec_interpreter"]["unit"]
+    expected = "[[1, 5]]" if rule == "merge_touching" else "[[1, 4], [4, 5]]"
+    return {"tests": f"assert merge_intervals([[1,4],[4,5]]) == {expected}\n"}
+
+
+_MI_REF = {"spec_interpreter": _ref_spec_mi, "implementer": _ref_impl_mi,
+           "test_writer": _ref_tests_mi, "reviewer": _ref_review}
+
+SCENARIOS += [
+    CodeScenario(
+        name="merge_intervals_spec",
+        requirement=_MI_REQUIREMENT, reference=_MI_REF, acceptance_tests=_MI_ACCEPTANCE,
+        function_name="merge_intervals", spec_question=_MI_Q,
+        fault=CodeFault("spec_interpreter", "unit", "strict_overlap"),
+    ),
+    CodeScenario(
+        name="merge_intervals_impl",
+        requirement=_MI_REQUIREMENT, reference=_MI_REF, acceptance_tests=_MI_ACCEPTANCE,
+        function_name="merge_intervals", spec_question=_MI_Q,
+        fault=CodeFault("implementer", "code", _MI_BAD_CODE),
+    ),
+]
+
+# --- task: round_half — NATURAL FAILURE (no injection). The requirement is unambiguous to a
+#     human ("round to nearest", ties go up), but a real LLM reliably reaches for Python's round()
+#     (banker's rounding), so 2.5 -> 2 instead of 3 and the hidden tests fail. The bug is the
+#     model's own; Blackbox localizes it to the implementer and replay-confirms with the reference. ---
+_ROUND_Q = ("Round the input to the nearest WHAT? Answer 'nearest_integer' (this task always "
+            "rounds to the nearest integer).")
+# NOTE: deliberately ambiguous on ties — that is the trap. A human reading "nearest integer"
+# assumes 2.5 -> 3 (round half up); Python's round() does banker's rounding (2.5 -> 2). The hidden
+# tests encode the human-intuitive convention; the LLM's natural code uses Python's default.
+_ROUND_REQUIREMENT = "Round x to the nearest integer and return it as an int."
+# correct reference: round-half-up for the (non-negative) test values
+_ROUND_CORRECT = "import math\ndef round_half(x):\n    return math.floor(x + 0.5)\n"
+_ROUND_ACCEPTANCE = (
+    "assert round_half(2.5) == 3\n"
+    "assert round_half(0.5) == 1\n"
+    "assert round_half(1.5) == 2\n"
+    "assert round_half(3.5) == 4\n"
+    "assert round_half(10.0) == 10\n"
+)
+
+
+def _ref_spec_round(scn, up):
+    # summary stays NEUTRAL on ties — if it leaked "halves round up" the implementer would code
+    # it correctly and there'd be no natural failure. The tie convention lives only in the tests.
+    return {"signature": "def round_half(x: float) -> int",
+            "unit": "nearest_integer",
+            "summary": "round the input value to the nearest integer and return it as an int"}
+
+
+def _ref_impl_round(scn, up):
+    return {"code": _ROUND_CORRECT}        # the reference always rounds half up (the answer key)
+
+
+def _ref_tests_round(scn, up):
+    return {"tests": "assert round_half(2.5) == 3\n"}
+
+
+_ROUND_REF = {"spec_interpreter": _ref_spec_round, "implementer": _ref_impl_round,
+              "test_writer": _ref_tests_round, "reviewer": _ref_review}
+
+SCENARIOS += [
+    CodeScenario(
+        name="round_half_natural",
+        requirement=_ROUND_REQUIREMENT, reference=_ROUND_REF, acceptance_tests=_ROUND_ACCEPTANCE,
+        function_name="round_half", spec_question=_ROUND_Q, fault=None, natural=True,
     ),
 ]
 

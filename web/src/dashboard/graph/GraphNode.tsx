@@ -3,6 +3,7 @@ import type { ActionNode, NodeStatus } from '../types'
 
 const KIND_TAG: Record<ActionNode['kind'], string> = {
   reason: 'RSN', tool_call: 'TOOL', tool_result: 'TOOL', decision: 'DEC', final: 'FIN',
+  handoff: 'HOFF',
 }
 
 export function GraphNode({ node, status, selected, onSelect, style }: {

@@ -1,0 +1,25 @@
+{
+  "runtime": "multi-agent",
+  "domain": "insurance-claims",
+  "engine": "5-agent pipeline \u00b7 COVERAGE \u2225 FRAUD concurrent",
+  "pipeline": [
+    "record",
+    "localize",
+    "confirm",
+    "supervise"
+  ],
+  "agent_labels": {
+    "intake": "INTAKE",
+    "coverage": "COVERAGE",
+    "fraud": "FRAUD",
+    "adjuster": "ADJUSTER",
+    "payout": "PAYOUT"
+  },
+  "scenario": "claim_adjudication",
+  "parallel_agents": [
+    "coverage",
+    "fraud"
+  ],
+  "fork_agent": "intake",
+  "monitor_decision": "auto_apply"
+}

@@ -1,3 +1,4 @@
+import { agentOf } from '../types'
 import type { Step, Trace } from '../types'
 import type { ActionEdge, ActionGraph, ActionNode, Lane } from './types'
 
@@ -11,6 +12,10 @@ function laneFor(step: Step): Lane {
 }
 
 function labelFor(step: Step): string {
+  const display = step.raw?.display
+  if (typeof display === 'string') return display
+  const agent = step.raw?.agent
+  if (typeof agent === 'string' && agent) return agent
   if (step.tool_name) return step.tool_name
   const out = typeof step.output === 'string' ? step.output : ''
   return out.length > 48 ? `${out.slice(0, 47)}…` : out || step.kind
@@ -23,7 +28,15 @@ export function deriveActions(trace: Trace): ActionGraph {
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i]
-    if (step.kind === 'tool_result') continue // consumed by its preceding call
+    const prev = steps[i - 1]
+    // Skip tool_result only when it pairs with the immediately preceding tool_call.
+    if (
+      step.kind === 'tool_result' &&
+      prev?.kind === 'tool_call' &&
+      prev.tool_name === step.tool_name
+    ) {
+      continue
+    }
     const id = `a${nodes.length}`
     const stepIds = [step.id]
     const next = steps[i + 1]
@@ -36,7 +49,15 @@ export function deriveActions(trace: Trace): ActionGraph {
       stepToNode.set(next.id, id)
     }
     stepToNode.set(step.id, id)
-    nodes.push({ id, stepIds, kind: step.kind, label: labelFor(step), lane: laneFor(step) })
+    // The representative step (`step`) owns the node; its agent tags the whole node.
+    nodes.push({
+      id,
+      stepIds,
+      kind: step.kind,
+      label: labelFor(step),
+      lane: laneFor(step),
+      agentId: agentOf(step),
+    })
   }
 
   const seq = new Map(nodes.map((n, idx) => [n.id, idx]))

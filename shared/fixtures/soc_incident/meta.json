@@ -1,0 +1,24 @@
+{
+  "runtime": "multi-agent",
+  "domain": "security-soc",
+  "engine": "5-agent pipeline \u00b7 THREAT_INTEL \u2225 enrich path",
+  "pipeline": [
+    "record",
+    "localize",
+    "confirm",
+    "supervise"
+  ],
+  "agent_labels": {
+    "alert_triage": "ALERT_TRIAGE",
+    "threat_intel": "THREAT_INTEL",
+    "enrich": "ENRICH",
+    "contain": "CONTAIN",
+    "notify": "NOTIFY"
+  },
+  "scenario": "soc_incident",
+  "parallel_agents": [
+    "threat_intel"
+  ],
+  "fork_agent": "alert_triage",
+  "monitor_decision": "auto_apply"
+}

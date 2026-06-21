@@ -1,0 +1,234 @@
+{
+  "id": "claim_adjudication",
+  "task": "Adjudicate member claim M-8842 \u00b7 MRI lumbar \u00b7 gold tier",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "tool_result",
+      "inputs": {
+        "task": "Adjudicate member claim M-8842 \u00b7 MRI lumbar \u00b7 gold tier"
+      },
+      "output": {
+        "member_id": "M-8842",
+        "procedure": "MRI lumbar",
+        "billed_amount": 52000.0,
+        "policy_tier": "gold"
+      },
+      "state": {
+        "up": {}
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "intake",
+        "agent": "intake",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "INTAKE"
+      },
+      "is_injected_fault": true,
+      "correct_output": {
+        "member_id": "M-8842",
+        "procedure": "MRI lumbar",
+        "billed_amount": 5200.0,
+        "policy_tier": "gold"
+      }
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "intake"
+        ]
+      },
+      "output": {
+        "approved_amount": 8000.0,
+        "tier_limit": 8000.0
+      },
+      "state": {
+        "up": {
+          "intake": {
+            "member_id": "M-8842",
+            "procedure": "MRI lumbar",
+            "billed_amount": 52000.0,
+            "policy_tier": "gold"
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "coverage",
+        "agent": "coverage",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "COVERAGE"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "approved_amount": 8000.0,
+        "tier_limit": 8000.0
+      }
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "intake"
+        ]
+      },
+      "output": {
+        "risk_score": 0.12,
+        "flags": []
+      },
+      "state": {
+        "up": {
+          "intake": {
+            "member_id": "M-8842",
+            "procedure": "MRI lumbar",
+            "billed_amount": 52000.0,
+            "policy_tier": "gold"
+          },
+          "coverage": {
+            "approved_amount": 8000.0,
+            "tier_limit": 8000.0
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "fraud",
+        "agent": "fraud",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "FRAUD"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "risk_score": 0.12,
+        "flags": []
+      }
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "coverage",
+          "fraud"
+        ]
+      },
+      "output": {
+        "payout_amount": 8000.0,
+        "member_id": "M-8842"
+      },
+      "state": {
+        "up": {
+          "intake": {
+            "member_id": "M-8842",
+            "procedure": "MRI lumbar",
+            "billed_amount": 52000.0,
+            "policy_tier": "gold"
+          },
+          "coverage": {
+            "approved_amount": 8000.0,
+            "tier_limit": 8000.0
+          },
+          "fraud": {
+            "risk_score": 0.12,
+            "flags": []
+          }
+        }
+      },
+      "parents": [
+        "s2",
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "adjuster",
+        "agent": "adjuster",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "ADJUSTER"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "payout_amount": 8000.0,
+        "member_id": "M-8842"
+      }
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "kind": "final",
+      "inputs": {
+        "from": [
+          "adjuster"
+        ]
+      },
+      "output": {
+        "paid": true,
+        "payout_amount": 8000.0,
+        "status": "paid"
+      },
+      "state": {
+        "up": {
+          "intake": {
+            "member_id": "M-8842",
+            "procedure": "MRI lumbar",
+            "billed_amount": 52000.0,
+            "policy_tier": "gold"
+          },
+          "coverage": {
+            "approved_amount": 8000.0,
+            "tier_limit": 8000.0
+          },
+          "fraud": {
+            "risk_score": 0.12,
+            "flags": []
+          },
+          "adjuster": {
+            "payout_amount": 8000.0,
+            "member_id": "M-8842"
+          }
+        }
+      },
+      "parents": [
+        "s4"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "payout",
+        "agent": "payout",
+        "runtime": "multi-agent",
+        "domain": "insurance-claims",
+        "display": "PAYOUT"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "paid": true,
+        "payout_amount": 8000.0,
+        "status": "paid"
+      }
+    }
+  ],
+  "final_output": {
+    "paid": true,
+    "payout_amount": 8000.0,
+    "status": "paid"
+  },
+  "success": false,
+  "gold_root_step_id": "s1"
+}

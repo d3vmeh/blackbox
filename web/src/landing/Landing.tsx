@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import { motion, type Variants } from 'motion/react'
 import { HeroShowcase } from './HeroShowcase'
 import { HowItWorksDeck } from './HowItWorksDeck'
+import { ScenarioCatalog } from './ScenarioCatalog'
+import { SystemMap } from './SystemMap'
 import './landing.css'
 
 const reveal: Variants = {
@@ -24,29 +27,27 @@ const FEATURES = [
   { tone: 'mechanical', title: 'Mechanical, not an LLM guessing', body: 'Localize → replay → decide is plain code. The only model in the loop judges one step in isolation.' },
 ] as const
 
-const STATS = [
-  { value: '~14%', label: 'SOTA step-attribution we beat by proof' },
-  { value: 'fail→pass', label: 'every fix confirmed by replay' },
-  { value: '0', label: 'fixes trusted before replay proves them' },
-] as const
-
 export function Landing() {
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
   return (
     <div className="page">
       <nav className="nav">
-        <a className="brand" href="/">
+        <a className="brand" href="/" onClick={() => { window.location.hash = '' }}>
           <span className="brand__mark" aria-hidden="true" />
           blackbox
         </a>
         <div className="nav__links">
+          <a href="#scenarios">Scenarios</a>
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#system-map">System map</a>
           <a href="#docs">Docs</a>
           <a href="#github">GitHub</a>
         </div>
         <div className="nav__cta">
           <a className="nav__signin" href="#login">Sign in</a>
-          <button className="btn btn--solid" type="button">Start free</button>
+          <button className="btn btn--solid" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
         </div>
       </nav>
 
@@ -71,27 +72,18 @@ export function Landing() {
         <motion.div className="code" variants={reveal} aria-hidden="true">
           <div className="code__bar"><span className="code__file tnum">quickstart.py</span></div>
           <pre className="code__body">
-<span className="c-dim">$ pip install blackbox</span>{'\n\n'}
-<span className="c-key">from</span> blackbox <span className="c-key">import</span> supervise{'\n\n'}
-<span className="c-key">with</span> supervise(team):       <span className="c-dim"># records every hand-off</span>{'\n'}
-{'    '}team.run(invoice)       <span className="c-dim"># your agents, unchanged</span>{'\n\n'}
-<span className="c-dim"># a run failed? localize the agent + prove the fix:</span>{'\n'}
-<span className="c-dim">$ blackbox replay ap_7c2 --confirm</span>
+<span className="c-dim">$ pip install blackbox langgraph</span>{'\n\n'}
+<span className="c-key">from</span> shared.scenarios.manifest <span className="c-key">import</span> DOMAINS{'\n\n'}
+<span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → ADJUSTER → PAYOUT</span>{'\n'}
+<span className="c-dim"># on FAIL: localize root + LangGraph replay before trust gate:</span>{'\n'}
+<span className="c-dim">$ python -m eval.arize_pipeline --domain claim_adjudication</span>
           </pre>
         </motion.div>
       </motion.section>
 
       <HowItWorksDeck />
 
-      {/* ---- Stats band ---- */}
-      <section className="stats">
-        {STATS.map((s) => (
-          <div key={s.label} className="stat">
-            <span className="stat__value tnum">{s.value}</span>
-            <span className="stat__label">{s.label}</span>
-          </div>
-        ))}
-      </section>
+      <ScenarioCatalog />
 
       {/* ---- Features ---- */}
       <motion.section className="features" id="features" variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>
@@ -107,6 +99,8 @@ export function Landing() {
         </div>
       </motion.section>
 
+      <SystemMap />
+
       {/* ---- CTA ---- */}
       <motion.section className="cta" variants={stagger} initial="hidden" whileInView="show" viewport={VIEWPORT}>
         <div className="cta__glow" aria-hidden="true" />
@@ -114,7 +108,7 @@ export function Landing() {
           Stop guessing which agent failed.<br />Start proving it.
         </motion.h2>
         <motion.div className="hero__actions" variants={reveal}>
-          <button className="btn btn--solid btn--lg" type="button">Start free</button>
+          <button className="btn btn--solid btn--lg" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
           <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
         </motion.div>
         <motion.p className="hero__note" variants={reveal}>

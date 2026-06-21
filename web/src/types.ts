@@ -9,6 +9,7 @@
  *   Candidate    -> a ranked suspect step (localized)
  *   Attribution  -> root cause + blast radius (localized + sliced)
  *   ReplayResult -> intervention outcome (confirmed or rejected)
+ *   MonitorDecision -> trust gate (auto_apply or escalate)
  */
 
 /** Any JSON-serializable value. Mirrors Pydantic `Any` over the wire without `any`. */
@@ -27,6 +28,27 @@ export type StepKind =
   | 'tool_result'
   | 'decision'
   | 'final'
+  // A pass-through carrier step that moves a payload from one agent to the next.
+  // Its `output` IS the handoff payload; its `parents` are the producing steps.
+  // A handoff is NOT judged — it is plumbing, never a root cause.
+  | 'handoff'
+
+/**
+ * Identifier for the agent that emitted a step in a multi-agent run.
+ * Domain-agnostic on purpose: any pipeline (Accounts-Payable, support triage,
+ * code agents, …) can tag its steps; the dashboard never hardcodes a closed set.
+ */
+export type AgentId = string
+
+/**
+ * Read the owning agent of a step from its raw span payload (`raw['agent']`).
+ * Returns the id only when present and a string; otherwise null (single-agent /
+ * untagged trace). Agents are differentiated by POSITION + LABEL, never a hue.
+ */
+export function agentOf(step: Step): AgentId | null {
+  const agent = step.raw['agent']
+  return typeof agent === 'string' ? agent : null
+}
 
 /**
  * One node in the agent run. `parents` are TRUE data-flow edges (this step's
@@ -49,6 +71,10 @@ export interface Step {
   tool_name?: string | null
   /** original span/checkpoint payload */
   raw: Record<string, Json>
+  /** ground-truth labels (fixtures / fault-injected runs) */
+  is_injected_fault?: boolean
+  /** what this step should have produced */
+  correct_output?: Json | null
 }
 
 /** A full recorded run. `success` is null until the oracle evaluates it. */
@@ -105,4 +131,29 @@ export interface ReplayResult {
   confirmation_rate: number
   /** per-run pass/fail */
   outcomes: boolean[]
+  /** plain-English "why this fix works" (optional; LLM-generated live, template in mock) */
+  explanation?: string | null
+}
+
+/**
+ * The monitor's final verdict on a localized root cause: it replayed the fix,
+ * scored the confirmation, and decided whether the correction can be trusted to
+ * auto-apply or must be escalated to a human.
+ *
+ * COORDINATION: this is the 6th contract and currently a FRONTEND MIRROR ONLY.
+ * `shared/schema.py` does not yet have the matching Pydantic model — adding it
+ * must go through a coordinated PR with the backend workstream (do NOT edit
+ * `shared/schema.py` from the web folder). Keep field names identical when that
+ * model lands so the two stay in sync.
+ */
+export interface MonitorDecision {
+  trace_id: string
+  /** the localized step the monitor corrected */
+  root_step_id: string
+  /** the intervention outcome that backs this decision */
+  replay: ReplayResult
+  /** whether the confirmed fix is trustworthy enough to apply unattended */
+  trusted: boolean
+  /** auto-apply when trusted; escalate to a human otherwise */
+  decision: 'auto_apply' | 'escalate'
 }

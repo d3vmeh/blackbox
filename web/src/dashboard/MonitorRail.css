@@ -1,0 +1,161 @@
+/* ============================ Monitor rail (left) ============================
+   Live monitor rail, reframed from Linear's nav. Four blocks separated by
+   generous breathing room (--space-5) + an ultra-faint --line-soft hairline.
+   Type-color follows Linear: rows read at --text; only the SELECTED row brightens
+   to --text-bright + --sel-bg pill. Icons are NEUTRAL affordance (--text-dim).
+   Closed token set only — the 3 signal hues mean exactly one thing each.        */
+
+/* The rail sits on the bare --bg (outside the tile) — no panel surface, no border. */
+.mrail {
+  height: 100%; min-height: 0; overflow: auto; display: flex; flex-direction: column;
+  background: transparent; font-family: var(--font-ui);
+}
+
+/* ---- 0. Brand (logo at the top of the nav, Linear-style) ---- */
+.mrail__brand {
+  display: flex; align-items: center; gap: var(--space-2);
+  height: var(--h-bar); padding: 0 var(--space-4); flex: 0 0 auto;
+}
+.mrail__mark { width: 16px; height: 16px; flex: 0 0 auto; color: var(--text-bright); }
+.mrail__mark svg { width: 100%; height: 100%; }
+.mrail__mark circle { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.mrail__mark path { fill: currentColor; }
+.mrail__brandname { font-size: var(--t-body); font-weight: 600; color: var(--text-bright); letter-spacing: var(--track-display); }
+
+/* Section blocks: generous vertical rhythm, separated by a --line-soft hairline. */
+.mrail__sec {
+  padding: var(--space-5) var(--space-4);
+  border-bottom: var(--hair) solid var(--line-soft);
+}
+.mrail__sec--grow { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.mrail__sec:last-child { border-bottom: none; }
+
+/* ---- 1. Run identity ---- */
+.mrail__sec--id { padding-top: var(--space-4); }
+.mrail__id { display: flex; align-items: baseline; gap: var(--space-2); margin-bottom: var(--space-2); }
+.mrail__idk {
+  font-size: var(--t-label); text-transform: uppercase; letter-spacing: var(--track-upper);
+  color: var(--text-faint);
+}
+.mrail__idv { font-size: var(--t-step); color: var(--text-bright); }
+.mrail__task {
+  margin: 0 0 var(--space-3); font-size: var(--t-step); line-height: var(--lh-data);
+  color: var(--text-dim); letter-spacing: var(--track-tight);
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mrail__idmeta { display: flex; gap: var(--space-2); }
+.mrail__idtag {
+  font-size: var(--t-label); color: var(--text-dim);
+  background: var(--inset); border: var(--hair) solid var(--line);
+  border-radius: var(--r-1); padding: 1px var(--space-2);
+}
+
+/* ---- Section heading (eyebrow + icon + count) ---- */
+.mrail__head {
+  margin: 0 0 var(--space-3); font-family: var(--font-ui); font-size: var(--t-label);
+  font-weight: 600; text-transform: uppercase; letter-spacing: var(--track-upper);
+  color: var(--text-dim); display: flex; align-items: center; gap: var(--gap-icon);
+}
+
+/* Data values read in mono (IDs, scores, counts); UI chrome stays sans. */
+.mrail__idv, .mrail__count, .cand__id, .cand__score, .cand__verdict { font-family: var(--font-mono); }
+.mrail__headicon { width: var(--icon); height: var(--icon); color: var(--text-faint); flex: none; }
+.mrail__count {
+  margin-left: auto; font-size: var(--t-label); color: var(--text-faint);
+  border: var(--hair) solid var(--line); border-radius: var(--r-1); padding: 0 5px;
+  letter-spacing: normal;
+}
+
+/* ---- 2. Agents roster ---- */
+.roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.roster__row {
+  width: 100%; height: 32px; text-align: left; background: transparent;
+  border: var(--hair) solid transparent; border-radius: var(--r-2);
+  display: grid; grid-template-columns: var(--glyph) 1fr auto; align-items: center;
+  gap: var(--gap-icon); padding: 0 var(--space-3);
+  color: var(--text); transition: background var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+  cursor: pointer;
+}
+.roster__row:hover:not(:disabled) { background: var(--inset); }
+.roster__row:disabled { cursor: default; }
+.roster__row[data-selected] {
+  background: var(--sel-bg); border-color: var(--sel-line);
+}
+.roster__row[data-selected] .roster__label { color: var(--text-bright); }
+.roster__row[data-dimmed] { opacity: 0.4; }
+.roster__label {
+  font-size: var(--t-step); color: var(--text); letter-spacing: var(--track-tight);
+  text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.roster__row[data-root] .roster__label { color: var(--text-bright); }
+/* The lone signal use in the roster: the failed agent's "root" tag. */
+.roster__mark {
+  font-size: var(--t-label); color: var(--root); letter-spacing: var(--track-upper);
+  text-transform: uppercase;
+}
+
+/* ---- 3. Supervise stepper ---- */
+.sup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sup__step {
+  display: grid; grid-template-columns: var(--glyph) var(--icon) 1fr auto; align-items: center;
+  gap: var(--gap-icon); padding: 6px var(--space-3); min-height: 30px;
+}
+.sup__icon { width: var(--icon); height: var(--icon); color: var(--text-faint); flex: none; }
+.sup__label {
+  font-size: var(--t-step); color: var(--text-dim); letter-spacing: var(--track-tight);
+  transition: color var(--dur-base) var(--ease-out);
+}
+.sup__note { font-size: var(--t-label); color: var(--text-faint); }
+.sup__step[data-state='active'] .sup__icon,
+.sup__step[data-state='done'] .sup__icon { color: var(--text-dim); }
+.sup__step[data-state='active'] .sup__label { color: var(--text-bright); }
+.sup__step[data-state='done'] .sup__label { color: var(--text); }
+
+/* ---- 4. Candidates ---- */
+.cand { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.cand__row {
+  position: relative; width: 100%; text-align: left; background: transparent;
+  border: var(--hair) solid transparent; border-radius: var(--r-2);
+  display: grid; grid-template-columns: var(--glyph) auto minmax(0, 1fr) auto auto;
+  align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3) 9px;
+  color: var(--text); transition: background var(--dur-micro) var(--ease-out);
+  cursor: pointer;
+}
+.cand__row:hover:not(:disabled) { background: var(--inset); }
+.cand__row:disabled { opacity: 0.45; cursor: default; }
+.cand__row[data-selected] { background: var(--sel-bg); border-color: var(--sel-line); }
+.cand__id { font-size: var(--t-step); color: var(--text-dim); }
+.cand__row[data-lead] .cand__id { color: var(--text); }
+.cand__row[data-selected] .cand__id { color: var(--text-bright); }
+.cand__reason {
+  font-size: var(--t-label); color: var(--text-faint); letter-spacing: var(--track-tight);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.cand__row[data-lead] .cand__reason { color: var(--text-dim); }
+.cand__score { font-size: var(--t-label); color: var(--text-faint); }
+.cand__score[data-tone='root'] { color: var(--root); }
+.cand__meter {
+  position: absolute; left: var(--space-3); right: var(--space-3); bottom: 4px; height: 2px;
+  background: var(--line); border-radius: 2px; overflow: hidden;
+}
+.cand__fill {
+  display: block; height: 100%; background: var(--text-faint); border-radius: 2px;
+  transition: width var(--dur-base) var(--ease-out);
+}
+.cand__fill[data-tone='root'] { background: var(--root); }
+
+/* Inline replay verdict chip. reject = neutral dashed pill (NEVER a signal hue);
+   flip earns --pass only once confirmed; an in-flight root replay reads --root. */
+.cand__verdict {
+  font-size: var(--t-label); letter-spacing: normal; padding: 0 5px;
+  border-radius: var(--r-1); border: var(--hair) solid var(--line);
+  color: var(--text-dim); font-variant-numeric: tabular-nums slashed-zero;
+}
+.cand__verdict[data-verdict='reject'] {
+  border-style: dashed; border-color: var(--line); color: var(--text-dim);
+}
+.cand__verdict[data-tone='root'] { color: var(--root); border-color: var(--root); }
+.cand__verdict[data-tone='pass'] {
+  color: var(--pass); border-color: var(--pass);
+  box-shadow: var(--ring-pass);
+}

@@ -1,0 +1,258 @@
+{
+  "id": "procurement_gpu",
+  "task": "Purchase 500\u00d7 H100-80GB under $25k/unit \u00b7 vendor allowlist",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "tool_result",
+      "inputs": {
+        "task": "Purchase 500\u00d7 H100-80GB under $25k/unit \u00b7 vendor allowlist"
+      },
+      "output": {
+        "sku": "H100-80GB",
+        "qty": 500,
+        "max_price": 25000.0,
+        "vendor_allowlist": [
+          "nvidia.com"
+        ]
+      },
+      "state": {
+        "up": {}
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "spec",
+        "agent": "spec",
+        "runtime": "multi-agent",
+        "domain": "procurement-gpu",
+        "display": "SPEC"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "sku": "H100-80GB",
+        "qty": 500,
+        "max_price": 25000.0,
+        "vendor_allowlist": [
+          "nvidia.com"
+        ]
+      }
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "tool_result",
+      "inputs": {
+        "from": [
+          "spec"
+        ]
+      },
+      "output": {
+        "sku_selected": "H100-80GB-REFURB",
+        "unit_price": 24999.0,
+        "page_snapshot": "https://shop.nvidia.com/h100-80gb"
+      },
+      "state": {
+        "up": {
+          "spec": {
+            "sku": "H100-80GB",
+            "qty": 500,
+            "max_price": 25000.0,
+            "vendor_allowlist": [
+              "nvidia.com"
+            ]
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "browser",
+        "agent": "browser",
+        "runtime": "multi-agent",
+        "domain": "procurement-gpu",
+        "display": "BROWSER"
+      },
+      "is_injected_fault": true,
+      "correct_output": {
+        "sku_selected": "H100-80GB",
+        "unit_price": 24999.0,
+        "page_snapshot": "https://shop.nvidia.com/h100-80gb"
+      }
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "browser"
+        ]
+      },
+      "output": {
+        "best_offer": {
+          "sku": "H100-80GB-REFURB",
+          "price": 24999.0,
+          "vendor": "nvidia.com"
+        }
+      },
+      "state": {
+        "up": {
+          "spec": {
+            "sku": "H100-80GB",
+            "qty": 500,
+            "max_price": 25000.0,
+            "vendor_allowlist": [
+              "nvidia.com"
+            ]
+          },
+          "browser": {
+            "sku_selected": "H100-80GB-REFURB",
+            "unit_price": 24999.0,
+            "page_snapshot": "https://shop.nvidia.com/h100-80gb"
+          }
+        }
+      },
+      "parents": [
+        "s2"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "compare",
+        "agent": "compare",
+        "runtime": "multi-agent",
+        "domain": "procurement-gpu",
+        "display": "COMPARE"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "best_offer": {
+          "sku": "H100-80GB-REFURB",
+          "price": 24999.0,
+          "vendor": "nvidia.com"
+        }
+      }
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "compare"
+        ]
+      },
+      "output": {
+        "approved": true
+      },
+      "state": {
+        "up": {
+          "spec": {
+            "sku": "H100-80GB",
+            "qty": 500,
+            "max_price": 25000.0,
+            "vendor_allowlist": [
+              "nvidia.com"
+            ]
+          },
+          "browser": {
+            "sku_selected": "H100-80GB-REFURB",
+            "unit_price": 24999.0,
+            "page_snapshot": "https://shop.nvidia.com/h100-80gb"
+          },
+          "compare": {
+            "best_offer": {
+              "sku": "H100-80GB-REFURB",
+              "price": 24999.0,
+              "vendor": "nvidia.com"
+            }
+          }
+        }
+      },
+      "parents": [
+        "s3"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "approver",
+        "agent": "approver",
+        "runtime": "multi-agent",
+        "domain": "procurement-gpu",
+        "display": "APPROVER"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "approved": true
+      }
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "kind": "final",
+      "inputs": {
+        "from": [
+          "approver"
+        ]
+      },
+      "output": {
+        "sku": "H100-80GB-REFURB",
+        "po_id": "PO-4412",
+        "issued": false
+      },
+      "state": {
+        "up": {
+          "spec": {
+            "sku": "H100-80GB",
+            "qty": 500,
+            "max_price": 25000.0,
+            "vendor_allowlist": [
+              "nvidia.com"
+            ]
+          },
+          "browser": {
+            "sku_selected": "H100-80GB-REFURB",
+            "unit_price": 24999.0,
+            "page_snapshot": "https://shop.nvidia.com/h100-80gb"
+          },
+          "compare": {
+            "best_offer": {
+              "sku": "H100-80GB-REFURB",
+              "price": 24999.0,
+              "vendor": "nvidia.com"
+            }
+          },
+          "approver": {
+            "approved": true
+          }
+        }
+      },
+      "parents": [
+        "s4"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "po",
+        "agent": "po",
+        "runtime": "multi-agent",
+        "domain": "procurement-gpu",
+        "display": "PO"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "sku": "H100-80GB-REFURB",
+        "po_id": "PO-4412",
+        "issued": false
+      }
+    }
+  ],
+  "final_output": {
+    "sku": "H100-80GB-REFURB",
+    "po_id": "PO-4412",
+    "issued": false
+  },
+  "success": false,
+  "gold_root_step_id": "s2"
+}

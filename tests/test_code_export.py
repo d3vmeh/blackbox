@@ -22,3 +22,16 @@ def test_artifacts_are_consistent_and_correct():
     assert replays["s1"]["flipped"] is True
     assert replays["s1"]["confirmation_rate"] == 1.0
     assert replays["s3"]["flipped"] is False
+
+def test_clean_scenario_yields_empty_attribution():
+    from agent.code.scenarios import SCENARIOS
+    clean = next(s for s in SCENARIOS if s.name == "parse_duration_clean")
+    art = build_artifacts(clean)
+    assert art["trace"]["success"] is True
+    assert art["attribution"]["root_step_id"] == ""      # no fault → empty-but-valid attribution
+    assert art["attribution"]["blast_radius"] == []
+    assert art["replays"] == {}
+
+def test_build_artifacts_accepts_think_none_explicitly():
+    art = build_artifacts(DEFAULT, think=None)
+    assert art["attribution"]["root_step_id"] == "s1"

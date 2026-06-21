@@ -1,0 +1,23 @@
+{
+  "trace_id": "flight_run",
+  "root_step_id": "s4",
+  "replay": {
+    "trace_id": "flight_run",
+    "step_id": "s4",
+    "injected_value": {
+      "departure": "2026-07-12"
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "trusted": true,
+  "decision": "auto_apply"
+}

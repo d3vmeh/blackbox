@@ -1,15 +1,28 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
+import type { AgentId, ReplayResult } from '../types'
 import { useRun } from './data/useRun'
 import { ReadoutBar } from './ReadoutBar'
+import { MonitorRail } from './MonitorRail'
+import { Topology } from './Topology'
 import { TraceGraph } from './graph/TraceGraph'
 import { Inspector } from './inspector/Inspector'
+import { MonitorPanel, type MonitorLine } from './MonitorPanel'
+import { StatsOverlay } from './StatsOverlay'
 import { LogConsole } from './console/LogConsole'
-import { phaseForReplay, PHASE_STATUS, type Phase } from './phase'
+import { ScenarioToolbar } from './ScenarioToolbar'
+import { deriveStats } from './deriveStats'
+import { deriveTopology } from './deriveTopology'
+import { phaseForReplay, PHASE_STATUS, trustForPhase, type Phase } from './phase'
 import './dashboard.css'
 
+// The supervise climax runs as a short scripted sequence once the root replay
+// fires: replay the decoy first (no flip), visibly re-target, then the root flips.
+const DECOY_MS = 1100
+
 export function Dashboard() {
-  const { data, replay } = useRun()
+  const { data, scenarios, loading, error, run, replay } = useRun()
+  const [picked, setPicked] = useState<string>('claim_adjudication')
   const reduce = useReducedMotion()
   // First paint lands on the WHY: select the root-cause node so the inspector is never empty.
   const rootNodeId = useMemo(
@@ -17,57 +30,254 @@ export function Dashboard() {
     [data.graph.nodes, data.attribution.root_step_id],
   )
   const [selectedId, setSelectedId] = useState<string | null>(rootNodeId)
+  const [selectedAgentId, setSelectedAgentId] = useState<AgentId | null>(null)
+  // The floating monitor can be dismissed; a fresh replay re-opens it.
+  const [monitorDismissed, setMonitorDismissed] = useState(false)
   // Reduced motion: skip the cascade and render the localized view directly.
   const [phase, setPhase] = useState<Phase>(reduce ? 'analyze' : 'idle')
+  // The full-width statistics overlay (toggled from the readout bar / `s` key).
+  const [statsOpen, setStatsOpen] = useState(false)
+  // The last replay outcome (what was injected + whether it flipped), shown in the inspector.
+  const [replayInfo, setReplayInfo] = useState<{ stepId: string; result: ReplayResult } | null>(null)
 
+  // Topology is derived once and drives the agent-wiring strip above the graph.
+  const topology = useMemo(
+    () => deriveTopology(data.graph, data.attribution),
+    [data.graph, data.attribution],
+  )
+  // Usage statistics — per-agent + aggregate, derived once from the trace.
+  const stats = useMemo(() => deriveStats(data.trace), [data.trace])
+
+  // Selecting a different node clears the stale replay result.
+  const selectNode = useCallback((id: string | null) => { setSelectedId(id); setReplayInfo(null) }, [])
+
+  // Keep the picked scenario valid once /api/scenarios loads (fallback list is hero-only).
   useEffect(() => {
-    if (reduce) return
+    // Intentional: re-sync the picked scenario to the served list once it loads.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (scenarios.length && !scenarios.some((s) => s.name === picked)) setPicked(scenarios[0].name)
+  }, [scenarios, picked])
+
+  // Each new run (data change) re-focuses the root cause and replays the cascade.
+  useEffect(() => {
+    // Intentional: reset the demo's selection/phase state to sync with each new run.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setSelectedId(rootNodeId)
+    setReplayInfo(null)
+    if (reduce) { setPhase('analyze'); return }
+    setPhase('idle')
     const t1 = window.setTimeout(() => setPhase('blast'), 600)
     const t2 = window.setTimeout(() => setPhase('analyze'), 3200)
+    /* eslint-enable react-hooks/set-state-in-effect */
     return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
-  }, [reduce])
+  }, [data, rootNodeId, reduce])
 
   const selectedNode = useMemo(
     () => data.graph.nodes.find((n) => n.id === selectedId) ?? null,
     [data.graph.nodes, selectedId],
   )
   const selectedStepId = selectedNode ? selectedNode.stepIds[selectedNode.stepIds.length - 1] : null
-  const verdict = phase === 'confirm' ? 'PASS' : 'FAIL'
 
-  const onReplay = async (stepId: string) => {
-    // The corrected value comes from the pre-generated replay result, keyed by step.
+  const onSelectAgent = useCallback((agentId: AgentId) => {
+    setSelectedAgentId((cur) => {
+      const next = cur === agentId ? null : agentId
+      if (next) {
+        const node = data.graph.nodes.find((n) => n.agentId === agentId)
+        if (node) {
+          setSelectedId(node.id)
+          setReplayInfo(null)
+        }
+      }
+      return next
+    })
+  }, [data.graph.nodes])
+
+  // The confirm climax: replay the focused step. If it is the true root the
+  // monitor proves the decoy first (no flip), re-targets, then the root flips →
+  // confirm. A non-root candidate replays straight to the rejection beat.
+  const onReplay = useCallback(async (stepId: string) => {
+    setMonitorDismissed(false) // a fresh replay re-opens the monitor
     const result = await replay(stepId, null)
-    setPhase(phaseForReplay(result))
-  }
+    setReplayInfo({ stepId, result })
+    const settled = phaseForReplay(result) // 'confirm' | 'rejected'
+    if (reduce || settled === 'rejected') {
+      setPhase(settled)
+      return
+    }
+    // Scripted root climax: prove the decoy first, then re-target onto the root.
+    setPhase('proving_decoy')
+    window.setTimeout(() => setPhase('proving_root'), DECOY_MS)
+    window.setTimeout(() => setPhase('confirm'), DECOY_MS * 2)
+  }, [replay, reduce])
+
+  // The floating monitor's live play-by-play, driven by the phase machine.
+  const monitorOpen = !monitorDismissed &&
+    (phase === 'proving_decoy' || phase === 'proving_root' || phase === 'confirm')
+  const monitorLines = useMemo<MonitorLine[]>(() => {
+    const decoyStep = data.attribution.candidates[1]?.step_id
+    const rootStep = data.attribution.root_step_id
+    const n = data.monitor.replay.n
+    const lines: MonitorLine[] = [{ text: '◉ localizing root cause…' }]
+    if (phase === 'proving_decoy' || phase === 'proving_root' || phase === 'confirm') {
+      lines.push({ text: `replay ${decoyStep ?? 'decoy'} · 0/${n}`, tone: 'reject' })
+      lines.push({ text: 'decoy rejected · re-targeting', tone: 'reject' })
+    }
+    if (phase === 'proving_root' || phase === 'confirm') {
+      lines.push({ text: `replay ${rootStep} · root cause` })
+    }
+    if (phase === 'confirm') {
+      lines.push({ text: `flip fail → pass · ${n}/${n}`, tone: 'pass' })
+      lines.push({ text: '✓ TRUSTED · auto-apply', tone: 'pass' })
+    }
+    return lines
+  }, [phase, data.attribution, data.monitor.replay.n])
+
+  // Picked scenario differs from the loaded run → show READY instead of a stale graph.
+  const loadedScenario = data.meta.scenario ?? data.trace.task
+  const pendingRun = picked !== loadedScenario
+  const pickedLabel = scenarios.find((s) => s.name === picked)?.label ?? picked
+  const verdict = pendingRun ? 'READY' as const
+    : phase === 'confirm' || data.trace.success ? 'PASS' : 'FAIL'
+  const trust = pendingRun ? 'untrusted' as const : trustForPhase(phase)
+  const proving = !pendingRun && (phase === 'proving_decoy' || phase === 'proving_root')
+  const rate = proving ? 0 : data.monitor.replay.confirmation_rate
+  const replayN = data.monitor.replay.n
+  const monitorLabel = !pendingRun && phase === 'confirm' ? data.monitor.decision : null
+
+  // Keyboard-driven instrument: j/k (or ↓/↑) move the selection along the spine, r replays
+  // the focused step. (DESIGN.md: blackbox is keyboard-first.)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (pendingRun || e.metaKey || e.ctrlKey || e.altKey) return
+      const nodes = data.graph.nodes
+      const idx = nodes.findIndex((n) => n.id === selectedId)
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault()
+        setStatsOpen((cur) => !cur)
+      } else if (e.key === 'Escape') {
+        setStatsOpen(false)
+      } else if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        selectNode(nodes[Math.min(nodes.length - 1, Math.max(0, idx) + 1)]?.id ?? selectedId)
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        selectNode(nodes[Math.max(0, (idx < 0 ? 0 : idx) - 1)]?.id ?? selectedId)
+      } else if ((e.key === 'r' || e.key === 'R') && selectedNode) {
+        e.preventDefault()
+        void onReplay(selectedNode.stepIds[selectedNode.stepIds.length - 1])
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [data.graph.nodes, selectedId, selectedNode, onReplay, selectNode, pendingRun])
 
   return (
-    <div className="dash">
-      <ReadoutBar
-        runId={data.trace.id}
-        task={data.trace.task}
-        verdict={verdict}
-        meta={`${data.trace.steps.length} steps · ${PHASE_STATUS[phase]}`}
-      />
-      <div className="dash__body">
-        <section className="dash__graph">
-          <TraceGraph
-            graph={data.graph}
-            status={data.status}
-            phase={phase}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-        </section>
-        <aside className="dash__inspect">
-          <Inspector
-            node={selectedNode}
-            steps={data.trace.steps}
-            attribution={data.attribution}
-            onReplay={onReplay}
-          />
-        </aside>
+    <div className={`dash${pendingRun ? ' dash--await' : ''}`}>
+      {!pendingRun && (
+        <MonitorRail
+          trace={data.trace}
+          attribution={data.attribution}
+          graph={data.graph}
+          phase={phase}
+          selectedId={selectedId}
+          onSelect={selectNode}
+          topology={topology}
+          selectedAgentId={selectedAgentId}
+          onSelectAgent={onSelectAgent}
+          monitor={data.monitor}
+        />
+      )}
+      <div className="dash__tile">
+        <ReadoutBar
+          runId={pendingRun ? picked : data.trace.id}
+          task={pendingRun ? pickedLabel : data.trace.task}
+          verdict={verdict}
+          meta={pendingRun ? 'awaiting run' : PHASE_STATUS[phase]}
+          trust={trust}
+          rate={pendingRun ? undefined : rate}
+          n={pendingRun ? undefined : replayN}
+          runtime={pendingRun ? undefined : (data.meta.domain ?? data.meta.runtime)}
+          monitorDecision={monitorLabel}
+          statsOpen={statsOpen}
+          onToggleStats={() => setStatsOpen((cur) => !cur)}
+        />
+        <ScenarioToolbar
+          scenarios={scenarios}
+          picked={picked}
+          loaded={loadedScenario}
+          onPick={setPicked}
+          onRun={() => run(picked)}
+          loading={loading}
+          error={error}
+        />
+        <div className="dash__body">
+        {pendingRun ? (
+          <div className="dash__await">
+            <div className="dash__await-card">
+              {loading ? (
+                <>
+                  <span className="dash__spinner" aria-hidden="true" />
+                  <span className="dash__await-eyebrow">running pipeline</span>
+                  <span className="dash__await-scn">{pickedLabel}</span>
+                  <span className="dash__await-hint">Executing the multi-agent graph and building the trace…</span>
+                </>
+              ) : (
+                <>
+                  <span className="dash__await-eyebrow">ready to run</span>
+                  <span className="dash__await-scn">{pickedLabel}</span>
+                  <span className="dash__await-hint">Press Run to execute this test and inspect its trace.</span>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="dash__work">
+              <section className="dash__spine">
+                <div className="pane__head">
+                  <span className="eyebrow">Topology · agent wiring</span>
+                  <span className="pane__hint tnum">{topology.agents.length} agents · {topology.handoffs.length} handoffs</span>
+                </div>
+                <Topology topology={topology} phase={phase} />
+                <div className="pane__head pane__head--spine">
+                  <span className="eyebrow">Provenance · trace</span>
+                  <span className="pane__hint tnum">{data.graph.nodes.length} actions · {data.trace.steps.length} steps</span>
+                </div>
+                <div className="dash__spine-scroll">
+                  <TraceGraph
+                    graph={data.graph}
+                    status={data.status}
+                    phase={phase}
+                    selectedId={selectedId}
+                    onSelect={selectNode}
+                  />
+                </div>
+                <MonitorPanel open={monitorOpen} lines={monitorLines} trust={trust} onClose={() => setMonitorDismissed(true)} />
+              </section>
+              <aside className="dash__inspect">
+                <div className="pane__head">
+                  <span className="eyebrow">Inspector</span>
+                  {selectedNode && <span className="pane__hint tnum">{selectedNode.id}</span>}
+                </div>
+                <Inspector
+                  node={selectedNode}
+                  steps={data.trace.steps}
+                  attribution={data.attribution}
+                  runMeta={data.meta}
+                  monitor={data.monitor}
+                  onReplay={onReplay}
+                  nodes={data.graph.nodes}
+                  onSelect={selectNode}
+                  replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
+                />
+              </aside>
+            </div>
+            <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
+          </>
+        )}
+        </div>
+        <StatsOverlay open={statsOpen} stats={stats} onClose={() => setStatsOpen(false)} />
       </div>
-      <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
     </div>
   )
 }

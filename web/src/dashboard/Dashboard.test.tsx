@@ -1,40 +1,95 @@
 // web/src/dashboard/Dashboard.test.tsx
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
 
+// claim_adjudication fixture: root s1 / INTAKE billed_amount slip; decoy s4 / ADJUSTER.
+
 describe('Dashboard', () => {
-  it('renders the readout verdict and the graph', () => {
+  it('renders the readout verdict and the trace spine', () => {
     render(<Dashboard />)
     expect(screen.getByText('FAIL')).toBeInTheDocument()
-    expect(screen.getAllByText(/parse_duration/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/INTAKE/).length).toBeGreaterThan(0)
   })
 
   it('selecting a node updates the inspector', () => {
     render(<Dashboard />)
-    // a0 is spec_interpreter (s1) — the root cause; pre-selected on first paint.
-    // Clicking it confirms the inspector shows s1's output (unit: minutes).
     fireEvent.click(screen.getByTestId('node-a0'))
-    // Scope to the inspector aside so we prove the INSPECTOR reacted to selection —
-    // the log console renders step msgs unconditionally, so a global query would pass
-    // even without selection.
     const inspector = screen.getByRole('complementary')
-    expect(within(inspector).getAllByText(/minutes/).length).toBeGreaterThan(0)
+    expect(within(inspector).getAllByText(/52000/).length).toBeGreaterThan(0)
   })
 
-  it('replaying the root candidate flips the verdict to PASS', async () => {
+  it('replaying the root candidate flips the verdict to PASS (trusted)', async () => {
     render(<Dashboard />)
-    fireEvent.click(screen.getByTestId('node-a0')) // the true root (spec_interpreter, s1)
+    fireEvent.click(screen.getByTestId('node-a0'))
     fireEvent.click(screen.getByRole('button', { name: /replay with fix/i }))
-    expect(await screen.findByText('PASS')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('PASS', {}, { timeout: 3500 })).toBeInTheDocument()
+    expect(await screen.findByText('TRUSTED', {}, { timeout: 3500 })).toBeInTheDocument()
+  }, 6000)
 
   it('replaying a decoy candidate does NOT flip the verdict (rejection beat)', async () => {
     render(<Dashboard />)
-    fireEvent.click(screen.getByTestId('node-a2')) // the decoy: test_writer (s3)
+    fireEvent.click(screen.getByTestId('node-a3'))
     fireEvent.click(screen.getByRole('button', { name: /replay candidate/i }))
-    // verdict stays FAIL; the focused decoy step does not flip the outcome
     expect(await screen.findByText('FAIL')).toBeInTheDocument()
     expect(screen.queryByText('PASS')).not.toBeInTheDocument()
+  })
+})
+
+describe('Dashboard · pending run (Dev READY state)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url.includes('/api/scenarios')) {
+        return {
+          ok: true,
+          json: async () => ([
+            { name: 'claim_adjudication', label: 'insurance · claim adjudication' },
+            { name: 'prior_auth', label: 'clinical · prior authorization' },
+          ]),
+        } as Response
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shows READY and hides the stale graph when the picked scenario is not loaded', async () => {
+    render(<Dashboard />)
+    expect(screen.getByText('FAIL')).toBeInTheDocument()
+    expect(screen.getAllByText(/INTAKE/).length).toBeGreaterThan(0)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Choose scenario' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose scenario' }))
+    fireEvent.click(screen.getByRole('button', { name: /clinical · prior authorization/i }))
+
+    expect(screen.getByText('READY')).toBeInTheDocument()
+    expect(screen.getByText(/ready to run/i)).toBeInTheDocument()
+    expect(screen.queryByText(/INTAKE/)).not.toBeInTheDocument()
+    expect(document.querySelector('.dash--await')).toBeTruthy()
+  })
+
+  it('restores the loaded trace when re-selecting the scenario that is already loaded', async () => {
+    render(<Dashboard />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Choose scenario' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Choose scenario' }))
+    fireEvent.click(screen.getByRole('button', { name: /clinical · prior authorization/i }))
+    expect(screen.getByText('READY')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose scenario' }))
+    fireEvent.click(screen.getByRole('button', { name: /insurance · claim adjudication/i }))
+
+    expect(screen.getByText('FAIL')).toBeInTheDocument()
+    expect(screen.getAllByText(/INTAKE/).length).toBeGreaterThan(0)
+    await waitFor(() => {
+      expect(document.querySelector('.dash--await')).toBeFalsy()
+    })
   })
 })

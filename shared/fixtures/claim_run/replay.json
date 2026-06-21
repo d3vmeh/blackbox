@@ -1,0 +1,38 @@
+{
+  "s1": {
+    "trace_id": "claim_run",
+    "step_id": "s1",
+    "injected_value": {
+      "amount": 4200.0
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "explanation": null
+  },
+  "s4": {
+    "trace_id": "claim_run",
+    "step_id": "s4",
+    "injected_value": {
+      "approved": true
+    },
+    "n": 5,
+    "flipped": false,
+    "confirmation_rate": 0.0,
+    "outcomes": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "explanation": null
+  }
+}

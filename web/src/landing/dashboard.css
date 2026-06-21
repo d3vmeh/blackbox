@@ -1,16 +1,16 @@
 /* The temp blackbox app shell: sidebar · trace spine · inspector.
    Lives inside <BrowserFrame>. Tokens only — see /DESIGN.md. */
 
-.dash {
+.appshell {
   display: grid;
   grid-template-columns: 208px minmax(0, 1fr) 288px;
-  height: 560px;
+  height: 592px;
   background: var(--bg);
   font-family: var(--font-mono);
 }
 
 /* ---- Sidebar ---- */
-.dash__side {
+.appshell__side {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -18,7 +18,7 @@
   border-right: 1px solid var(--line);
   background: var(--panel);
 }
-.dash__brand {
+.appshell__brand {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -28,25 +28,25 @@
   letter-spacing: var(--track-display);
   color: var(--text-bright);
 }
-.dash__mark {
+.appshell__mark {
   width: 13px; height: 13px;
   border-radius: var(--r-1);
   background: var(--bg);
   border: 1px solid var(--text-dim);
   box-shadow: inset 0 0 6px var(--root-glow);
 }
-.dash__nav { display: flex; flex-direction: column; gap: 1px; }
-.dash__navitem {
+.appshell__nav { display: flex; flex-direction: column; gap: 1px; }
+.appshell__navitem {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--r-2);
   font-size: var(--t-step);
   color: var(--text-dim);
 }
-.dash__navitem--on { background: var(--inset); color: var(--text-bright); }
+.appshell__navitem--on { background: var(--inset); color: var(--text-bright); }
 
-.dash__sectlabel { margin: var(--space-2) 0 0; }
-.dash__runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
-.dash__run {
+.appshell__sectlabel { margin: var(--space-2) 0 0; }
+.appshell__runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.appshell__run {
   display: grid;
   grid-template-columns: 10px auto 1fr;
   align-items: center;
@@ -55,16 +55,17 @@
   border-radius: var(--r-2);
   border: 1px solid transparent;
 }
-.dash__run--on { background: var(--inset); border-color: var(--line); }
-.dash__rundot { width: 7px; height: 7px; border-radius: 50%; }
-.dash__rundot--fail { background: var(--blast); box-shadow: 0 0 8px var(--blast-glow); }
-.dash__rundot--pass { background: var(--pass); }
-.dash__runid { font-size: var(--t-step); color: var(--text); }
-.dash__runtask { font-size: var(--t-label); color: var(--text-faint); justify-self: end; }
+.appshell__run--on { background: var(--inset); border-color: var(--line); }
+.appshell__rundot { width: 7px; height: 7px; border-radius: 50%; }
+.appshell__rundot--fail { background: var(--blast); box-shadow: 0 0 8px var(--blast-glow); }
+.appshell__rundot--pass { background: var(--pass); }
+.appshell__runid { font-size: var(--t-step); color: var(--text); }
+.appshell__runtask { font-size: var(--t-label); color: var(--text-faint); justify-self: end; }
 
 /* ---- Main column ---- */
-.dash__main { display: flex; flex-direction: column; min-width: 0; }
-.dash__head {
+.appshell__main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.appshell__head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -73,10 +74,10 @@
   border-bottom: 1px solid var(--line);
   background: var(--inset);
 }
-.dash__headid { display: flex; flex-direction: column; gap: 2px; }
-.dash__run-title { font-size: var(--t-step); color: var(--text-dim); }
-.dash__verdict { display: flex; align-items: center; gap: var(--space-4); }
-.dash__status { font-size: var(--t-label); color: var(--text-dim); }
+.appshell__headid { display: flex; flex-direction: column; gap: 2px; }
+.appshell__run-title { font-size: var(--t-step); color: var(--text-dim); }
+.appshell__verdict { display: flex; align-items: center; gap: var(--space-4); }
+.appshell__status { font-size: var(--t-label); color: var(--text-dim); }
 
 /* Two-tone verdict: only this word carries a signal hue. Normal width, weight 700. */
 .verdict {
@@ -99,7 +100,8 @@
   flex-direction: column;
   gap: 2px;
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  overflow-y: auto;
 }
 .step {
   position: relative;
@@ -156,7 +158,8 @@
 .step--pass .step__edge { transform: scaleX(1); }
 .spine--analyzing .step:not(.step--root) { opacity: 0.32; }
 
-.dash__foot {
+.appshell__foot {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -164,9 +167,9 @@
   border-top: 1px solid var(--line);
   background: var(--inset);
 }
-.dash__hint { font-size: var(--t-label); color: var(--text-dim); margin-right: var(--space-3); }
-.dash__foot-spacer { flex: 1; }
-.dash__replaybtn {
+.appshell__hint { font-size: var(--t-label); color: var(--text-dim); margin-right: var(--space-3); }
+.appshell__foot-spacer { flex: 1; }
+.appshell__replaybtn {
   font-family: var(--font-mono);
   font-size: var(--t-label);
   color: var(--text-dim);
@@ -176,16 +179,16 @@
   padding: 2px var(--space-2);
   transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
 }
-.dash__replaybtn:hover { color: var(--text-bright); border-color: var(--text-dim); }
+.appshell__replaybtn:hover { color: var(--text-bright); border-color: var(--text-dim); }
 
 /* ---- Inspector ---- */
-.dash__inspect {
+.appshell__inspect {
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--line);
   background: var(--panel);
 }
-.dash__inspect-head {
+.appshell__inspect-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -193,7 +196,7 @@
   border-bottom: 1px solid var(--line);
   background: var(--inset);
 }
-.dash__pill {
+.appshell__pill {
   font-size: var(--t-label);
   color: var(--text);
   background: var(--bg);
@@ -201,7 +204,7 @@
   border-radius: var(--r-1);
   padding: 1px var(--space-2);
 }
-.dash__inspect-body {
+.appshell__inspect-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -220,9 +223,9 @@
 .field__value--root { color: var(--root); }
 .field__value--blast { color: var(--blast); }
 .field__value--pass { color: var(--pass); }
-.dash__note { margin: 0; font-size: var(--t-label); color: var(--text-dim); line-height: var(--lh-body); }
+.appshell__note { margin: 0; font-size: var(--t-label); color: var(--text-dim); line-height: var(--lh-body); }
 
-.dash__replay {
+.appshell__replay {
   margin: var(--space-4);
   margin-top: 0;
   padding: var(--space-3);
@@ -237,8 +240,8 @@
 
 /* ---- Mobile: drop side panels, keep the trace spine (the core story) ---- */
 @media (max-width: 760px) {
-  .dash { grid-template-columns: 1fr; height: auto; }
-  .dash__side,
-  .dash__inspect { display: none; }
+  .appshell { grid-template-columns: 1fr; height: auto; }
+  .appshell__side,
+  .appshell__inspect { display: none; }
   .step__label { white-space: normal; }
 }

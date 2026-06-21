@@ -55,10 +55,25 @@ def setup_tracing() -> None:
     print(f"[arize] tracing on · project={project_name!r} · view at https://app.arize.com")
 
 
-def flush_tracing(timeout_ms: int = 15_000) -> None:
-    """Export pending spans before a short-lived CLI exits."""
-    if _tracer_provider is not None and hasattr(_tracer_provider, "force_flush"):
-        _tracer_provider.force_flush(timeout_millis=timeout_ms)
+def flush_tracing(timeout_ms: int = 30_000) -> bool:
+    """Export pending spans before a short-lived CLI exits. Returns True if flush succeeded."""
+    if _tracer_provider is None:
+        return True
+    if not hasattr(_tracer_provider, "force_flush"):
+        return True
+    ok = bool(_tracer_provider.force_flush(timeout_millis=timeout_ms))
+    if not ok:
+        print("[arize] warning: span export did not complete — check network/VPN and retry")
+    return ok
+
+
+def shutdown_tracing() -> None:
+    """Release the OTel provider after a batch export."""
+    global _INSTRUMENTED, _tracer_provider
+    if _tracer_provider is not None and hasattr(_tracer_provider, "shutdown"):
+        _tracer_provider.shutdown()
+    _tracer_provider = None
+    _INSTRUMENTED = False
 
 
 def get_tracer(name: str = "blackbox"):
