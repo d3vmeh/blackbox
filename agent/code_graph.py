@@ -4,10 +4,12 @@ structured hand-offs:
     SPEC-INTERPRETER -> IMPLEMENTER -> REVIEWER
                      -> TEST-WRITER -/
 
-Each agent's output is a deterministic REFERENCE function of its upstream (mock
-fallback + answer key). When a `think` (real Claude) is supplied and returns text,
-that overrides the reference. A scenario fault corrupts one field of one agent's
-output; the wrong value propagates and the acceptance oracle FAILs. Mirrors
+When a `think` (real Claude) is wired, ALL FOUR agents are real model calls — the
+spec interpreter decides the unit, the implementer writes the code, the test writer
+writes tests, the reviewer reviews. Without `think`, each agent's deterministic
+REFERENCE function stands in (the no-key fallback + answer key). A scenario fault
+corrupts one field of one agent's output; the wrong value propagates through the
+(real or reference) downstream agents and the acceptance oracle FAILs. Mirrors
 agent/ap_graph.py; same fork/replay shape."""
 from __future__ import annotations
 
@@ -21,27 +23,72 @@ from .capture import Recorder
 from .code_scenarios import AGENTS, DEFAULT, CodeScenario
 from .llm import Think
 
-# the one field each agent "decides" that we let a real model set (kept tiny for Phase 1)
-_THINK_FIELD = {"spec_interpreter": "unit"}     # other agents stay reference-only in Phase 1
-_THINK_PROMPT = {
-    "spec_interpreter": ("You convert a coding requirement into a structured spec. "
-                         "In what TIME UNIT must parse_duration's integer result be "
-                         "expressed — seconds, minutes, or hours? Answer with exactly "
-                         "one of those words.",
-                         "Requirement:\n{requirement}"),
-}
+# --- real-LLM agent implementations (used when a `think` is wired; otherwise the
+#     deterministic reference output stands in). Each returns its full output dict, or
+#     None on an unusable reply so the caller falls back to the reference. ---
+
+def _strip_code(text: Optional[str]) -> str:
+    """Pull a python block out of a model reply (drop ``` fences and a 'python' tag)."""
+    if not text:
+        return ""
+    t = text.strip()
+    if "```" in t:
+        blocks = [b for b in t.split("```") if "def " in b]
+        t = (blocks[0] if blocks else t).strip()
+        if t.lower().startswith("python"):
+            t = t.split("\n", 1)[1] if "\n" in t else ""
+    return t.strip() + "\n"
 
 
-def _apply_think(think, agent: str, scn, up: dict, out: dict) -> dict:
-    """If a real model is wired and this agent has a thinkable field, override it."""
-    field = _THINK_FIELD.get(agent)
-    if think is None or field is None:
-        return out
-    system, user_tmpl = _THINK_PROMPT[agent]
-    text = think(system, user_tmpl.format(requirement=scn.requirement))
-    if text:
-        out = {**out, field: text.strip().lower()}
-    return out
+def _keep_asserts(text: Optional[str]) -> str:
+    if not text:
+        return ""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip().startswith("assert")]
+    return ("\n".join(lines) + "\n") if lines else ""
+
+
+def _llm_spec(scn, up: dict, think: Think) -> Optional[dict]:
+    unit = think("You convert a coding requirement into a structured spec. In what TIME "
+                 "UNIT must the function's integer result be expressed — seconds, minutes, "
+                 "or hours? Answer with exactly one of those words.",
+                 f"Requirement:\n{scn.requirement}")
+    if not unit:
+        return None
+    base = scn.reference["spec_interpreter"](scn, up)
+    return {**base, "unit": unit.strip().lower().strip(".")}
+
+
+def _llm_impl(scn, up: dict, think: Think) -> Optional[dict]:
+    spec = up["spec_interpreter"]
+    code = think("You are a Python implementer. Return ONLY runnable code (no markdown, no "
+                 "prose) that defines the function.",
+                 f"Write {spec['signature']}. It parses strings like '1h2m3s', '90s', '2m' "
+                 f"and returns the total duration as an int expressed in {spec['unit']}.")
+    code = _strip_code(code)
+    return {"code": code} if "def parse_duration" in code else None
+
+
+def _llm_tests(scn, up: dict, think: Think) -> Optional[dict]:
+    spec = up["spec_interpreter"]
+    tests = think("You write Python tests. Return ONLY assert lines, nothing else.",
+                  f"Write one or two asserts for parse_duration, whose int result is in "
+                  f"{spec['unit']}. Use the input '2m30s'.")
+    tests = _keep_asserts(tests)
+    return {"tests": tests} if tests else None
+
+
+def _llm_review(scn, up: dict, think: Think) -> Optional[dict]:
+    spec, code = up["spec_interpreter"], up["implementer"]
+    verdict = think("You are a code reviewer. Reply APPROVE or REJECT, then a short reason.",
+                    f"The spec says the result must be in {spec['unit']}. Does this code "
+                    f"match the spec?\n\n{code['code']}")
+    if not verdict:
+        return None
+    return {"approved": "approve" in verdict.lower(), "notes": verdict.strip()[:120]}
+
+
+_LLM = {"spec_interpreter": _llm_spec, "implementer": _llm_impl,
+        "test_writer": _llm_tests, "reviewer": _llm_review}
 
 
 PARENTS: dict[str, list[str]] = {
@@ -66,9 +113,14 @@ class CodeContext:
 
 
 def _agent_output(ctx: CodeContext, agent: str) -> tuple[dict, bool, dict]:
-    """Reference output (correct), then real-LLM override if available, then fault."""
+    """Reference output (the answer key + no-key fallback), replaced by a real-LLM output
+    when a `think` is wired, then the scenario fault (if any) overrides one field."""
     correct = ctx.scn.reference[agent](ctx.scn, ctx.up)
-    out = _apply_think(ctx.think, agent, ctx.scn, ctx.up, dict(correct))
+    out = dict(correct)
+    if ctx.think is not None:
+        llm = _LLM[agent](ctx.scn, ctx.up, ctx.think)
+        if llm is not None:
+            out = llm
     fault = ctx.scn.fault
     is_fault = bool(fault and fault.agent == agent)
     if is_fault:
