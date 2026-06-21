@@ -46,7 +46,7 @@ export function Landing() {
         </div>
         <div className="nav__cta">
           <a className="nav__signin" href="#login">Sign in</a>
-          <button className="btn btn--solid" type="button">Start free</button>
+          <button className="btn btn--solid" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
         </div>
       </nav>
 
@@ -113,7 +113,7 @@ build_artifacts()  <span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → P
           Stop guessing which agent failed.<br />Start proving it.
         </motion.h2>
         <motion.div className="hero__actions" variants={reveal}>
-          <button className="btn btn--solid btn--lg" type="button">Start free</button>
+          <button className="btn btn--solid btn--lg" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
           <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
         </motion.div>
         <motion.p className="hero__note" variants={reveal}>

@@ -10,8 +10,8 @@ def test_gold_agent_reads_fault():
     assert _gold_agent(clean) is None
 
 
-def test_monitor_localizes_all_seven_vs_gold():
+def test_monitor_localizes_all_nine_vs_gold():
     # offline: the deterministic monitor must match gold on every scenario (no key needed)
     result = asyncio.run(main())
-    assert result["n"] == 7
-    assert result["monitor_correct"] == 7
+    assert result["n"] == 9
+    assert result["monitor_correct"] == 9

@@ -2,13 +2,14 @@
 .tg { position: relative; }
 .tg__edges { position: absolute; inset: 0; pointer-events: none; }
 .tg__node {
-  position: absolute; width: 138px; min-height: 34px; display: flex; flex-direction: column;
-  justify-content: center; gap: 1px; padding: var(--space-1) var(--space-2);
+  position: absolute; width: 172px; min-height: 46px; display: flex; flex-direction: column;
+  justify-content: center; gap: 3px; padding: var(--space-2) var(--space-3);
   background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-3);
   cursor: pointer; transition: outline-color var(--dur-micro) var(--ease-out);
-  font-family: var(--font-mono);
+  font-family: var(--font-mono); box-shadow: var(--shadow-1);
 }
-.tg__node .nk { font-size: var(--t-label); color: var(--text-faint); letter-spacing: .05em; }
+.tg__node .nk { font-size: var(--t-label); color: var(--text-faint);
+  letter-spacing: var(--track-upper); text-transform: uppercase; }
 .tg__node .nl {
   font-size: var(--t-step); color: var(--text); line-height: var(--lh-data);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -16,8 +17,12 @@
 .tg__node[data-status='root'] { border-color: var(--root); box-shadow: var(--ring-root);
   background: linear-gradient(var(--root-glow), var(--root-glow)), var(--raised); }
 .tg__node[data-status='root'] .nl { color: var(--root); }
-.tg__node[data-status='blast'] { box-shadow: inset 2px 0 0 var(--blast); }
-.tg__node[data-status='blast'] .nl { color: var(--blast); }
+/* AFFECTED = carried the root's error but is individually correct (its own output
+   matches its reference). A quiet, dim "tainted" marker — a thin rose tick + a
+   muted label, slightly recessed — NOT alarm-red, so it never looks like the
+   culprit. The bright amber root dominates; this still heals to --pass on replay. */
+.tg__node[data-status='blast'] { box-shadow: inset 2px 0 0 var(--blast); opacity: .82; }
+.tg__node[data-status='blast'] .nl { color: var(--text-dim); }
 .tg__node[data-status='decoy'] { border-style: dashed; }
 .tg__node[data-status='pass'] { box-shadow: inset 2px 0 0 var(--pass); }
 .tg__node[data-status='pass'] .nl { color: var(--pass); }
@@ -78,6 +83,96 @@
 .rb__verdict { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h2);
   letter-spacing: var(--track-verdict); }
 .rb__verdict--fail { color: var(--blast); } .rb__verdict--pass { color: var(--pass); }
-.dash__body { display: grid; grid-template-columns: 1.4fr 1fr; flex: 1; min-height: 0; }
-.dash__graph { padding: var(--space-4); overflow: auto; }
-.dash__inspect { padding: var(--space-4); border-left: 1px solid var(--line); }
+/* minmax(0,…) + min-width:0 stop a wide inspector payload (long code in a <pre>)
+   from collapsing the graph column — the long line scrolls inside the inspector. */
+.dash__body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); flex: 1; min-height: 0; }
+.dash__graph { padding: var(--space-5) var(--space-4); overflow: auto; display: flex; justify-content: center; min-width: 0; }
+.dash__inspect { padding: var(--space-4); border-left: 1px solid var(--line); min-width: 0; }
+
+/* ---- Run bar (scenario picker + Run) — top toolbar ---- */
+.dash__run { display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4); background: var(--panel);
+  border-bottom: 1px solid var(--line); font-family: var(--font-mono); }
+.dash__lab { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; color: var(--text-dim); }
+.dash__sel { font-family: var(--font-mono); font-size: var(--t-step); color: var(--text-bright);
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-2);
+  padding: var(--space-2) var(--space-3); cursor: pointer; min-width: 220px; }
+.dash__sel:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.dash__btn { font-family: var(--font-mono); font-size: var(--t-step); font-weight: 600;
+  padding: var(--space-2) var(--space-5); border-radius: var(--r-2);
+  border: 1px solid var(--text); background: var(--text); color: var(--bg); cursor: pointer;
+  transition: opacity var(--dur-micro) var(--ease-out); }
+.dash__btn:hover { opacity: .88; }
+.dash__btn:disabled { background: var(--raised); color: var(--text-dim);
+  border-color: var(--line); cursor: default; }
+.dash__err { color: var(--blast); font-size: var(--t-step); }
+
+/* ---- Inspector header + diagnosis callouts (task: clarity) ---- */
+.insp__head { display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3); margin-bottom: var(--space-4); }
+.insp__agent { font-size: var(--t-h3); color: var(--text-bright); }
+.insp__pill { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  padding: 2px var(--space-2); border-radius: var(--r-1); border: 1px solid var(--line);
+  white-space: nowrap; color: var(--text-dim); }
+.insp__pill--root { color: var(--root); border-color: var(--root); }
+.insp__pill--blast { color: var(--blast); border-color: var(--blast); }
+.insp__pill--ok { color: var(--pass); border-color: var(--pass); }
+.insp__call { border: 1px solid var(--line); border-radius: var(--r-3);
+  padding: var(--space-3); margin-bottom: var(--space-3); background: var(--inset); }
+.insp__call--root { box-shadow: inset 3px 0 0 var(--root);
+  background: linear-gradient(var(--root-glow), var(--root-glow)), var(--inset); }
+.insp__call--blast { box-shadow: inset 3px 0 0 var(--blast); }
+.insp__callk { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: var(--space-1); }
+.insp__callv { font-size: var(--t-body); color: var(--text-bright); line-height: var(--lh-data); }
+.insp__call--root .insp__callv { color: var(--root); }
+.insp__callsub { font-size: var(--t-label); color: var(--text-faint); margin-top: var(--space-1);
+  font-variant-numeric: tabular-nums; }
+.insp__why { font-size: var(--t-step); color: var(--text); line-height: var(--lh-body);
+  margin: 0 0 var(--space-4); }
+.insp__hint { display: block; margin-top: var(--space-2); font-size: var(--t-label);
+  color: var(--text-faint); }
+
+/* ---- Rendered code output (syntax-highlighted, line-numbered) ---- */
+.insp__codewrap { margin-bottom: var(--space-3); }
+.insp__codek { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: var(--space-1); }
+.cb { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-2);
+  padding: var(--space-2) 0; font-family: var(--font-mono); font-size: var(--t-step);
+  line-height: var(--lh-data); max-height: 320px; overflow: auto; }
+.cb code { font-family: inherit; }
+.cb__line { display: flex; gap: var(--space-3); padding: 0 var(--space-3); white-space: pre; }
+.cb__line:hover { background: var(--inset); }
+.cb__ln { flex: 0 0 auto; width: 1.6em; text-align: right; color: var(--text-faint);
+  user-select: none; font-variant-numeric: tabular-nums; }
+.cb__src { white-space: pre; }
+.insp__raw { margin-top: var(--space-2); }
+.insp__raw summary { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; color: var(--text-dim); cursor: pointer; user-select: none; }
+.insp__raw summary:hover { color: var(--text); }
+.insp__raw .insp__pre { margin-top: var(--space-2); }
+
+/* ---- Replay outcome: what was fixed + did it flip (before=blast, after=pass) ---- */
+.insp__replay { margin-top: var(--space-3); border: 1px solid var(--line);
+  border-radius: var(--r-3); padding: var(--space-3); }
+.insp__replay--pass { box-shadow: inset 3px 0 0 var(--pass);
+  background: linear-gradient(var(--pass-glow), var(--pass-glow)), var(--inset); }
+.insp__replay--reject { box-shadow: inset 3px 0 0 var(--text-faint); background: var(--inset); }
+.insp__replayhd { font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; margin-bottom: var(--space-2); }
+.insp__replay--pass .insp__replayhd { color: var(--pass); }
+.insp__replay--reject .insp__replayhd { color: var(--text-dim); }
+.insp__fix { margin-bottom: var(--space-2); }
+.insp__fixrow { display: flex; align-items: center; gap: var(--space-2); padding: 2px 0;
+  font-family: var(--font-mono); font-size: var(--t-step); }
+.insp__fixk { color: var(--text-dim); }
+.insp__fixbefore { color: var(--blast); text-decoration: line-through; }
+.insp__fixarrow { color: var(--text-faint); }
+.insp__fixafter { color: var(--pass); }
+.insp__fixcode { margin: var(--space-2) 0; }
+.insp__replayexpl { font-size: var(--t-body); color: var(--text-bright);
+  line-height: var(--lh-body); margin: var(--space-2) 0 0;
+  padding-left: var(--space-3); border-left: 2px solid var(--pass); }
+.insp__replaywhy { font-size: var(--t-step); color: var(--text-dim);
+  line-height: var(--lh-body); margin: var(--space-2) 0 0; }

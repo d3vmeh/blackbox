@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 
-from .graph import _LLM, run_code
+from .graph import _LLM, CODE_MODEL, run_code
 from .monitor import investigate
 from .scenarios import AGENTS, DEFAULT
 from ..llm import make_think
@@ -37,7 +37,7 @@ def _diffs(step) -> dict:
 def main(argv: list[str]) -> None:
     live = "--live" in argv
     verbose = "--verbose" in argv or "-v" in argv
-    think = make_think(use_real_llm=True, max_tokens=1500) if live else None  # code needs room
+    think = make_think(use_real_llm=True, model=CODE_MODEL, max_tokens=1500) if live else None  # code needs room
 
     trace = run_code(DEFAULT, think=think)
     print(f"task   : {trace.task}")

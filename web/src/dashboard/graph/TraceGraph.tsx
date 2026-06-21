@@ -20,15 +20,24 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
   return (
     <div className="tg" style={{ width: l.width, height: l.height }}>
       <svg className="tg__edges" width={l.width} height={l.height} viewBox={`0 0 ${l.width} ${l.height}`}>
+        <defs>
+          <marker id="tg-arrow" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto">
+            <path d="M0 0 L6 3 L0 6 Z" fill="var(--edge)" />
+          </marker>
+          <marker id="tg-arrow-poison" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto">
+            <path d="M0 0 L6 3 L0 6 Z" fill="var(--blast)" />
+          </marker>
+        </defs>
         {l.edges.map((e) => (
           <path
             key={`${e.from}-${e.to}`}
             d={e.d}
             fill="none"
             stroke={e.poison ? 'var(--blast)' : 'var(--edge)'}
-            strokeWidth={e.poison ? 1.6 : 1}
+            strokeWidth={e.poison ? 1.8 : 1.2}
             strokeDasharray={e.longHop ? '4 4' : undefined}
-            opacity={e.poison ? 0.85 : 0.5}
+            opacity={e.poison ? 0.9 : 0.6}
+            markerEnd={`url(#${e.poison ? 'tg-arrow-poison' : 'tg-arrow'})`}
           />
         ))}
       </svg>

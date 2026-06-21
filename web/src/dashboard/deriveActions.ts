@@ -14,7 +14,7 @@ function labelFor(step: Step): string {
   const display = step.raw?.display
   if (typeof display === 'string') return display
   const agent = step.raw?.agent
-  if (typeof agent === 'string') return agent.toUpperCase()
+  if (typeof agent === 'string' && agent) return agent
   if (step.tool_name) return step.tool_name
   const out = typeof step.output === 'string' ? step.output : ''
   return out.length > 48 ? `${out.slice(0, 47)}…` : out || step.kind

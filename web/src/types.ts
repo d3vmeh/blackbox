@@ -106,6 +106,8 @@ export interface ReplayResult {
   confirmation_rate: number
   /** per-run pass/fail */
   outcomes: boolean[]
+  /** plain-English "why this fix works" (optional; LLM-generated live, template in mock) */
+  explanation?: string | null
 }
 
 /** Trust gate: replay-proven fix is trusted, or escalated to a human. */

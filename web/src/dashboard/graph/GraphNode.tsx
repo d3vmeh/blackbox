@@ -2,7 +2,7 @@
 import type { ActionNode, NodeStatus } from '../types'
 
 const KIND_TAG: Record<ActionNode['kind'], string> = {
-  reason: 'RSN', tool_call: 'TOOL', tool_result: 'TOOL', decision: 'DEC', final: 'FIN',
+  reason: 'REASON', tool_call: 'TOOL', tool_result: 'TOOL', decision: 'AGENT', final: 'FINAL',
 }
 
 export function GraphNode({ node, status, selected, onSelect, style }: {
@@ -22,7 +22,7 @@ export function GraphNode({ node, status, selected, onSelect, style }: {
       style={style}
       onClick={() => onSelect(node.id)}
     >
-      <span className="nk">{node.id} · {KIND_TAG[node.kind]}</span>
+      <span className="nk">{KIND_TAG[node.kind]}</span>
       <span className="nl">{node.label}</span>
     </button>
   )

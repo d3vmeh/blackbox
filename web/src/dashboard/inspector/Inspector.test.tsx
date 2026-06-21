@@ -61,4 +61,27 @@ describe('Inspector', () => {
     render(<Inspector node={null} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor} onReplay={() => {}} />)
     expect(screen.getByText(/select a node/i)).toBeInTheDocument()
   })
+
+  it('spells out what a confirmed-fix replay changed (before → after + flip)', () => {
+    const result = {
+      trace_id: 't', step_id: 's3', injected_value: { depart_date: '2024-07-12' },
+      n: 5, flipped: true, confirmation_rate: 1, outcomes: [true, true, true, true, true],
+    }
+    render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor}
+      onReplay={() => {}} replayResult={result} />)
+    expect(screen.getByText(/fix confirmed/i)).toBeInTheDocument()
+    expect(screen.getAllByText('2024-12-07').length).toBeGreaterThan(0) // before (the bad value)
+    expect(screen.getByText('2024-07-12')).toBeInTheDocument()           // after (the injected fix)
+    expect(screen.getByText(/flipped FAIL → PASS/)).toBeInTheDocument()  // the outcome sentence
+  })
+
+  it('shows a non-flip replay as proof the step is NOT the cause', () => {
+    const result = {
+      trace_id: 't', step_id: 's3', injected_value: null,
+      n: 5, flipped: false, confirmation_rate: 0, outcomes: [false, false, false, false, false],
+    }
+    render(<Inspector node={node} steps={steps} attribution={attribution} runMeta={runMeta} monitor={monitor}
+      onReplay={() => {}} replayResult={result} />)
+    expect(screen.getByText('✗ NOT THE CAUSE')).toBeInTheDocument()
+  })
 })
