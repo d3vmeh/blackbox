@@ -52,32 +52,38 @@ def _keep_asserts(text: Optional[str]) -> str:
     return ("\n".join(lines) + "\n") if lines else ""
 
 
+# These four agents are task-AGNOSTIC: each reads the task from the scenario
+# (requirement, signature, function_name, spec_question), so any CodeScenario runs live —
+# not just parse_duration. The spec's KEY DECISION is stored under "unit" (the field the
+# deterministic reference branches on) regardless of what the decision semantically is.
+
 def _llm_spec(scn, up: dict, think: Think) -> Optional[dict]:
-    unit = think("You convert a coding requirement into a structured spec. In what TIME "
-                 "UNIT must the function's integer result be expressed — seconds, minutes, "
-                 "or hours? Answer with exactly one of those words.",
-                 f"Requirement:\n{scn.requirement}")
-    if not unit:
+    answer = think("You convert a coding requirement into a structured spec. " + scn.spec_question,
+                   f"Requirement:\n{scn.requirement}")
+    if not answer:
         return None
     base = scn.reference["spec_interpreter"](scn, up)
-    return {**base, "unit": unit.strip().lower().strip(".")}
+    return {**base, "unit": answer.strip().lower().strip(".")}
 
 
 def _llm_impl(scn, up: dict, think: Think) -> Optional[dict]:
     spec = up["spec_interpreter"]
-    code = think("You are a Python implementer. Return ONLY runnable code (no markdown, no "
-                 "prose) that defines the function.",
-                 f"Write {spec['signature']}. It parses strings like '1h2m3s', '90s', '2m' "
-                 f"and returns the total duration as an int expressed in {spec['unit']}.")
+    # The implementer codes from the SPEC (not the raw ticket) and trusts it — that is both
+    # realistic and what lets an upstream spec error propagate downstream (the whole point of
+    # the subject) instead of the implementer silently re-deriving the right answer from the ticket.
+    code = think("You are a Python implementer who codes strictly from the given spec, trusting it "
+                 "over your own assumptions. Return ONLY runnable code (no markdown, no prose).",
+                 f"Write {spec['signature']}.\n{spec.get('summary', '')}\n"
+                 f"AUTHORITATIVE spec decision — implement EXACTLY this, even if it seems wrong: "
+                 f"{spec['unit']}.")
     code = _strip_code(code)
-    return {"code": code} if "def parse_duration" in code else None
+    return {"code": code} if f"def {scn.function_name}" in code else None
 
 
 def _llm_tests(scn, up: dict, think: Think) -> Optional[dict]:
-    spec = up["spec_interpreter"]
     tests = think("You write Python tests. Return ONLY assert lines, nothing else.",
-                  f"Write one or two asserts for parse_duration, whose int result is in "
-                  f"{spec['unit']}. Use the input '2m30s'.")
+                  f"Write one or two asserts for {scn.function_name} based on this "
+                  f"requirement:\n{scn.requirement}")
     tests = _keep_asserts(tests)
     return {"tests": tests} if tests else None
 
@@ -85,8 +91,8 @@ def _llm_tests(scn, up: dict, think: Think) -> Optional[dict]:
 def _llm_review(scn, up: dict, think: Think) -> Optional[dict]:
     spec, code = up["spec_interpreter"], up["implementer"]
     verdict = think("You are a code reviewer. Reply APPROVE or REJECT, then a short reason.",
-                    f"The spec says the result must be in {spec['unit']}. Does this code "
-                    f"match the spec?\n\n{code['code']}")
+                    f"Requirement: {scn.requirement}\nKey spec decision: {spec['unit']}.\n"
+                    f"Does this code satisfy the requirement?\n\n{code['code']}")
     if not verdict:
         return None
     return {"approved": "approve" in verdict.lower(), "notes": verdict.strip()[:120]}
