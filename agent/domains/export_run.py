@@ -66,11 +66,25 @@ def _meta(spec, root_agent: str, monitor: MonitorDecision) -> dict:
     }
 
 
-def build_artifacts(domain_id: str = HERO_ID) -> dict:
+def _clean_artifacts(spec, trace) -> dict:
+    """A live domain run where the model happened to produce the correct output — no root cause."""
+    empty = ReplayResult(trace_id=spec.domain_id, step_id="", injected_value=None, n=0,
+                         flipped=False, confirmation_rate=0.0, outcomes=[])
+    monitor = MonitorDecision(trace_id=spec.domain_id, root_step_id="", replay=empty,
+                              trusted=True, decision="auto_apply")
+    attribution = Attribution(trace_id=spec.domain_id, root_step_id="", blast_radius=[],
+                              candidates=[], rationale="No failure this run — the live agent chose "
+                              "the correct option. Re-run to surface the natural error.")
+    return {"trace": trace.model_dump(), "attribution": attribution.model_dump(),
+            "replays": {}, "monitor": monitor.model_dump(), "meta": _meta(spec, "", monitor)}
+
+
+def build_artifacts(domain_id: str = HERO_ID, *, think=None) -> dict:
     spec = get_spec(domain_id)
-    trace = run_pipeline(spec, trace_id=domain_id)
+    trace = run_pipeline(spec, trace_id=domain_id, think=think)
     if trace.success:
-        raise ValueError(f"expected failing run for {domain_id}")
+        # deterministic domains always fail (injected); a live domain can pass if the model is right
+        return _clean_artifacts(spec, trace)
 
     found = localize(trace, spec)
     if found is None:
@@ -117,12 +131,18 @@ def build_artifacts(domain_id: str = HERO_ID) -> dict:
     trace = trace.model_copy(update={"gold_root_step_id": root.id, "success": False})
     replays = {root.id: root_replay, decoy.id: decoy_replay}
 
+    meta = _meta(spec, agent, monitor)
+    if think is not None and agent in spec.live:
+        # this run's root agent actually ran on a real model — say so (honest LIVE label)
+        meta["engine"] = f"{spec.engine} · LIVE real Claude (Haiku)"
+        meta["live_agent"] = agent
+
     return {
         "trace": trace.model_dump(),
         "attribution": attribution.model_dump(),
         "replays": {k: v.model_dump() for k, v in replays.items()},
         "monitor": monitor.model_dump(),
-        "meta": _meta(spec, agent, monitor),
+        "meta": meta,
     }
 
 

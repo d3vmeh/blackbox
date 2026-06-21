@@ -103,11 +103,16 @@ def run(req: RunRequest) -> dict:
         return {"trace": art["trace"], "attribution": art["attribution"],
                 "replay": art["replays"], "meta": meta, "monitor": monitor}
 
-    # --- deterministic demo domains ---
+    # --- demo domains (deterministic by default; procurement_gpu's browser runs LIVE when live=True) ---
     if req.scenario not in BY_ID:
         raise HTTPException(status_code=404, detail=f"unknown scenario {req.scenario!r}")
+    dthink = None
+    if req.live:
+        from agent.code.graph import CODE_MODEL
+        from agent.llm import make_think
+        dthink = make_think(use_real_llm=True, model=CODE_MODEL, max_tokens=80)
     try:
-        art = domain_build(req.scenario)
+        art = domain_build(req.scenario, think=dthink)
     except Exception as exc:
         raise HTTPException(status_code=502,
                             detail=f"domain run failed: {type(exc).__name__}: {exc}")

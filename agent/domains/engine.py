@@ -38,6 +38,10 @@ class PipelineSpec:
     decoy_override: dict[str, Any]
     run_order: tuple[RunStep, ...]
     pipeline_stages: tuple[str, ...] = ("record", "localize", "confirm", "supervise")
+    # Optional real-LLM agents: agent -> fn(up, think) -> output dict (or None to fall back to
+    # the deterministic `compute`). Only consulted when a `think` is wired (live mode); the
+    # `compute` fn stays the deterministic answer-key used for localize + replay regardless.
+    live: dict[str, Callable[[dict[str, Any], Any], Optional[dict]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -48,6 +52,7 @@ class RunContext:
     last: dict[str, str] = field(default_factory=dict)
     fork_agent: Optional[str] = None
     override: Optional[dict] = None
+    think: Any = None   # real-LLM callable; when set, spec.live[agent] runs for that agent
 
 
 def _ne(a: Any, b: Any) -> bool:
@@ -57,7 +62,16 @@ def _ne(a: Any, b: Any) -> bool:
 
 
 def _compute(ctx: RunContext, agent: str) -> tuple[dict, bool, dict]:
-    correct = ctx.spec.compute[agent](ctx.up)
+    correct = ctx.spec.compute[agent](ctx.up)        # deterministic answer key (localize + replay)
+    live_fn = ctx.spec.live.get(agent)
+    if ctx.think is not None and live_fn is not None:
+        # LIVE: the agent's real output is whatever the model produced — a NATURAL result, no
+        # injection. It fails iff the model diverges from the answer key on its own.
+        llm = live_fn(ctx.up, ctx.think)
+        out = llm if llm is not None else dict(correct)
+        is_fault = any(_ne(out.get(k), correct.get(k)) for k in correct)
+        return out, is_fault, correct
+    # DETERMINISTIC: inject the scripted demo fault.
     out = dict(correct)
     fault = ctx.spec.primary_fault
     if fault.agent == agent:
@@ -112,9 +126,9 @@ def _run_parallel(ctx: RunContext, agents: tuple[str, ...]) -> None:
 
 
 def run_pipeline(spec: PipelineSpec, *, trace_id: str, fork_agent: Optional[str] = None,
-                 override: Optional[dict] = None) -> Trace:
+                 override: Optional[dict] = None, think: Any = None) -> Trace:
     ctx = RunContext(spec=spec, rec=Recorder(trace_id, spec.task),
-                     fork_agent=fork_agent, override=override)
+                     fork_agent=fork_agent, override=override, think=think)
     for step in spec.run_order:
         if isinstance(step, tuple):
             _run_parallel(ctx, step)
