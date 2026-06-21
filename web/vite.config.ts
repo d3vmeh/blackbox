@@ -5,7 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   // dev server may read the shared fixture one level up from web/
-  server: { fs: { allow: ['..'] } },
+  server: {
+    fs: { allow: ['..'] },
+    proxy: { '/api': 'http://localhost:8000' },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
