@@ -28,9 +28,9 @@
 
   /* ---- Three reserved SEMANTIC signals (the product's whole point: WHERE the
      failure is). Applied as thin edge + text only — never tinted fills or glows. ---- */
-  --root:         #d9954a;  /* ROOT CAUSE   muted amber */
-  --blast:        #d75c6c;  /* BLAST RADIUS dusty rose */
-  --pass:         #4fb98c;  /* CONFIRMED    sage emerald */
+  --root:         #e6a12e;  /* ROOT CAUSE   sharp gold/amber */
+  --blast:        #e23d52;  /* BLAST RADIUS clean crimson */
+  --pass:         #46c08a;  /* CONFIRMED    emerald */
   --root-glow:    transparent;  /* glows removed — flat */
   --blast-glow:   transparent;
   --pass-glow:    transparent;

@@ -36,7 +36,7 @@
   padding: 0 var(--space-3);
   background: var(--inset);
   border: var(--hair) solid var(--line);
-  border-radius: var(--r-2);
+  border-radius: var(--r-1);
 
   font-size: var(--t-label);
   font-weight: 500;
@@ -55,10 +55,11 @@
   border-color: var(--root);
   box-shadow: var(--ring-root);
 }
-/* blast agents — on the poisoned forward slice: edge + text, no glow flood */
+/* blast agents — on the poisoned forward slice. Kept NEUTRAL here so the signal
+   isn't sprayed across two redundant views; the provenance graph carries blast. */
 .topo__node[data-status='blast'] {
-  color: var(--blast);
-  border-color: var(--blast);
+  color: var(--text);
+  border-color: var(--line);
 }
 /* confirmed-fix sweep (confirm beat lifts blast/root → pass at agent grain) */
 .topo__node[data-status='pass'] {
@@ -89,9 +90,10 @@
 .topo__edge[data-has-handoff='false'] .topo__edge-line {
   background: var(--line);
 }
-/* poison overlay — toggled by opacity (motion); --blast is the only color */
+/* poison overlay — toggled by opacity (motion). Muted toward neutral so the
+   topology strip stays quiet; the provenance graph below carries the blast. */
 .topo__edge-poison {
-  background: var(--blast);
+  background: color-mix(in srgb, var(--blast) 45%, var(--edge));
 }
 
 @media (prefers-reduced-motion: reduce) {
