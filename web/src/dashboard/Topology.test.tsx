@@ -1,6 +1,6 @@
 // web/src/dashboard/Topology.test.tsx
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { Topology } from './Topology'
 import { deriveActions } from './deriveActions'
 import { deriveTopology } from './deriveTopology'
@@ -13,22 +13,12 @@ const TOPO: AgentTopology = deriveTopology(
 )
 
 describe('Topology', () => {
-  // Edge connectors sit between adjacent agent nodes, so there is one per gap.
-  const ADJACENT_POISONED = TOPO.agents.reduce((count, agent, i) => {
-    const next = TOPO.agents[i + 1]
-    if (!next) return count
-    const edge = TOPO.handoffs.find(
-      (h) =>
-        (h.from === agent.id && h.to === next.id) ||
-        (h.from === next.id && h.to === agent.id),
-    )
-    return edge?.poisoned ? count + 1 : count
-  }, 0)
+  const POISONED = TOPO.handoffs.filter((h) => h.poisoned).length
 
-  it('renders one node per agent and a connector between each adjacent pair', () => {
+  it('renders one node per agent and one edge per handoff (the real wiring)', () => {
     render(<Topology topology={TOPO} phase="blast" />)
     expect(screen.getAllByTestId('topology-node')).toHaveLength(TOPO.agents.length)
-    expect(screen.getAllByTestId('topology-edge')).toHaveLength(TOPO.agents.length - 1)
+    expect(screen.getAllByTestId('topology-edge')).toHaveLength(TOPO.handoffs.length)
   })
 
   it('gives the root agent node the root treatment once the cascade has run', () => {
@@ -43,11 +33,11 @@ describe('Topology', () => {
     expect(rootNodes).toHaveLength(1)
   })
 
-  it('marks poisoned connectors once blast has run', () => {
+  it('lights every poisoned handoff wire once blast has run', () => {
     render(<Topology topology={TOPO} phase="blast" />)
     const edges = screen.getAllByTestId('topology-edge')
     const litEdges = edges.filter((e) => e.getAttribute('data-poisoned') === 'true')
-    expect(litEdges).toHaveLength(ADJACENT_POISONED)
+    expect(litEdges).toHaveLength(POISONED)
   })
 
   it('stays fully neutral in the idle phase (no signal before the cascade)', () => {
@@ -57,6 +47,31 @@ describe('Topology', () => {
     }
     for (const edge of screen.getAllByTestId('topology-edge')) {
       expect(edge).toHaveAttribute('data-poisoned', 'false')
+    }
+  })
+
+  it('drives selection: clicking an agent node calls onSelectAgent', () => {
+    const onSelectAgent = vi.fn()
+    render(<Topology topology={TOPO} phase="analyze" onSelectAgent={onSelectAgent} />)
+    const fraud = screen.getAllByTestId('topology-node').find((n) => n.textContent === 'fraud')!
+    fireEvent.click(fraud)
+    expect(onSelectAgent).toHaveBeenCalledWith('fraud')
+  })
+
+  it('cross-highlights the selected agent and dims the rest', () => {
+    render(<Topology topology={TOPO} phase="analyze" selectedAgentId="coverage" onSelectAgent={() => {}} />)
+    const nodes = screen.getAllByTestId('topology-node')
+    const coverage = nodes.find((n) => n.textContent === 'coverage')!
+    const other = nodes.find((n) => n.textContent === 'payout')!
+    expect(coverage).toHaveAttribute('data-selected', 'true')
+    expect(coverage).not.toHaveAttribute('data-dimmed')
+    expect(other).toHaveAttribute('data-dimmed', 'true')
+  })
+
+  it('nodes are inert (disabled) when no onSelectAgent handler is given', () => {
+    render(<Topology topology={TOPO} phase="analyze" />)
+    for (const node of screen.getAllByTestId('topology-node')) {
+      expect(node).toBeDisabled()
     }
   })
 })

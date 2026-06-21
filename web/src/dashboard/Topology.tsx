@@ -1,25 +1,34 @@
 // web/src/dashboard/Topology.tsx
-// The compact horizontal agent-wiring DAG strip that sits atop the spine panel.
-// Renders one node per agent (left→right, first-seen order) with handoff edges
-// between them. Quiet by default; the three reserved signals are the only color:
-//   · root  agent node → --root (the agent that owns the localized root cause)
-//   · blast agent node → --blast (an agent on the poisoned forward slice)
-//   · poisoned handoff edge → --blast, LIT in sync with the blast phase
+// The agent-wiring DAG that sits atop the spine — the MACRO lens. It lays agents
+// out left→right by causal depth (layoutTopology) so the real wiring shows: a
+// linear run is one row, a branch fans into rows. It is the only NAVIGABLE view
+// of the run — clicking an agent drives the selection that the trace spine below
+// reacts to, so the two stop being twins (one is the index, one is the detail).
+//
+// Color obeys DESIGN.md's closed 3-signal set, applied only via data-status:
+//   · root agent node     → --root (owns the localized root cause)
+//   · poisoned handoff edge → --blast, LIT from the blast beat onward — THIS is
+//     topology's headline: the wire the poison crossed, which the time-ordered
+//     trace can't say as cleanly.
 //   · everything else stays neutral (--text-dim / --edge)
 //
 // Agents are differentiated by POSITION + LABEL only — never a per-agent hue.
-// Edge poison-tint animates with OPACITY only (transform/opacity rule); under
+// Poison tint animates with OPACITY only (transform/opacity rule); under
 // prefers-reduced-motion it snaps to its final state with identical colors.
-//
-// Consumes deriveTopology() output verbatim — it does NOT recompute topology.
 import { motion, useReducedMotion } from 'motion/react'
 import type { AgentTopology, NodeStatus } from './types'
+import type { AgentId } from '../types'
 import type { Phase } from './phase'
+import { layoutTopology, NODE_W, NODE_H } from './layoutTopology'
 import './Topology.css'
 
 export interface TopologyProps {
   topology: AgentTopology
   phase: Phase
+  /** the agent cross-highlighted with the spine (null = none) */
+  selectedAgentId?: AgentId | null
+  /** click an agent node to drive the trace below */
+  onSelectAgent?: (agentId: AgentId) => void
 }
 
 /**
@@ -33,61 +42,66 @@ function blastReached(phase: Phase): boolean {
 
 const SPRING = { type: 'spring', stiffness: 360, damping: 34, mass: 1 } as const
 
-export function Topology({ topology, phase }: TopologyProps) {
+export function Topology({ topology, phase, selectedAgentId = null, onSelectAgent }: TopologyProps) {
   const reduce = useReducedMotion()
   const lit = blastReached(phase)
-  const { agents, handoffs } = topology
+  const { nodes, edges, width, height } = layoutTopology(topology)
+  const interactive = !!onSelectAgent
 
   // Node status only carries a signal once the cascade has run; before that the
   // whole strip is neutral so the idle readout stays quiet.
   const nodeStatus = (status: NodeStatus): NodeStatus => (lit ? status : 'neutral')
 
   return (
-    <div className="topo" data-testid="topology" role="img" aria-label="agent wiring diagram">
-      <ol className="topo__row">
-        {agents.map((agent, i) => {
-          // Is there a handoff between this agent and the next one in the row?
-          const next = agents[i + 1]
-          const edge =
-            next &&
-            handoffs.find(
-              (h) =>
-                (h.from === agent.id && h.to === next.id) ||
-                (h.from === next.id && h.to === agent.id),
-            )
-          const edgePoisoned = !!edge?.poisoned && lit
-
-          return (
-            <li className="topo__cell" key={agent.id}>
-              <span
-                className="topo__node"
-                data-status={nodeStatus(agent.status)}
-                data-testid="topology-node"
-                title={agent.label}
-              >
-                {agent.label}
-              </span>
-              {next && (
-                <span
-                  className="topo__edge"
-                  data-testid="topology-edge"
-                  data-has-handoff={edge ? 'true' : 'false'}
-                  data-poisoned={edgePoisoned ? 'true' : 'false'}
-                  aria-hidden="true"
+    <div className="topo" data-testid="topology">
+      <div
+        className="topo__canvas"
+        style={{ width, height }}
+        role="group"
+        aria-label="agent wiring diagram"
+      >
+        <svg className="topo__edges" width={width} height={height} aria-hidden="true">
+          {edges.map((edge) => {
+            const poisoned = edge.poisoned && lit
+            return (
+              <g key={`${edge.from}->${edge.to}`} data-testid="topology-edge" data-poisoned={poisoned ? 'true' : 'false'}>
+                <path className="topo__edge-line" d={edge.d} fill="none" />
+                <motion.path
+                  className="topo__edge-poison"
+                  d={edge.d}
+                  fill="none"
+                  initial={false}
+                  animate={{ opacity: poisoned ? 1 : 0 }}
+                  transition={reduce ? { duration: 0 } : SPRING}
                 >
-                  <span className="topo__edge-line" />
-                  <motion.span
-                    className="topo__edge-poison"
-                    initial={false}
-                    animate={{ opacity: edgePoisoned ? 1 : 0 }}
-                    transition={reduce ? { duration: 0 } : SPRING}
-                  />
-                </span>
-              )}
-            </li>
+                  <title>{`${edge.from} → ${edge.to}${poisoned ? ' · poison crossed here' : ' · handoff'}`}</title>
+                </motion.path>
+              </g>
+            )
+          })}
+        </svg>
+        {nodes.map((node) => {
+          const selected = selectedAgentId === node.id
+          const dimmed = selectedAgentId != null && !selected
+          return (
+            <button
+              key={node.id}
+              type="button"
+              className="topo__node"
+              data-status={nodeStatus(node.status)}
+              data-selected={selected ? 'true' : undefined}
+              data-dimmed={dimmed ? 'true' : undefined}
+              data-testid="topology-node"
+              disabled={!interactive}
+              title={node.label}
+              onClick={() => onSelectAgent?.(node.id)}
+              style={{ left: node.x, top: node.y, width: NODE_W, height: NODE_H }}
+            >
+              {node.label}
+            </button>
           )
         })}
-      </ol>
+      </div>
     </div>
   )
 }

@@ -72,7 +72,7 @@
   --font-mono:    ui-monospace, SFMono-Regular, Menlo, Consolas,
                   "Liberation Mono", monospace;
   --t-label:   11px; --t-step: 13px; --t-body: 14px; --t-h3: 18px;
-  --t-h2:      26px; --t-verdict: 40px;
+  --t-h2:      26px; --t-verdict: 20px;  /* the FAIL/PASS verdict word (mono, instrument readout) */
   --lh-tight: 1.1; --lh-data: 1.25; --lh-body: 1.4;
   --track-display: -0.01em;
   --track-verdict: -0.02em;
