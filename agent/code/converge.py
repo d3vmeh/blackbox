@@ -5,7 +5,7 @@ the guilty agent two ways and score each against the gold:
   • deterministic monitor (monitor.investigate) — reliable, no key, and
   • P2's general attribute() LLM-judge — needs ANTHROPIC_API_KEY for its Haiku judges.
 
-Run from repo root:  python -m agent.converge_code
+Run from repo root:  python -m agent.code.converge
 (Without a key the P2 column is skipped; the monitor column is the meaningful one.)
 """
 from __future__ import annotations

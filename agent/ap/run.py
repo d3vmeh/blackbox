@@ -1,14 +1,14 @@
 """P1 — CLI demo of the AP system + the Blackbox monitor (single scenario).
 
-    python -m agent.run_ap
-    python -m agent.run_ap --arize   # export spans to Arize AX (https://app.arize.com)
+    python -m agent.ap.run
+    python -m agent.ap.run --arize   # export spans to Arize AX (https://app.arize.com)
     python -m eval.arize_pipeline    # export + code/LLM evals + meta + experiment report
-    python -m agent.run_ap --otel    # export spans to local Phoenix (run `phoenix serve` first)
+    python -m agent.ap.run --otel    # export spans to local Phoenix (run `phoenix serve` first)
 
 Runs the invoice-paying agents (with an injected misread), shows the company pay the
 wrong bill, then the monitor localizes the agent that started it, PROVES the fix by
 counterfactual replay (FAIL→PASS), and self-heals. For the full labeled suite across
-different fault sites, see `python -m agent.run_ap_suite`.
+different fault sites, see `python -m agent.ap.run_suite`.
 """
 
 from __future__ import annotations

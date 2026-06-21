@@ -12,13 +12,13 @@
 > ## STATUS — target vs current (read first)
 > This document describes the **target** system; parts of the present-tense prose
 > below are now **behind the as-built code**. Reconciled **2026-06-20** against `main`:
-> - **Built & tested (backend):** `agent/ap_graph.py` (5-agent AP runtime,
->   MATCHER∥FRAUD), `agent/ap_scenarios.py` (10 labeled scenarios — faults injectable
->   at **any** agent), `agent/monitor.py`, `eval/ap_oracle.py`, `replay/replay.py`,
+> - **Built & tested (backend):** `agent/ap/graph.py` (5-agent AP runtime,
+>   MATCHER∥FRAUD), `agent/ap/scenarios.py` (10 labeled scenarios — faults injectable
+>   at **any** agent), `agent/ap/monitor.py`, `eval/ap_oracle.py`, `replay/replay.py`,
 >   and all of `attribution/` (`localize.py` / `judges.py` / `provenance.py` /
 >   `regression.py`). **None raise `NotImplementedError`.** The flight benchmark
 >   (`shared/fixtures/benchmark/`, 30 labeled traces) scores **30/30** attribution
->   (the "~14%" comparison stat). `agent/converge_ap.py` shows the monitor localizes
+>   (the "~14%" comparison stat). `agent/ap/converge.py` shows the monitor localizes
 >   **10/10 vs gold** across all five fault sites, P2 `attribute()` proven-convergent
 >   (live node-judges need `ANTHROPIC_API_KEY`).
 > - **Not yet built:** the **multi-agent dashboard** — `web/src/` is the basic landing
@@ -279,11 +279,12 @@ blackbox/
                          #   flight_fail.json's 30-step shape + agent tags + cross-agent hand-off
                          #   parents + a decoy. Becomes the DEMO source of truth once authored.
 
-  agent/                 # P1 — multi-agent runtime + capture + the monitor   [ap_graph/monitor: TO BUILD]
-    graph.py             #   checkpointed LangGraph nodes
-    ap_graph.py          #   TO BUILD — 4-agent AP runtime; explicit hand-off steps; MATCHER∥FRAUD via asyncio
-    monitor.py           #   TO BUILD — supervise(): run → on FAIL attribute()+replay() → auto-fix/escalate
+  agent/                 # P1 — multi-agent runtime + capture + shared infra
     capture.py           #   spans + checkpoints -> canonical Trace
+    llm.py  otel.py  tracing.py   #   shared infra
+    flight/              #   single-agent flight domain: graph.py tools.py faults.py benchmark.py run.py
+    ap/                  #   AP multi-agent domain: graph.py scenarios.py monitor.py run.py run_suite.py converge.py
+    code/                #   coding-pipeline domain: graph.py scenarios.py monitor.py run.py converge.py
   replay/  replay.py     # P1 — fork + inject + confirm (currently NotImplementedError)
   attribution/           # P2 — provenance.py / localize.py / judges.py (currently NotImplementedError)
   api/  main.py  sentry_issue.py     # P4 — SSE serving + Sentry incident closer
@@ -490,7 +491,7 @@ trace only for determinism, but it *originates* from re-derivation. Therefore
    fully-recorded value-conditioned replay and tell the team.
 
 **Then in parallel, all against the fixture first:**
-- **P1** — `agent/ap_graph.py`, `agent/monitor.py`, `eval/ap_oracle.py`.
+- **P1** — `agent/ap/graph.py`, `agent/ap/monitor.py`, `eval/ap_oracle.py`.
   `monitor.supervise()` **integrates** `attribute()` (P2) and `replay()` (P1) and
   is therefore the **last seam to light up**; until both are real it runs against
   stubbed `Attribution`/`ReplayResult` (CLI-demoable in that stubbed form only).
@@ -513,7 +514,7 @@ must keep working as a fallback demo even after the live runtime is wired.
 attribution/localize.py:  attribute(trace: Trace) -> Attribution
 replay/replay.py:         replay(trace, step_id, injected_value, n=5) -> ReplayResult
 agent/capture.py:         to_trace(spans, checkpoints) -> Trace
-agent/monitor.py:         supervise(trace: Trace) -> MonitorDecision   # localize→replay→apply/escalate
+agent/ap/monitor.py:      supervise(trace: Trace) -> MonitorDecision   # localize→replay→apply/escalate
 eval/ap_oracle.py:        evaluate(final_output, task) -> bool         # additive; demo path's Trace.success
 ```
 

@@ -16,7 +16,7 @@ For every labeled scenario we take the GOLD root agent from the injected fault
 and with each other.
 
 Run from repo root:
-    python -m agent.converge_ap
+    python -m agent.ap.converge
 
 attribute()'s node-judges call Claude Haiku — set ANTHROPIC_API_KEY for real
 semantic judging. WITHOUT a key the judges fall back to 0.5 and P2 degenerates to

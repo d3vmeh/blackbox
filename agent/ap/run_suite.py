@@ -1,6 +1,6 @@
 """P1 — Run the monitor across a labeled suite of AP scenarios.
 
-    python -m agent.run_ap_suite
+    python -m agent.ap.run_suite
 
 Each scenario injects a fault at a (possibly different) agent. For each, we run the
 system, let the monitor localize + replay-confirm, and check it fingered the RIGHT agent.
