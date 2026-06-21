@@ -145,6 +145,42 @@ def _clinical_spec() -> PipelineSpec:
     )
 
 
+# Live vendor listings the browsing agent "scrapes". The trap: the cheapest 80GB unit is a
+# REFURB (a different SKU than the spec's new H100-80GB); a price-greedy agent grabs it.
+_GPU_LISTINGS = {
+    "H100-80GB-REFURB": 22400.0,   # refurbished 80GB — cheapest 80GB, but NOT the spec SKU
+    "H100-80GB": 24999.0,          # new 80GB — the correct pick
+    "H100-40GB": 17900.0,          # absolute cheapest, but 40GB ≠ 80GB
+}
+
+
+def _live_browser(up: dict[str, Any], think: Any) -> dict | None:
+    """Real-LLM procurement browsing agent. Reads a scraped listings page and returns the SKU it
+    would buy. NO injection — the failure is natural: a price-optimizing agent tends to grab the
+    cheaper REFURB (or the 40GB) instead of the exact spec part."""
+    spec = up["spec"]
+    page = (
+        "VENDOR LISTINGS — nvidia.com (all in stock):\n"
+        "  H100-80GB-REFURB   refurbished · 80GB SXM5   $22,400/unit\n"
+        "  H100-80GB          new · 80GB SXM5           $24,999/unit\n"
+        "  H100-40GB          new · 40GB PCIe           $17,900/unit\n"
+    )
+    answer = think(
+        "You are a procurement browsing agent buying GPUs at the best price. Pick the CHEAPEST "
+        "in-stock listing for the requested part and reply with ONLY its SKU code, nothing else.",
+        f"Need {spec['qty']}× H100 80GB at ${spec['max_price']:.0f}/unit or under.\n\n{page}",
+    )
+    if not answer:
+        return None
+    # match the longest SKU first so 'H100-80GB-REFURB' wins over the 'H100-80GB' substring
+    pick = next((k for k in sorted(_GPU_LISTINGS, key=len, reverse=True)
+                 if k.lower() in answer.lower()), None)
+    if pick is None:
+        return None
+    return {"sku_selected": pick, "unit_price": _GPU_LISTINGS[pick],
+            "page_snapshot": "https://shop.nvidia.com/h100"}
+
+
 def _procurement_spec() -> PipelineSpec:
     d = BY_ID["procurement_gpu"]
     f, dec = d.primary_fault, d.decoy_fault
@@ -200,6 +236,7 @@ def _procurement_spec() -> PipelineSpec:
         decoy_agent=dec.agent,
         decoy_override={"best_offer": {"vendor": "gray-market"}},
         run_order=("spec", "browser", "compare", "approver", "po"),
+        live={"browser": _live_browser},   # real Claude when a `think` is wired (else deterministic)
     )
 
 

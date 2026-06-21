@@ -41,7 +41,7 @@ def main(argv: list[str]) -> None:
 
     trace = run_code(DEFAULT, think=think)
     print(f"task   : {trace.task}")
-    print("agents : " + ("real Claude — all four agents"
+    print("agents : " + ("Claude Haiku 4.5 — all four agents"
                          if live else "mock / reference (deterministic, no key)"))
 
     print("\nthe run, top to bottom:")
