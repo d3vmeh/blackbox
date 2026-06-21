@@ -68,11 +68,14 @@ export function TraceGraph({ graph, status, phase, selectedId, onSelect }: {
     }
 
     if (phase === 'confirm' && !reduce) {
-      // Heal: root first, then blast nodes in graph order.
-      // One timer per node — CSS plays the scan animation when data-status flips to 'pass'.
-      const rootNode = nodes.find((n) => (s[n.id] ?? 'neutral') === 'root')
-      const blastNodes = nodes.filter((n) => (s[n.id] ?? 'neutral') === 'blast')
-      const healOrder = [rootNode, ...blastNodes].filter(Boolean) as typeof nodes
+      // Heal the counterfactual execution in trace order from the intervention
+      // point onward. This intentionally includes clean later actions (for
+      // example TEST_WRITER in the software-team DAG): they are not part of the
+      // causal blast radius before replay, but they still execute successfully
+      // in the confirmed rerun. Skipping them creates a gray visual gap that
+      // looks like the animation stalled.
+      const rootIndex = nodes.findIndex((n) => (s[n.id] ?? 'neutral') === 'root')
+      const healOrder = rootIndex >= 0 ? nodes.slice(rootIndex) : []
 
       healOrder.forEach((node, idx) => {
         timersRef.current.push(

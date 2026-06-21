@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import type { AgentId, ReplayResult } from '../types'
 import { useRun } from './data/useRun'
@@ -39,6 +39,10 @@ export function Dashboard() {
   const [statsOpen, setStatsOpen] = useState(false)
   // The last replay outcome (what was injected + whether it flipped), shown in the inspector.
   const [replayInfo, setReplayInfo] = useState<{ stepId: string; result: ReplayResult } | null>(null)
+  // Startup beat timers must be cancelled when the user starts replay.
+  // Otherwise the delayed "analyze" callback can fire mid-heal and reset the
+  // phase, which made first-click replay appear stuck while the second worked.
+  const introTimersRef = useRef<number[]>([])
 
   // Topology is derived once and drives the agent-wiring strip above the graph.
   const topology = useMemo(
@@ -60,6 +64,8 @@ export function Dashboard() {
 
   // Each new run (data change) re-focuses the root cause and replays the cascade.
   useEffect(() => {
+    introTimersRef.current.forEach(window.clearTimeout)
+    introTimersRef.current = []
     // Intentional: reset the demo's selection/phase state to sync with each new run.
     /* eslint-disable react-hooks/set-state-in-effect */
     setSelectedId(rootNodeId)
@@ -68,8 +74,13 @@ export function Dashboard() {
     setPhase('idle')
     const t1 = window.setTimeout(() => setPhase('blast'), 600)
     const t2 = window.setTimeout(() => setPhase('analyze'), 6000)
+    introTimersRef.current = [t1, t2]
     /* eslint-enable react-hooks/set-state-in-effect */
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+      introTimersRef.current = []
+    }
   }, [data, rootNodeId, reduce])
 
   const selectedNode = useMemo(
@@ -96,6 +107,8 @@ export function Dashboard() {
   // monitor proves the decoy first (no flip), re-targets, then the root flips →
   // confirm. A non-root candidate replays straight to the rejection beat.
   const onReplay = useCallback(async (stepId: string) => {
+    introTimersRef.current.forEach(window.clearTimeout)
+    introTimersRef.current = []
     setMonitorDismissed(false) // a fresh replay re-opens the monitor
     const result = await replay(stepId, null)
     setReplayInfo({ stepId, result })

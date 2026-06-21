@@ -1,6 +1,6 @@
 // web/src/dashboard/Dashboard.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
 
 // claim_adjudication fixture: root s1 / INTAKE billed_amount slip; decoy s4 / ADJUSTER.
@@ -33,6 +33,29 @@ describe('Dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: /replay candidate/i }))
     expect(await screen.findByText('FAIL')).toBeInTheDocument()
     expect(screen.queryByText('PASS')).not.toBeInTheDocument()
+  })
+
+  it('does not let the startup analyze timer interrupt a first-click replay', async () => {
+    vi.useFakeTimers()
+    try {
+      render(<Dashboard />)
+      fireEvent.click(screen.getByTestId('node-a0'))
+      fireEvent.click(screen.getByRole('button', { name: /replay with fix/i }))
+
+      await act(async () => {
+        await Promise.resolve()
+        vi.advanceTimersByTime(2200)
+      })
+      expect(screen.getByText('PASS')).toBeInTheDocument()
+
+      // The old startup timer fired at 6000ms and reset the phase to analyze.
+      // Advancing beyond it must leave the confirmed replay intact.
+      act(() => { vi.advanceTimersByTime(6000) })
+      expect(screen.getByText('PASS')).toBeInTheDocument()
+      expect(screen.getByText('TRUSTED')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
