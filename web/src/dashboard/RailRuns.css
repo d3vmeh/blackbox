@@ -89,7 +89,10 @@
   position: absolute;
   top: calc(100% + var(--space-1));
   left: 0;
-  right: 0;
+  /* Wider than the narrow rail so run labels sit on one line; spills right over
+     the content area (a transient menu floats above the spine). */
+  min-width: 100%;
+  width: 360px;
   z-index: calc(var(--z-overlay) + 1);
   margin: 0;
   padding: var(--space-1);
@@ -97,14 +100,15 @@
   background: var(--raised);
   border: var(--hair) solid var(--line);
   border-radius: var(--r-3);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-pop);
   max-height: min(420px, 60vh);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .rruns__opt {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-2) var(--space-3);
@@ -119,8 +123,14 @@
 .rruns__opt:hover { background: var(--sel-bg); }
 .rruns__opt--active { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--accent); }
 
-.rruns__opt-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.rruns__opt-label { font-size: var(--t-step); color: var(--text-bright); }
+.rruns__opt-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.rruns__opt-label {
+  font-size: var(--t-step);
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .rruns__opt-hint {
   font-size: var(--t-label);
   line-height: var(--lh-body);
