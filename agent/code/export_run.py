@@ -56,11 +56,16 @@ def build_artifacts(scn: CodeScenario = DEFAULT, *, think=None) -> dict:
     it returns an empty-but-valid Attribution and no replays."""
     trace = run_code(scn, think=think, trace_id="code_run")
     verdict = monitor.investigate(trace, scn)
-    if not verdict.failed:
+    root = next((s for s in trace.steps if s.raw.get("agent") == verdict.root_agent), None)
+    if not verdict.failed or root is None:
+        # No failure (clean control), OR a failure the monitor couldn't pin to one step
+        # (e.g. a live run that failed naturally / a self-corrected fault) — return a
+        # valid-but-empty Attribution instead of crashing.
+        msg = ("No failure — every agent produced correct output." if not verdict.failed
+               else "Run failed, but the cause could not be localized to a single step.")
         empty = Attribution(trace_id="code_run", root_step_id="", blast_radius=[],
-                            candidates=[], rationale="No failure — every agent produced correct output.")
+                            candidates=[], rationale=msg)
         return {"trace": trace.model_dump(), "attribution": empty.model_dump(), "replays": {}}
-    root = _step_for_agent(trace, verdict.root_agent)
 
     # blast = forward slice from the root over real parents edges
     G = build_provenance_graph(trace)

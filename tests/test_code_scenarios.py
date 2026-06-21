@@ -43,8 +43,16 @@ def test_celsius_task_has_spec_and_impl_faults():
     assert spec.fault.agent == "spec_interpreter"
     assert impl.fault.agent == "implementer"
 
-def test_kib_task_has_spec_and_impl_faults_and_total_is_seven():
+def test_kib_task_has_spec_and_impl_faults_and_total_is_nine():
     names = {s.name for s in SCENARIOS}
     assert {"kib_spec", "kib_impl"} <= names
     assert next(s for s in SCENARIOS if s.name == "kib_spec").function_name == "kib"
-    assert len(SCENARIOS) == 7        # 3 parse + 2 celsius + 2 kib
+    assert len(SCENARIOS) == 9        # 3 parse + 2 celsius + 2 kib + 2 merge_intervals
+
+
+def test_merge_intervals_task_present_with_spec_and_impl_faults():
+    by = {s.name: s for s in SCENARIOS}
+    assert {"merge_intervals_spec", "merge_intervals_impl"} <= set(by)
+    assert by["merge_intervals_spec"].function_name == "merge_intervals"
+    assert by["merge_intervals_spec"].fault.agent == "spec_interpreter"
+    assert by["merge_intervals_impl"].fault.agent == "implementer"
