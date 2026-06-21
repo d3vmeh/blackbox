@@ -60,6 +60,7 @@ class CodeScenario:
     function_name: str = "parse_duration"  # the entry point the acceptance tests import
     fault: Optional[CodeFault] = None
     spec_question: str = _PARSE_Q        # the constrained question the live spec agent answers
+    natural: bool = False                # True = NO injected fault; the live LLM's own bug is the fault
 
 
 def _ref_spec(scn: "CodeScenario", up: dict) -> dict:
@@ -277,6 +278,54 @@ SCENARIOS += [
         requirement=_MI_REQUIREMENT, reference=_MI_REF, acceptance_tests=_MI_ACCEPTANCE,
         function_name="merge_intervals", spec_question=_MI_Q,
         fault=CodeFault("implementer", "code", _MI_BAD_CODE),
+    ),
+]
+
+# --- task: round_half — NATURAL FAILURE (no injection). The requirement is unambiguous to a
+#     human ("round to nearest", ties go up), but a real LLM reliably reaches for Python's round()
+#     (banker's rounding), so 2.5 -> 2 instead of 3 and the hidden tests fail. The bug is the
+#     model's own; Blackbox localizes it to the implementer and replay-confirms with the reference. ---
+_ROUND_Q = ("Round the input to the nearest WHAT? Answer 'nearest_integer' (this task always "
+            "rounds to the nearest integer).")
+# NOTE: deliberately ambiguous on ties — that is the trap. A human reading "nearest integer"
+# assumes 2.5 -> 3 (round half up); Python's round() does banker's rounding (2.5 -> 2). The hidden
+# tests encode the human-intuitive convention; the LLM's natural code uses Python's default.
+_ROUND_REQUIREMENT = "Round x to the nearest integer and return it as an int."
+# correct reference: round-half-up for the (non-negative) test values
+_ROUND_CORRECT = "import math\ndef round_half(x):\n    return math.floor(x + 0.5)\n"
+_ROUND_ACCEPTANCE = (
+    "assert round_half(2.5) == 3\n"
+    "assert round_half(0.5) == 1\n"
+    "assert round_half(1.5) == 2\n"
+    "assert round_half(3.5) == 4\n"
+    "assert round_half(10.0) == 10\n"
+)
+
+
+def _ref_spec_round(scn, up):
+    # summary stays NEUTRAL on ties — if it leaked "halves round up" the implementer would code
+    # it correctly and there'd be no natural failure. The tie convention lives only in the tests.
+    return {"signature": "def round_half(x: float) -> int",
+            "unit": "nearest_integer",
+            "summary": "round the input value to the nearest integer and return it as an int"}
+
+
+def _ref_impl_round(scn, up):
+    return {"code": _ROUND_CORRECT}        # the reference always rounds half up (the answer key)
+
+
+def _ref_tests_round(scn, up):
+    return {"tests": "assert round_half(2.5) == 3\n"}
+
+
+_ROUND_REF = {"spec_interpreter": _ref_spec_round, "implementer": _ref_impl_round,
+              "test_writer": _ref_tests_round, "reviewer": _ref_review}
+
+SCENARIOS += [
+    CodeScenario(
+        name="round_half_natural",
+        requirement=_ROUND_REQUIREMENT, reference=_ROUND_REF, acceptance_tests=_ROUND_ACCEPTANCE,
+        function_name="round_half", spec_question=_ROUND_Q, fault=None, natural=True,
     ),
 ]
 
