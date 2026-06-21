@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { LogConsole, buildLog } from './LogConsole'
+import { LogConsole } from './LogConsole'
+import { buildLog } from './buildLog'
 import type { Step, Attribution } from '../../types'
 
 const steps: Step[] = [
