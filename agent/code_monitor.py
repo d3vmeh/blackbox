@@ -34,7 +34,9 @@ def _reference_output(scn: CodeScenario, agent: str) -> dict:
     raise ValueError(f"unknown agent {agent!r} (not in AGENTS)")
 
 
-def investigate(trace: Trace, scn: CodeScenario, n: int = 3) -> Verdict:
+def investigate(trace: Trace, scn: CodeScenario, n: int = 3, *, think=None) -> Verdict:
+    """Localize + replay-confirm. If `think` is wired, the replays re-run the REAL
+    agents too, so the proof is genuinely an LLM counterfactual (slower, costs calls)."""
     if evaluate_code(trace.final_output["code"], scn):
         return Verdict(failed=False)
 
@@ -42,8 +44,8 @@ def investigate(trace: Trace, scn: CodeScenario, n: int = 3) -> Verdict:
         correct = _reference_output(scn, agent)
         outcomes = []
         for _ in range(n):
-            fixed = replay_code(scn, agent, correct)
-            base = replay_code(scn, None, None)
+            fixed = replay_code(scn, agent, correct, think=think)
+            base = replay_code(scn, None, None, think=think)
             outcomes.append(fixed.success and not base.success)
         rate = sum(outcomes) / len(outcomes) if outcomes else 0.0
         if rate >= 0.5:                                    # earliest confirmed flip = root

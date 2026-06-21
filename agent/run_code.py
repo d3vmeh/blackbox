@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 
-from .code_graph import _THINK_FIELD, run_code
+from .code_graph import _LLM, run_code
 from .code_monitor import investigate
 from .code_scenarios import AGENTS, DEFAULT
 from .llm import make_think
@@ -37,16 +37,16 @@ def _diffs(step) -> dict:
 def main(argv: list[str]) -> None:
     live = "--live" in argv
     verbose = "--verbose" in argv or "-v" in argv
-    think = make_think(use_real_llm=True) if live else None
+    think = make_think(use_real_llm=True, max_tokens=1500) if live else None  # code needs room
 
     trace = run_code(DEFAULT, think=think)
     print(f"task   : {trace.task}")
-    print("agents : " + ("real Claude for spec_interpreter; reference for the rest (Phase 1)"
+    print("agents : " + ("real Claude — all four agents"
                          if live else "mock / reference (deterministic, no key)"))
 
     print("\nthe run, top to bottom:")
     for s in trace.steps:
-        llm = " [LLM]" if (live and s.raw["agent"] in _THINK_FIELD) else ""
+        llm = " [LLM]" if (live and s.raw["agent"] in _LLM) else ""
         tag = "   <-- FAULT" if s.is_injected_fault else ""
         print(f"  {s.id}  {s.raw['agent']:<16}{llm:<6} {_salient(s.output)}{tag}")
 
@@ -55,7 +55,8 @@ def main(argv: list[str]) -> None:
         print(f"    {line}")
     print(f"\nfinal code passes acceptance tests? {trace.success}")
 
-    v = investigate(trace, DEFAULT)
+    # live: replays re-run the real agents too (genuine proof) — keep n small for cost
+    v = investigate(trace, DEFAULT, n=2 if live else 3, think=think)
     print("\n" + "-" * 64)
     if not v.failed:
         print("BLACKBOX: no failure detected.")
