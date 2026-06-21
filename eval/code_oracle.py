@@ -13,7 +13,8 @@ def evaluate_code(final_code: str, scenario, timeout: float = 10.0) -> bool:
     """True iff `final_code` satisfies scenario.acceptance_tests."""
     with tempfile.TemporaryDirectory() as d:
         (Path(d) / "solution.py").write_text(final_code)
-        runner = "from solution import parse_duration\n" + scenario.acceptance_tests
+        runner = (f"from solution import {scenario.function_name}\n"
+                  + scenario.acceptance_tests)
         (Path(d) / "check.py").write_text(runner)
         try:
             proc = subprocess.run(

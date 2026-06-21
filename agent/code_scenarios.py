@@ -40,7 +40,8 @@ class CodeScenario:
     name: str
     requirement: str
     reference: dict                      # agent -> fn(scn, up) -> dict (correct output)
-    acceptance_tests: str                # python asserts over parse_duration (hidden oracle)
+    acceptance_tests: str                # python asserts over the function (hidden oracle)
+    function_name: str = "parse_duration"  # the entry point the acceptance tests import
     fault: Optional[CodeFault] = None
 
 
