@@ -141,6 +141,25 @@
 /* Selection: neutral brighten + border only (never a 4th hue). */
 .tg__node[data-selected='true'] { outline: 2px solid var(--text-dim); outline-offset: 2px; }
 
+/* ---- Fork branch styles ---- */
+.tg__fork-column-label {
+  position: absolute;
+  font-family: var(--font-mono); font-size: var(--t-label);
+  letter-spacing: var(--track-upper); text-transform: uppercase;
+  color: var(--pass); text-align: center; line-height: var(--lh-data);
+  pointer-events: none; white-space: nowrap; width: 172px; /* FORK_NODE_W */
+}
+.tg__node--fork {
+  border-color: var(--pass);
+  box-shadow: inset 2px 0 0 var(--pass);
+  background: linear-gradient(color-mix(in srgb, var(--pass) 6%, transparent), color-mix(in srgb, var(--pass) 6%, transparent)), var(--raised);
+}
+.tg__node--fork .nl { color: var(--pass); }
+.tg__fork-output { margin-top: var(--space-1); border-top: 1px dashed var(--line); padding-top: var(--space-1); font-size: 11px; color: var(--text-dim); }
+.tg__fork-kv { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg__fork-k { color: var(--text-faint); }
+.tg__fork-v { color: var(--text-bright); font-family: var(--font-mono); }
+
 /* ============================ Inspector (right) ============================ */
 .dash__inspect {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;

@@ -18,9 +18,9 @@ describe('displayStatus', () => {
     expect(displayStatus('root', 'analyze')).toBe('root')
     expect(displayStatus('blast', 'blast')).toBe('blast')
   })
-  it('heals root/blast to pass on confirm', () => {
-    expect(displayStatus('root', 'confirm')).toBe('pass')
-    expect(displayStatus('blast', 'confirm')).toBe('pass')
+  it('keeps root/blast colored (does not heal) on confirm in split-view', () => {
+    expect(displayStatus('root', 'confirm')).toBe('root')
+    expect(displayStatus('blast', 'confirm')).toBe('blast')
     expect(displayStatus('neutral', 'confirm')).toBe('neutral')
   })
   it('keeps root/blast colored (not healed) while proving', () => {

@@ -46,7 +46,8 @@ export function trustForPhase(phase: Phase): TrustState {
 
 export function displayStatus(base: NodeStatus, phase: Phase): NodeStatus {
   if (phase === 'idle') return 'neutral'
-  if (phase === 'confirm' && (base === 'root' || base === 'blast')) return 'pass'
+  // In the split-view fork, the original nodes keep their fault coloring during
+  // confirm — they are the "before". The fork column shows the "after" (pass).
   return base
 }
 

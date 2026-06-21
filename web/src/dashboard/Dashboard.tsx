@@ -12,6 +12,7 @@ import { StatsOverlay } from './StatsOverlay'
 import { LogConsole } from './console/LogConsole'
 import { deriveStats } from './deriveStats'
 import { deriveTopology } from './deriveTopology'
+import { deriveForkBranch } from './forkBranch'
 import { phaseForReplay, PHASE_STATUS, trustForPhase, type Phase } from './phase'
 import './dashboard.css'
 
@@ -38,6 +39,11 @@ export function Dashboard() {
   const [statsOpen, setStatsOpen] = useState(false)
   // The last replay outcome (what was injected + whether it flipped), shown in the inspector.
   const [replayInfo, setReplayInfo] = useState<{ stepId: string; result: ReplayResult } | null>(null)
+
+  const forkBranch = useMemo(
+    () => phase === 'confirm' && replayInfo ? deriveForkBranch(data.graph, data.attribution, replayInfo.result) : null,
+    [phase, replayInfo, data.graph, data.attribution]
+  )
 
   // Topology is derived once and drives the agent-wiring strip above the graph.
   const topology = useMemo(
@@ -213,6 +219,7 @@ export function Dashboard() {
                 phase={phase}
                 selectedId={selectedId}
                 onSelect={selectNode}
+                forkBranch={forkBranch}
               />
             </div>
             <MonitorPanel open={monitorOpen} lines={monitorLines} trust={trust} onClose={() => setMonitorDismissed(true)} />

@@ -47,3 +47,28 @@ export interface ActionGraph {
   nodes: ActionNode[]
   edges: ActionEdge[]
 }
+
+/**
+ * A synthetic "corrected" copy of an original blast-radius node, shown in the
+ * fork branch after a confirmed replay. Visual-only — no real backend trace.
+ */
+export interface ForkNode {
+  id: string            // e.g. 'a1-fix'
+  originalId: string    // the blast-radius action node this mirrors
+  label: string         // corrected label
+  kind: StepKind
+  correctedOutput?: Json  // injected_value for root, undefined for blast
+}
+
+/**
+ * The corrected branch that forks off the root-cause node after a successful
+ * replay. Rendered as a parallel column to the right of the original graph.
+ */
+export interface ForkBranch {
+  /** The root-cause action node where the fork originates */
+  originNodeId: string
+  /** Synthetic corrected nodes, in spine order (root-cause copy first) */
+  nodes: ForkNode[]
+  /** Sequential edges between fork nodes */
+  edges: { from: string; to: string }[]
+}
