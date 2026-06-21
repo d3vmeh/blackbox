@@ -32,10 +32,18 @@ def _replay_result(scn: CodeScenario, step_id: str, agent: str, override: dict) 
                         confirmation_rate=sum(outcomes) / len(outcomes), outcomes=outcomes)
 
 
-def build_artifacts(scn: CodeScenario = DEFAULT) -> dict:
-    """Run the pipeline once and return {trace, attribution, replays} as plain dicts."""
-    trace = run_code(scn, trace_id="code_run")
+def build_artifacts(scn: CodeScenario = DEFAULT, *, think=None) -> dict:
+    """Run the pipeline once and return {trace, attribution, replays} as plain dicts.
+
+    `think` (from agent.llm.make_think) makes the AGENTS real Claude calls; localization and
+    replay stay deterministic (fast). A passing run (the clean control) has no root cause, so
+    it returns an empty-but-valid Attribution and no replays."""
+    trace = run_code(scn, think=think, trace_id="code_run")
     verdict = monitor.investigate(trace, scn)
+    if not verdict.failed:
+        empty = Attribution(trace_id="code_run", root_step_id="", blast_radius=[],
+                            candidates=[], rationale="No failure — every agent produced correct output.")
+        return {"trace": trace.model_dump(), "attribution": empty.model_dump(), "replays": {}}
     root = _step_for_agent(trace, verdict.root_agent)
 
     # blast = forward slice from the root over real parents edges
