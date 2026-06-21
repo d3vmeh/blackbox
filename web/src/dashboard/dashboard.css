@@ -95,6 +95,11 @@
 .dash__await-scn { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h3);
   color: var(--text-bright); letter-spacing: var(--track-display); }
 .dash__await-hint { font-size: var(--t-step); color: var(--text-faint); }
+.dash__spinner { width: 22px; height: 22px; margin-bottom: var(--space-2); border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--root);
+  animation: dash-spin 0.8s linear infinite; }
+@keyframes dash-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .dash__spinner { animation: none; } }
 /* minmax(0,…) + min-width:0 stop a wide inspector payload (long code in a <pre>)
    from collapsing the graph column — the long line scrolls inside the inspector. */
 .dash__body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); flex: 1; min-height: 0; }

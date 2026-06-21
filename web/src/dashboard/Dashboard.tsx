@@ -86,9 +86,20 @@ export function Dashboard() {
       {pendingRun ? (
         <div className="dash__await">
           <div className="dash__await-card">
-            <span className="dash__await-eyebrow">ready to run</span>
-            <span className="dash__await-scn">{picked}</span>
-            <span className="dash__await-hint">Press Run to execute this test and inspect its trace.</span>
+            {loading ? (
+              <>
+                <span className="dash__spinner" aria-hidden="true" />
+                <span className="dash__await-eyebrow">running on real Claude</span>
+                <span className="dash__await-scn">{picked}</span>
+                <span className="dash__await-hint">executing the 4-agent pipeline on real Claude…</span>
+              </>
+            ) : (
+              <>
+                <span className="dash__await-eyebrow">ready to run</span>
+                <span className="dash__await-scn">{picked}</span>
+                <span className="dash__await-hint">Press Run to execute this test and inspect its trace.</span>
+              </>
+            )}
           </div>
         </div>
       ) : (
