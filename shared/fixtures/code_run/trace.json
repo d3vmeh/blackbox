@@ -1,0 +1,157 @@
+{
+  "id": "code_run",
+  "task": "parse_duration_units",
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "kind": "decision",
+      "inputs": {
+        "requirement": "Implement parse_duration(s). Input like '1h2m3s', '90s', '2m'. Return the TOTAL NUMBER OF SECONDS as an int."
+      },
+      "output": {
+        "signature": "def parse_duration(s: str) -> int",
+        "unit": "minutes",
+        "summary": "sum h/m/s components into a total number of seconds"
+      },
+      "state": {
+        "up": {}
+      },
+      "parents": [],
+      "tool_name": null,
+      "raw": {
+        "node": "spec_interpreter",
+        "agent": "spec_interpreter"
+      },
+      "is_injected_fault": true,
+      "correct_output": {
+        "signature": "def parse_duration(s: str) -> int",
+        "unit": "seconds",
+        "summary": "sum h/m/s components into a total number of seconds"
+      }
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "spec_interpreter"
+        ]
+      },
+      "output": {
+        "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n"
+      },
+      "state": {
+        "up": {
+          "spec_interpreter": {
+            "signature": "def parse_duration(s: str) -> int",
+            "unit": "minutes",
+            "summary": "sum h/m/s components into a total number of seconds"
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "implementer",
+        "agent": "implementer"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n"
+      }
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "kind": "decision",
+      "inputs": {
+        "from": [
+          "spec_interpreter"
+        ]
+      },
+      "output": {
+        "tests": "assert parse_duration('2m30s') == 2\n"
+      },
+      "state": {
+        "up": {
+          "spec_interpreter": {
+            "signature": "def parse_duration(s: str) -> int",
+            "unit": "minutes",
+            "summary": "sum h/m/s components into a total number of seconds"
+          },
+          "implementer": {
+            "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n"
+          }
+        }
+      },
+      "parents": [
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "test_writer",
+        "agent": "test_writer"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "tests": "assert parse_duration('2m30s') == 2\n"
+      }
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "kind": "final",
+      "inputs": {
+        "from": [
+          "implementer",
+          "test_writer",
+          "spec_interpreter"
+        ]
+      },
+      "output": {
+        "approved": true,
+        "notes": "code matches the structured spec"
+      },
+      "state": {
+        "up": {
+          "spec_interpreter": {
+            "signature": "def parse_duration(s: str) -> int",
+            "unit": "minutes",
+            "summary": "sum h/m/s components into a total number of seconds"
+          },
+          "implementer": {
+            "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n"
+          },
+          "test_writer": {
+            "tests": "assert parse_duration('2m30s') == 2\n"
+          }
+        }
+      },
+      "parents": [
+        "s2",
+        "s3",
+        "s1"
+      ],
+      "tool_name": null,
+      "raw": {
+        "node": "reviewer",
+        "agent": "reviewer"
+      },
+      "is_injected_fault": false,
+      "correct_output": {
+        "approved": true,
+        "notes": "code matches the structured spec"
+      }
+    }
+  ],
+  "final_output": {
+    "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n",
+    "approved": true
+  },
+  "success": false,
+  "gold_root_step_id": null
+}

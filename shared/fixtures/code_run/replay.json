@@ -1,0 +1,36 @@
+{
+  "s1": {
+    "trace_id": "code_run",
+    "step_id": "s1",
+    "injected_value": {
+      "unit": "seconds"
+    },
+    "n": 5,
+    "flipped": true,
+    "confirmation_rate": 1.0,
+    "outcomes": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "s3": {
+    "trace_id": "code_run",
+    "step_id": "s3",
+    "injected_value": {
+      "tests": "assert parse_duration('2m30s') == 150\n"
+    },
+    "n": 5,
+    "flipped": false,
+    "confirmation_rate": 0.0,
+    "outcomes": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  }
+}
