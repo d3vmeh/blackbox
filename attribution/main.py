@@ -47,18 +47,22 @@ async def run_primary() -> None:
     for c in result.candidates:
         print(f"  {c.step_id}  suspicion={c.suspicion:.3f}  |  {c.reason}")
 
-    print()
-    answer = input("Apply this fix? [y/N]: ").strip().lower()
-    if answer == "y":
-        from replay.replay import replay as do_replay
-        print("\nRunning replay to confirm fix flips FAIL → PASS ...")
-        rr = do_replay(trace, result.root_step_id, result.suggested_fix, n=5)
-        if rr.flipped:
-            print(f"  CONFIRMED  confirmation_rate={rr.confirmation_rate:.0%}  — fix proved, chain heals.")
+    import sys
+    if sys.stdin.isatty():
+        print()
+        answer = input("Apply this fix? [y/N]: ").strip().lower()
+        if answer == "y":
+            from replay.replay import replay as do_replay
+            print("\nRunning replay to confirm fix flips FAIL → PASS ...")
+            rr = do_replay(trace, result.root_step_id, result.suggested_fix, n=5)
+            if rr.flipped:
+                print(f"  CONFIRMED  confirmation_rate={rr.confirmation_rate:.0%}  — fix proved, chain heals.")
+            else:
+                print(f"  NOT CONFIRMED  rate={rr.confirmation_rate:.0%}  — fix did not flip the outcome.")
         else:
-            print(f"  NOT CONFIRMED  rate={rr.confirmation_rate:.0%}  — fix did not flip the outcome.")
+            print("Fix not applied.")
     else:
-        print("Fix not applied.")
+        print("\n[CI] non-interactive — skipping approval prompt.")
 
 
 def run_suite() -> None:

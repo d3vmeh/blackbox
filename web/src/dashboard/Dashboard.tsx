@@ -67,7 +67,7 @@ export function Dashboard() {
     if (reduce) { setPhase('analyze'); return }
     setPhase('idle')
     const t1 = window.setTimeout(() => setPhase('blast'), 600)
-    const t2 = window.setTimeout(() => setPhase('analyze'), 3200)
+    const t2 = window.setTimeout(() => setPhase('analyze'), 6000)
     /* eslint-enable react-hooks/set-state-in-effect */
     return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
   }, [data, rootNodeId, reduce])

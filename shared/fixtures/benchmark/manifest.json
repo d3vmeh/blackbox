@@ -148,5 +148,10 @@
     "id": "bench_email_07",
     "gold_root_step_id": "s9",
     "gold_root_node": "compose_email"
+  },
+  {
+    "id": "bench_hotel_01",
+    "gold_root_step_id": "s4",
+    "gold_root_node": "select_hotel"
   }
 ]
