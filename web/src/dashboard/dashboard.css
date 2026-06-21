@@ -11,8 +11,9 @@
   gap: var(--space-2); padding: var(--space-2);
   background: var(--bg); color: var(--text);
 }
-/* Pending run: hide the left rail so no stale trace shows beside the await panel. */
-.dash--await { grid-template-columns: minmax(0, 1fr); }
+/* Pending run: the left rail stays visible (it owns the run switcher); only its
+   trace sections collapse away, so the await panel sits beside a live switcher. */
+.dash--await { grid-template-columns: var(--rail-nav) minmax(0, 1fr); }
 
 /* Hide scrollbars on the dashboard scroll panes (keep scrollability). */
 .mrail, .dash__spine-scroll, .insp, .insp__scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -24,7 +25,7 @@
   position: relative;
   min-width: 0; min-height: 0; overflow: hidden;
   display: grid;
-  grid-template-rows: var(--h-bar) var(--h-toolbar) minmax(0, 1fr);
+  grid-template-rows: var(--h-bar) minmax(0, 1fr);
   background: var(--panel);
   border: var(--hair) solid var(--line);
   border-radius: var(--r-4);

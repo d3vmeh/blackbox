@@ -1,21 +1,32 @@
 // web/src/dashboard/MonitorRail.tsx
 // Left rail = the live MONITOR rail (Linear's nav, reframed as a forensic case file).
-// Every row is live. Four blocks, generous breathing room between them:
-//   1. RUN IDENTITY  — agent/model/trace id, quiet
-//   2. AGENTS roster — one status-ring Glyph per agent; the failed (root) agent's
+// It is the persistent shell — always visible, even between runs:
+//   0. BRAND
+//   1. RUN SWITCHER  — switch between agent-team runs (RailRuns); always shown.
+//   2. RUN IDENTITY  — trace id + task, quiet.
+//   3. AGENTS roster — one status-ring Glyph per agent; the failed (root) agent's
 //      glyph is the lone non-neutral mark; clicking an agent dims the others.
-//   3. SUPERVISE     — localize → replay → decide stepper with advancing glyphs.
-//   4. CANDIDATES    — ranked suspects with an inline replay verdict; the decoy
+//   4. SUPERVISE     — localize → replay → decide stepper with advancing glyphs.
+//   5. CANDIDATES    — ranked suspects with an inline replay verdict; the decoy
 //      shows a neutral-rejected 0/n chip (NEVER a signal hue); the root shows the
 //      flip. The leading suspect carries --root once localized.
+//   6. USAGE         — per-run statistics: aggregate line + per-agent token shares
+//      (estimated; neutral only — no signal hue).
+//
+// Sections 3–6 are collapsible (toggle each section's header). They render only
+// when a run is loaded; while a run is pending they're hidden so no stale trace
+// shows beside the await panel.
 //
 // Lucide icons are NEUTRAL affordance only (--text-dim default). State is carried
 // by the Glyph (shape + fill) and the closed 3-signal set — never by icon color.
-import { Crosshair, GitFork, Gavel, Users, Workflow } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { BarChart3, ChevronRight, Crosshair, GitFork, Gavel, Users, Workflow } from 'lucide-react'
 import type { AgentId, Attribution, MonitorDecision, Trace } from '../types'
 import type { ActionGraph, AgentTopology, NodeStatus } from './types'
 import { Glyph, type GlyphState, type GlyphTone } from './Glyph'
 import { deriveTopology } from './deriveTopology'
+import type { RunStats } from './deriveStats'
+import { RailRuns } from './RailRuns'
 import type { Phase } from './phase'
 import './MonitorRail.css'
 
@@ -85,7 +96,47 @@ function candidateVerdict(
   return { kind: 'latent' }
 }
 
+const fmt = (n: number) => n.toLocaleString('en-US')
+
+// ---- Collapsible section wrapper: header (chevron + icon + title + badge/count) toggles the body ----
+interface RailSectionProps {
+  icon: typeof Users
+  title: string
+  count?: number
+  badge?: string
+  grow?: boolean
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}
+
+function RailSection({ icon: Icon, title, count, badge, grow, open, onToggle, children }: RailSectionProps) {
+  return (
+    <section className={`mrail__sec${grow && open ? ' mrail__sec--grow' : ''}`} data-open={open || undefined}>
+      <button type="button" className="mrail__head" aria-expanded={open} onClick={onToggle}>
+        <ChevronRight className="mrail__chev" size={14} strokeWidth={2} aria-hidden="true" />
+        <Icon className="mrail__headicon" size={16} strokeWidth={1.5} aria-hidden="true" />
+        <span className="mrail__headtitle">{title}</span>
+        {badge && <span className="mrail__badge" title="estimated (~chars/4)">{badge}</span>}
+        {count != null && <span className="mrail__count tnum">{count}</span>}
+      </button>
+      {open && <div className="mrail__body">{children}</div>}
+    </section>
+  )
+}
+
 export interface MonitorRailProps {
+  // ---- run switcher (always shown) ----
+  scenarios: { name: string; label: string }[]
+  picked: string
+  loaded: string
+  onPick: (name: string) => void
+  onRun: () => void
+  loading: boolean
+  error: string | null
+  /** a run is pending (picked ≠ loaded) → hide the trace sections */
+  pending: boolean
+  // ---- trace sections (shown when a run is loaded) ----
   trace: Trace
   attribution: Attribution
   graph: ActionGraph
@@ -100,9 +151,22 @@ export interface MonitorRailProps {
   onSelectAgent?: (agentId: AgentId) => void
   /** the monitor's replay decision, drives the inline candidate verdicts */
   monitor?: MonitorDecision
+  /** per-run usage statistics (aggregate + per-agent) */
+  stats: RunStats
 }
 
+// Collapsible section keys.
+type SecKey = 'agents' | 'supervise' | 'candidates' | 'usage'
+
 export function MonitorRail({
+  scenarios,
+  picked,
+  loaded,
+  onPick,
+  onRun,
+  loading,
+  error,
+  pending,
   trace,
   attribution,
   graph,
@@ -113,7 +177,13 @@ export function MonitorRail({
   selectedAgentId = null,
   onSelectAgent,
   monitor,
+  stats,
 }: MonitorRailProps) {
+  // All sections start open; each can be toggled shut independently.
+  const [collapsed, setCollapsed] = useState<Partial<Record<SecKey, boolean>>>({})
+  const toggle = (k: SecKey) => setCollapsed((c) => ({ ...c, [k]: !c[k] }))
+  const isOpen = (k: SecKey) => !collapsed[k]
+
   const nodeForStep = (stepId: string) =>
     graph.nodes.find((n) => n.stepIds.includes(stepId))?.id ?? null
   const top = topology ?? deriveTopology(graph, attribution)
@@ -121,6 +191,7 @@ export function MonitorRail({
 
   // Run identity readout: a quiet agent-count tag (single-agent traces read "single agent").
   const agentLabel = top.agents.length > 1 ? `${top.agents.length} agents` : 'single agent'
+  const maxTok = Math.max(1, ...stats.agents.map((a) => a.tokensTotal))
 
   return (
     <nav className="mrail" aria-label="Monitor rail">
@@ -132,120 +203,147 @@ export function MonitorRail({
         <span className="mrail__brandname">blackbox</span>
       </div>
 
-      {/* 1 — RUN IDENTITY */}
-      <section className="mrail__sec mrail__sec--id">
-        <div className="mrail__id">
-          <span className="mrail__idk">trace</span>
-          <span className="mrail__idv tnum">{trace.id}</span>
-        </div>
-        <p className="mrail__task">{trace.task}</p>
-        <div className="mrail__idmeta">
-          <span className="mrail__idtag">{agentLabel}</span>
-        </div>
-      </section>
+      {/* 1 — RUN SWITCHER (always shown — switch between agent-team runs) */}
+      <RailRuns
+        scenarios={scenarios}
+        picked={picked}
+        loaded={loaded}
+        onPick={onPick}
+        onRun={onRun}
+        loading={loading}
+        error={error}
+      />
 
-      {/* 2 — AGENTS roster */}
-      <section className="mrail__sec">
-        <h2 className="mrail__head">
-          <Users className="mrail__headicon" size={16} strokeWidth={1.5} aria-hidden="true" />
-          Agents
-          <span className="mrail__count tnum">{top.agents.length}</span>
-        </h2>
-        <ul className="roster">
-          {top.agents.map((a) => {
-            const { state, tone } = agentGlyph(a.status, phase)
-            const selected = selectedAgentId === a.id
-            const dimmed = selectedAgentId != null && !selected
-            const isRootAgent = localized && a.status === 'root'
-            return (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  className="roster__row"
-                  data-selected={selected || undefined}
-                  data-dimmed={dimmed || undefined}
-                  data-root={isRootAgent || undefined}
-                  aria-pressed={selected}
-                  disabled={!onSelectAgent}
-                  onClick={() => onSelectAgent?.(a.id)}
-                >
-                  <Glyph state={state} tone={tone} />
-                  <span className="roster__label">{a.label}</span>
-                  {isRootAgent && <span className="roster__mark">root</span>}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
+      {/* 2..6 — trace sections (only once a run is loaded; otherwise no stale trace) */}
+      {!pending && (
+        <>
+          {/* 2 — RUN IDENTITY */}
+          <section className="mrail__sec mrail__sec--id">
+            <div className="mrail__id">
+              <span className="mrail__idk">trace</span>
+              <span className="mrail__idv tnum">{trace.id}</span>
+            </div>
+            <p className="mrail__task">{trace.task}</p>
+            <div className="mrail__idmeta">
+              <span className="mrail__idtag">{agentLabel}</span>
+            </div>
+          </section>
 
-      {/* 3 — SUPERVISE stepper */}
-      <section className="mrail__sec">
-        <h2 className="mrail__head">
-          <Workflow className="mrail__headicon" size={16} strokeWidth={1.5} aria-hidden="true" />
-          Supervise
-        </h2>
-        <ol className="sup">
-          {SUPERVISE.map((s, i) => {
-            const st = stepperState(i, phase)
-            const tone: GlyphTone = s.key === 'decide' && st === 'done' ? 'pass' : 'neutral'
-            const Icon = s.key === 'localize' ? Crosshair : s.key === 'replay' ? GitFork : Gavel
-            return (
-              <li key={s.key} className="sup__step" data-state={st}>
-                <Glyph state={st} tone={tone} />
-                <Icon className="sup__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
-                <span className="sup__label">{s.label}</span>
-                <span className="sup__note">{s.note}</span>
-              </li>
-            )
-          })}
-        </ol>
-      </section>
+          {/* 3 — AGENTS roster */}
+          <RailSection icon={Users} title="Agents" count={top.agents.length} open={isOpen('agents')} onToggle={() => toggle('agents')}>
+            <ul className="roster">
+              {top.agents.map((a) => {
+                const { state, tone } = agentGlyph(a.status, phase)
+                const selected = selectedAgentId === a.id
+                const dimmed = selectedAgentId != null && !selected
+                const isRootAgent = localized && a.status === 'root'
+                return (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      className="roster__row"
+                      data-selected={selected || undefined}
+                      data-dimmed={dimmed || undefined}
+                      data-root={isRootAgent || undefined}
+                      aria-pressed={selected}
+                      disabled={!onSelectAgent}
+                      onClick={() => onSelectAgent?.(a.id)}
+                    >
+                      <Glyph state={state} tone={tone} />
+                      <span className="roster__label">{a.label}</span>
+                      {isRootAgent && <span className="roster__mark">root</span>}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </RailSection>
 
-      {/* 4 — CANDIDATES */}
-      <section className="mrail__sec mrail__sec--grow">
-        <h2 className="mrail__head">
-          <Crosshair className="mrail__headicon" size={16} strokeWidth={1.5} aria-hidden="true" />
-          Candidates
-          <span className="mrail__count tnum">{attribution.candidates.length}</span>
-        </h2>
-        <ul className="cand">
-          {attribution.candidates.map((c, i) => {
-            const nodeId = nodeForStep(c.step_id)
-            const isLead = i === 0
-            const selected = nodeId != null && nodeId === selectedId
-            // The leading suspect IS the localized root → it earns --root once localized.
-            const tone: GlyphTone = isLead && localized ? 'root' : 'neutral'
-            const glyph: GlyphState = isLead && localized ? 'done' : 'pending'
-            const verdict = candidateVerdict(isLead, phase, monitor)
-            return (
-              <li key={c.step_id}>
-                <button
-                  type="button"
-                  className="cand__row"
-                  data-lead={isLead || undefined}
-                  data-selected={selected || undefined}
-                  disabled={nodeId == null}
-                  onClick={() => nodeId && onSelect(nodeId)}
-                >
-                  <Glyph state={glyph} tone={tone} />
-                  <span className="cand__id tnum">{c.step_id}</span>
-                  <span className="cand__reason">{c.reason}</span>
-                  <VerdictChip verdict={verdict} tone={tone} />
-                  <span className="cand__meter" aria-hidden="true">
-                    <span
-                      className="cand__fill"
-                      data-tone={tone}
-                      style={{ width: `${Math.round(c.suspicion * 100)}%` }}
-                    />
-                  </span>
-                  <span className="cand__score tnum" data-tone={tone}>{c.suspicion.toFixed(2)}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
+          {/* 4 — SUPERVISE stepper */}
+          <RailSection icon={Workflow} title="Supervise" open={isOpen('supervise')} onToggle={() => toggle('supervise')}>
+            <ol className="sup">
+              {SUPERVISE.map((s, i) => {
+                const st = stepperState(i, phase)
+                const tone: GlyphTone = s.key === 'decide' && st === 'done' ? 'pass' : 'neutral'
+                const Icon = s.key === 'localize' ? Crosshair : s.key === 'replay' ? GitFork : Gavel
+                return (
+                  <li key={s.key} className="sup__step" data-state={st}>
+                    <Glyph state={st} tone={tone} />
+                    <Icon className="sup__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
+                    <span className="sup__label">{s.label}</span>
+                    <span className="sup__note">{s.note}</span>
+                  </li>
+                )
+              })}
+            </ol>
+          </RailSection>
+
+          {/* 5 — CANDIDATES */}
+          <RailSection icon={Crosshair} title="Candidates" count={attribution.candidates.length} open={isOpen('candidates')} onToggle={() => toggle('candidates')}>
+            <ul className="cand">
+              {attribution.candidates.map((c, i) => {
+                const nodeId = nodeForStep(c.step_id)
+                const isLead = i === 0
+                const selected = nodeId != null && nodeId === selectedId
+                // The leading suspect IS the localized root → it earns --root once localized.
+                const tone: GlyphTone = isLead && localized ? 'root' : 'neutral'
+                const glyph: GlyphState = isLead && localized ? 'done' : 'pending'
+                const verdict = candidateVerdict(isLead, phase, monitor)
+                return (
+                  <li key={c.step_id}>
+                    <button
+                      type="button"
+                      className="cand__row"
+                      data-lead={isLead || undefined}
+                      data-selected={selected || undefined}
+                      disabled={nodeId == null}
+                      onClick={() => nodeId && onSelect(nodeId)}
+                    >
+                      <Glyph state={glyph} tone={tone} />
+                      <span className="cand__id tnum">{c.step_id}</span>
+                      <span className="cand__reason">{c.reason}</span>
+                      <VerdictChip verdict={verdict} tone={tone} />
+                      <span className="cand__meter" aria-hidden="true">
+                        <span
+                          className="cand__fill"
+                          data-tone={tone}
+                          style={{ width: `${Math.round(c.suspicion * 100)}%` }}
+                        />
+                      </span>
+                      <span className="cand__score tnum" data-tone={tone}>{c.suspicion.toFixed(2)}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </RailSection>
+
+          {/* 6 — USAGE (per-run statistics; estimated; neutral only) */}
+          <RailSection icon={BarChart3} title="Usage" badge="est." grow open={isOpen('usage')} onToggle={() => toggle('usage')}>
+            <div className="usage__agg">
+              <span className="usage__aggval tnum">{fmt(stats.totals.tokensTotal)}</span>
+              <span className="usage__agglabel">est. tokens</span>
+              <span className="usage__aggsub tnum">
+                {fmt(stats.totals.toolCalls)} tools · {fmt(stats.totals.steps)} steps · {fmt(stats.totals.handoffs)} handoffs
+              </span>
+            </div>
+            <ul className="usage__list">
+              {stats.agents.map((a) => {
+                const pct = Math.round((a.tokensTotal / stats.totals.tokensTotal || 0) * 100)
+                return (
+                  <li key={a.label} className="usage__row">
+                    <span className="usage__label">{a.label}</span>
+                    <span className="usage__meter" aria-hidden="true">
+                      <span className="usage__fill" style={{ width: `${Math.round((a.tokensTotal / maxTok) * 100)}%` }} />
+                    </span>
+                    <span className="usage__pct tnum">{pct}%</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </RailSection>
+        </>
+      )}
     </nav>
   )
 }
