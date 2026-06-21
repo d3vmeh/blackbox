@@ -42,8 +42,9 @@ def run(req: RunRequest) -> dict:
         raise HTTPException(status_code=404, detail=f"unknown scenario {req.scenario!r}")
     think = None
     if req.live:
+        from agent.code.graph import CODE_MODEL
         from agent.llm import make_think
-        think = make_think(use_real_llm=True, max_tokens=1500)
+        think = make_think(use_real_llm=True, model=CODE_MODEL, max_tokens=1500)
     try:
         art = build_artifacts(scn, think=think)
     except Exception as exc:  # surface LLM/runtime errors to the UI instead of a 500 stack

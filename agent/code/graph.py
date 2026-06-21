@@ -23,6 +23,11 @@ from ..capture import Recorder
 from .scenarios import AGENTS, DEFAULT, CodeScenario
 from ..llm import Think
 
+# Model for the coding-pipeline experiments. Haiku is fast + cheap for iterating on
+# the dashboard / benchmarks; bump to "claude-sonnet-4-6" if a run needs more capable
+# code generation. Scoped to this subject — does not change the global SUBJECT_MODEL.
+CODE_MODEL = "claude-haiku-4-5"
+
 # --- real-LLM agent implementations (used when a `think` is wired; otherwise the
 #     deterministic reference output stands in). Each returns its full output dict, or
 #     None on an unusable reply so the caller falls back to the reference. ---
