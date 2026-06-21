@@ -1,6 +1,6 @@
 import type { StepKind } from '../types'
 
-export type NodeStatus = 'neutral' | 'root' | 'blast' | 'decoy'
+export type NodeStatus = 'neutral' | 'root' | 'blast' | 'decoy' | 'pass'
 export type Lane = 'reason' | 'tool' | 'parallel'
 
 export interface ActionNode {
