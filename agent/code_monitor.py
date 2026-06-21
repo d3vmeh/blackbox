@@ -31,7 +31,7 @@ def _reference_output(scn: CodeScenario, agent: str) -> dict:
         up[a] = out
         if a == agent:
             return out
-    return {}
+    raise ValueError(f"unknown agent {agent!r} (not in AGENTS)")
 
 
 def investigate(trace: Trace, scn: CodeScenario, n: int = 3) -> Verdict:
@@ -45,7 +45,7 @@ def investigate(trace: Trace, scn: CodeScenario, n: int = 3) -> Verdict:
             fixed = replay_code(scn, agent, correct)
             base = replay_code(scn, None, None)
             outcomes.append(fixed.success and not base.success)
-        rate = sum(outcomes) / len(outcomes)
+        rate = sum(outcomes) / len(outcomes) if outcomes else 0.0
         if rate >= 0.5:                                    # earliest confirmed flip = root
             return Verdict(failed=True, root_agent=agent,
                            replay_confirmed=True, confirmation_rate=rate)
