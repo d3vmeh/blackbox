@@ -1,6 +1,6 @@
 /* ============================ Monitor rail (left) ============================
    Live monitor rail, reframed from Linear's nav. A persistent shell: brand → run
-   switcher → run identity → collapsible sections (Agents · Supervise · Candidates
+   switcher → run identity → collapsible sections (Agents · Monitor · Candidates
    · Usage). Section headers toggle their body. Rows read at --text; only the
    SELECTED row brightens to --text-bright + --sel-bg pill. Icons are NEUTRAL
    affordance (--text-dim). Closed token set only — the 3 signal hues mean exactly
@@ -126,13 +126,43 @@
   font-size: var(--t-label); color: var(--root); letter-spacing: var(--track-upper);
   text-transform: uppercase;
 }
-
-/* ---- 4. Supervise stepper ---- */
-.sup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.sup__step {
-  display: grid; grid-template-columns: var(--glyph) var(--icon) 1fr auto; align-items: center;
-  gap: var(--gap-icon); padding: 6px var(--space-3); min-height: 30px;
+/* Right cluster: root tag · step count · focus affordance. */
+.roster__meta { display: inline-flex; align-items: center; gap: var(--space-2); }
+/* Step count gives the row data substance (so it reads as a focusable record). */
+.roster__steps {
+  font-family: var(--font-mono); font-size: var(--t-label); color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
 }
+/* The interaction piece: a Focus icon that advertises "click to focus this agent."
+   Hidden at rest (no shift — it always occupies its box), revealed on hover/select. */
+.roster__focus {
+  width: 14px; height: 14px; color: var(--text-faint); flex: none; opacity: 0;
+  transition: opacity var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.roster__row:hover:not(:disabled) .roster__focus { opacity: 1; }
+.roster__row[data-selected] .roster__focus { opacity: 1; color: var(--text); }
+.roster__row:disabled .roster__focus { display: none; }
+
+/* ---- 4. Monitor stepper (LIVE STATUS, not controls) ----
+   A connected timeline: a hairline spine runs between the glyph centers so the
+   three beats read as one sequential pipeline advancing on its own — never as a
+   row of pressable buttons (which is what the interactive roster/candidate rows
+   are). The active step carries a pulsing live note narrating what it's doing. */
+.sup { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sup__step {
+  position: relative;
+  display: grid; grid-template-columns: var(--glyph) var(--icon) 1fr auto; align-items: center;
+  gap: var(--gap-icon); padding: 7px var(--space-3); min-height: 34px;
+}
+/* connector spine between consecutive glyph centers (drawn behind the glyphs). */
+.sup__step:not(:last-child)::before {
+  content: ''; position: absolute; z-index: 0;
+  left: calc(var(--space-3) + (var(--glyph) - var(--hair)) / 2);
+  top: calc(50% + var(--glyph) / 2 - 1px);
+  height: calc(100% - var(--glyph) + 2px);
+  width: var(--hair); background: var(--line);
+}
+.sup__step > * { position: relative; z-index: 1; }
 .sup__icon { width: var(--icon); height: var(--icon); color: var(--text-faint); flex: none; }
 .sup__label {
   font-size: var(--t-step); color: var(--text-dim); letter-spacing: var(--track-tight);
@@ -143,6 +173,18 @@
 .sup__step[data-state='done'] .sup__icon { color: var(--text-dim); }
 .sup__step[data-state='active'] .sup__label { color: var(--text-bright); }
 .sup__step[data-state='done'] .sup__label { color: var(--text); }
+/* Live active step: a neutral pulsing dot + brighter note = "this is happening now". */
+.sup__step[data-live] .sup__note {
+  color: var(--text); display: inline-flex; align-items: center; gap: var(--space-2);
+}
+.sup__step[data-live] .sup__note::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; flex: none;
+  background: var(--text-dim); animation: sup-pulse 1.4s var(--ease-inout) infinite;
+}
+@keyframes sup-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .sup__step[data-live] .sup__note::before { animation: none; opacity: 1; }
+}
 
 /* ---- 5. Candidates ---- */
 .cand { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }

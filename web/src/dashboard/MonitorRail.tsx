@@ -5,8 +5,10 @@
 //   1. RUN SWITCHER  — switch between agent-team runs (RailRuns); always shown.
 //   2. RUN IDENTITY  — trace id + task, quiet.
 //   3. AGENTS roster — one status-ring Glyph per agent; the failed (root) agent's
-//      glyph is the lone non-neutral mark; clicking an agent dims the others.
-//   4. SUPERVISE     — localize → replay → decide stepper with advancing glyphs.
+//      glyph is the lone non-neutral mark; clicking an agent focuses it in the
+//      spine and dims the others (a Focus icon advertises the affordance).
+//   4. MONITOR       — live status of the supervisor's pipeline: localize → replay
+//      → decide, a connected stepper whose active step narrates what it's doing.
 //   5. CANDIDATES    — ranked suspects with an inline replay verdict; the decoy
 //      shows a neutral-rejected 0/n chip (NEVER a signal hue); the root shows the
 //      flip. The leading suspect carries --root once localized.
@@ -20,7 +22,7 @@
 // Lucide icons are NEUTRAL affordance only (--text-dim default). State is carried
 // by the Glyph (shape + fill) and the closed 3-signal set — never by icon color.
 import { useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, Crosshair, GitFork, Gavel, Users, Workflow } from 'lucide-react'
+import { Activity, BarChart3, ChevronRight, Crosshair, Focus, GitFork, Gavel, Users } from 'lucide-react'
 import type { AgentId, Attribution, MonitorDecision, Trace } from '../types'
 import type { ActionGraph, AgentTopology, NodeStatus } from './types'
 import { Glyph, type GlyphState, type GlyphTone } from './Glyph'
@@ -30,12 +32,29 @@ import { RailRuns } from './RailRuns'
 import type { Phase } from './phase'
 import './MonitorRail.css'
 
-// ---- SUPERVISE stepper: the monitor's job, three beats ----
+// ---- MONITOR stepper: the supervisor's job, three beats. This is a LIVE STATUS
+// readout (a pipeline narrating itself), NOT a control panel — the phases advance
+// on their own. The connector spine + the active step's live note say "this is
+// happening," so it never reads as a row of buttons to press. ----
 const SUPERVISE: { key: string; label: string; note: string }[] = [
   { key: 'localize', label: 'Localize', note: 'rank suspects' },
   { key: 'replay', label: 'Replay', note: 'fork · inject' },
   { key: 'decide', label: 'Decide', note: 'trust · apply' },
 ]
+
+// What the active step is doing right now — replaces the static note while live so
+// the stepper visibly moves through the investigation rather than sitting frozen.
+function liveNote(key: string, phase: Phase): string | null {
+  if (key === 'localize') {
+    if (phase === 'blast') return 'tracing blast radius…'
+    if (phase === 'analyze') return 'ranking suspects…'
+  }
+  if (key === 'replay') {
+    if (phase === 'proving_decoy') return 'replaying decoy…'
+    if (phase === 'proving_root') return 'replaying root…'
+  }
+  return null
+}
 
 // How far the monitor has advanced for a given phase (index into SUPERVISE that is "active").
 const PHASE_REACH: Record<Phase, number> = {
@@ -189,6 +208,14 @@ export function MonitorRail({
   const top = topology ?? deriveTopology(graph, attribution)
   const localized = isLocalized(phase)
 
+  // Step count per agent — gives each roster row real data substance (so it reads
+  // as a focusable record, not a static legend) and quantifies the agent's share.
+  const stepsByAgent = new Map<AgentId, number>()
+  for (const n of graph.nodes) {
+    if (n.agentId == null) continue
+    stepsByAgent.set(n.agentId, (stepsByAgent.get(n.agentId) ?? 0) + n.stepIds.length)
+  }
+
   // Run identity readout: a quiet agent-count tag (single-agent traces read "single agent").
   const agentLabel = top.agents.length > 1 ? `${top.agents.length} agents` : 'single agent'
   const maxTok = Math.max(1, ...stats.agents.map((a) => a.tokensTotal))
@@ -228,7 +255,9 @@ export function MonitorRail({
             </div>
           </section>
 
-          {/* 3 — AGENTS roster */}
+          {/* 3 — AGENTS roster. Each row focuses that agent in the trace spine (and
+              dims the rest); a second click clears. The hover-revealed Focus icon
+              advertises that affordance, and the step count gives the row substance. */}
           <RailSection icon={Users} title="Agents" count={top.agents.length} open={isOpen('agents')} onToggle={() => toggle('agents')}>
             <ul className="roster">
               {top.agents.map((a) => {
@@ -236,6 +265,7 @@ export function MonitorRail({
                 const selected = selectedAgentId === a.id
                 const dimmed = selectedAgentId != null && !selected
                 const isRootAgent = localized && a.status === 'root'
+                const steps = stepsByAgent.get(a.id) ?? 0
                 return (
                   <li key={a.id}>
                     <button
@@ -246,11 +276,16 @@ export function MonitorRail({
                       data-root={isRootAgent || undefined}
                       aria-pressed={selected}
                       disabled={!onSelectAgent}
+                      title={onSelectAgent ? (selected ? `Clear focus on ${a.label}` : `Focus ${a.label} in the trace`) : undefined}
                       onClick={() => onSelectAgent?.(a.id)}
                     >
                       <Glyph state={state} tone={tone} />
                       <span className="roster__label">{a.label}</span>
-                      {isRootAgent && <span className="roster__mark">root</span>}
+                      <span className="roster__meta">
+                        {isRootAgent && <span className="roster__mark">root</span>}
+                        {steps > 0 && <span className="roster__steps tnum">{steps}</span>}
+                        <Focus className="roster__focus" size={14} strokeWidth={1.5} aria-hidden="true" />
+                      </span>
                     </button>
                   </li>
                 )
@@ -258,19 +293,20 @@ export function MonitorRail({
             </ul>
           </RailSection>
 
-          {/* 4 — SUPERVISE stepper */}
-          <RailSection icon={Workflow} title="Supervise" open={isOpen('supervise')} onToggle={() => toggle('supervise')}>
+          {/* 4 — MONITOR stepper (live status of the supervisor's pipeline) */}
+          <RailSection icon={Activity} title="Monitor" open={isOpen('supervise')} onToggle={() => toggle('supervise')}>
             <ol className="sup">
               {SUPERVISE.map((s, i) => {
                 const st = stepperState(i, phase)
                 const tone: GlyphTone = s.key === 'decide' && st === 'done' ? 'pass' : 'neutral'
                 const Icon = s.key === 'localize' ? Crosshair : s.key === 'replay' ? GitFork : Gavel
+                const live = st === 'active' ? liveNote(s.key, phase) : null
                 return (
-                  <li key={s.key} className="sup__step" data-state={st}>
+                  <li key={s.key} className="sup__step" data-state={st} data-live={live ? '' : undefined}>
                     <Glyph state={st} tone={tone} />
                     <Icon className="sup__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
                     <span className="sup__label">{s.label}</span>
-                    <span className="sup__note">{s.note}</span>
+                    <span className="sup__note">{live ?? s.note}</span>
                   </li>
                 )
               })}

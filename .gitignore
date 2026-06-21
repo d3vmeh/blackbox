@@ -43,3 +43,10 @@ venv/
 
 # Playwright MCP temp output
 .playwright-mcp/
+
+# Claude Code local config
+.claude/
+
+# Local screenshot scratch
+current.png
+dash-new.png

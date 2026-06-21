@@ -1,5 +1,48 @@
 /* ReadoutBar — TrustBadge + verdict focal cluster (owned by ReadoutBar, not dashboard.css). */
 
+/* The whole right side reads as ONE instrument cluster: live phase status →
+   hairline divider → oracle verdict. Grouping fixes the "scattered / disconnected"
+   feel — the phase and the verdict it produces sit together, not at opposite ends. */
+.rb__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--h-bar);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* Live pipeline status with a small indicator dot: dim+pulsing while working,
+   sage+steady once the verdict settles (PASS). */
+.rb__phase {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--t-label);
+  color: var(--text-faint);
+  letter-spacing: var(--track-tight);
+  white-space: nowrap;
+}
+.rb__phase-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--text-dim); flex: 0 0 auto;
+}
+.rb__phase:not([data-settled]) .rb__phase-dot { animation: rb-phase-pulse 1.6s var(--ease-inout) infinite; }
+.rb__phase[data-settled] { color: var(--text-dim); }
+.rb__phase[data-settled] .rb__phase-dot { background: var(--pass); }
+@keyframes rb-phase-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rb__phase .rb__phase-dot { animation: none; opacity: 0.7; }
+}
+
+/* Hairline that ties the status group to the oracle/verdict — a quiet seam, not a border. */
+.rb__div {
+  width: var(--hair);
+  align-self: stretch;
+  margin: var(--space-3) 0;
+  background: var(--line);
+}
+
 /* The badge and the verdict word sit as one right-aligned cluster so the eye lands
    on them together. Layout-only: no signal hue lives here (TrustBadge owns its own
    treatment; the verdict word keeps its two-tone color from dashboard.css). */
@@ -16,7 +59,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-right: var(--space-3);
   padding: var(--space-1) var(--space-2);
   background: transparent;
   border: var(--hair) solid var(--line);

@@ -52,10 +52,6 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .rb__task::before { content: '·'; color: var(--text-faint); margin-right: var(--space-2); }
-.rb__meta {
-  font-size: var(--t-label); color: var(--text-faint); letter-spacing: var(--track-tight);
-  margin-left: var(--space-2); white-space: nowrap; flex: 0 0 auto;
-}
 .rb__spacer { flex: 1; min-width: var(--space-3); }
 .rb__eyebrow {
   font-size: var(--t-label); letter-spacing: var(--track-upper); text-transform: uppercase;
@@ -65,9 +61,12 @@
   position: relative; display: inline-flex; align-items: center; justify-content: flex-end;
   min-width: 56px; height: var(--h-bar);
 }
+/* The single saturated word on screen — set in the mono trace face (uppercase,
+   tracked) so it reads as an instrument/terminal readout, cohesive with the data
+   around it rather than generic UI bold. */
 .rb__verdict {
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-h3);
-  line-height: 1; letter-spacing: var(--track-verdict);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-verdict);
+  line-height: 1; letter-spacing: var(--track-upper);
 }
 .rb__verdict--fail { color: var(--blast); }
 .rb__verdict--pass { color: var(--pass); }
@@ -129,6 +128,9 @@
   overflow: hidden; text-overflow: ellipsis;
 }
 .tg__band-label[data-root='true'] { color: var(--root); }
+/* Cross-highlight from topology: sibling agents recede when one is picked. */
+.tg__band-label { transition: opacity var(--dur-micro) var(--ease-inout); }
+.tg__band-label[data-dimmed='true'] { opacity: 0.4; }
 /* Band separator: surface-step + hairline rule (--line-soft at --hair), never a hue. */
 .tg__band-sep {
   position: absolute; left: 0; height: var(--hair);
@@ -221,18 +223,27 @@
 
 .insp__sec { display: flex; flex-direction: column; gap: var(--space-2); }
 .insp__sech {
-  display: flex; justify-content: space-between; align-items: baseline;
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3);
   font-size: var(--t-label); letter-spacing: var(--track-upper); text-transform: uppercase;
   color: var(--text-faint); margin-bottom: var(--space-1);
 }
-.insp__kv { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-3); font-size: var(--t-step); }
-.insp__k { color: var(--text-dim); }
+/* Title holds its line; the (often longer) aside truncates with an ellipsis + title
+   tooltip so the two never collide. */
+.insp__sectitle { flex: 0 0 auto; white-space: nowrap; }
+.insp__secaside {
+  flex: 0 1 auto; min-width: 0; text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.insp__kv { display: grid; grid-template-columns: minmax(0, 116px) minmax(0, 1fr); gap: var(--space-3); font-size: var(--t-step); align-items: baseline; }
+.insp__k { color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .insp__v { font-family: var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
 .insp__v--bad { color: var(--blast); } .insp__v--good { color: var(--pass); } .insp__v--root { color: var(--root); }
 .insp__pre {
   margin: 0; background: var(--inset); border: var(--hair) solid var(--line); border-radius: var(--r-2);
   padding: var(--space-3); font-family: var(--font-mono); font-size: var(--t-step); color: var(--text);
   overflow: auto; line-height: var(--lh-data);
+  /* wrap long values instead of clipping them at the panel edge */
+  white-space: pre-wrap; overflow-wrap: anywhere;
 }
 /* a poisoned output carries a thin signal edge so the eye reads WHERE */
 .insp__pre--bad { box-shadow: inset 2px 0 0 var(--blast); }
@@ -253,37 +264,103 @@
   width: 100%; font-size: var(--t-step); padding: var(--space-3);
   border: var(--hair) solid var(--line); border-radius: var(--r-2);
   background: var(--inset); color: var(--text); cursor: pointer;
-  transition: background var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+  transition: background var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out),
+    transform var(--dur-micro) var(--ease-out);
 }
 .insp__btn:hover { background: var(--raised); border-color: var(--sel-line); }
+/* press + keyboard-focus feedback (DESIGN.md: visible focus on every control) */
+.insp__btn:active { transform: translateY(1px); }
+.insp__btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* busy: replay in flight — no press travel, progress cursor, dimmed */
+.insp__btn:disabled { cursor: progress; transform: none; }
+.insp__btn[aria-busy='true'] { opacity: 0.75; }
 /* primary action uses the lone interactive accent */
 .insp__btn--primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
 .insp__btn--primary:hover { background: color-mix(in srgb, var(--accent) 88%, #fff); border-color: var(--accent); }
+.insp__btn--primary:disabled:hover { background: var(--accent); }
+/* in-button progress ring while a replay is in flight (reuses dash-spin) */
+.insp__btnspin {
+  display: inline-block; width: 12px; height: 12px; margin-right: var(--space-2);
+  vertical-align: -1px; border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, #fff 35%, transparent); border-top-color: #fff;
+  animation: dash-spin 0.7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .insp__btnspin { animation: none; } }
 .insp__hint { font-size: var(--t-label); color: var(--text-faint); text-align: center; }
 .insp__hint b { color: var(--text-dim); font-weight: 600; }
 
 /* ---- Log/event console (chronological readout dock) ---- */
-.lc { border-top: 1px solid var(--line); background: var(--panel); font-family: var(--font-mono); }
-.lc__head { display: flex; gap: var(--space-4); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--line); }
-.lc__tab { font-size: var(--t-label); color: var(--text-dim); } .lc__tab--on { color: var(--text-bright); }
-.lc__lines { max-height: 172px; overflow: auto; padding: var(--space-2) var(--space-4); }
-.lc__ln { display: grid; grid-template-columns: 64px 52px 150px 1fr; gap: var(--space-3);
-  font-size: var(--t-step); line-height: 1.7; white-space: nowrap; }
-.lc__t { color: var(--text-faint); font-variant-numeric: tabular-nums; }
-.lc__lv { color: var(--text-dim); } .lc__src { color: var(--text-dim); }
-.lc__msg { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
-.lc__ln[data-flag='root'] { box-shadow: inset 3px 0 0 var(--root); margin: 0 calc(-1 * var(--space-4)); padding: 0 var(--space-4); }
-.lc__ln[data-flag='root'] .lc__lv, .lc__ln[data-flag='root'] .lc__msg { color: var(--root); }
-.lc__ln[data-selected] { background: var(--inset); }
+.lc { border-top: var(--hair) solid var(--line); background: var(--panel); font-family: var(--font-mono); flex: 0 0 auto; }
+/* Dock header doubles as the collapse toggle — a full-width button, no fake tabs. */
+.lc__head {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  width: 100%; padding: var(--space-2) var(--space-4);
+  background: none; border: 0; text-align: left; cursor: pointer;
+  border-bottom: var(--hair) solid transparent;
+}
+.lc[data-open] .lc__head { border-bottom-color: var(--line); }
+.lc__head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.lc__chev {
+  align-self: center; color: var(--text-dim); flex: 0 0 auto;
+  transition: transform var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+.lc:not([data-open]) .lc__chev { transform: rotate(-90deg); }
+.lc__head:hover .lc__chev, .lc__head:hover .lc__eyebrow { color: var(--text); }
+.lc__eyebrow {
+  font-size: var(--t-label); letter-spacing: var(--track-upper); text-transform: uppercase;
+  color: var(--text-dim); transition: color var(--dur-micro) var(--ease-out);
+}
+.lc__sub { font-size: var(--t-label); color: var(--text-faint); letter-spacing: var(--track-tight); }
+.lc__count { margin-left: auto; font-size: var(--t-label); color: var(--text-faint); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
 
-/* ---- Readout-bar runtime + trust-gate pills ---- */
-.rb__trust { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: var(--r-1);
+/* Shared column grid for the header row + every line, so they align exactly:
+   time · step · source(agent) · kind-chip · output. */
+.lc__cols, .lc__ln {
+  display: grid;
+  grid-template-columns: 56px 44px 116px 56px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+/* Column header: tiny uppercase labels so the columns are legible at a glance. */
+.lc__cols {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--t-label); letter-spacing: var(--track-upper); text-transform: uppercase;
+  color: var(--text-faint);
+  border-bottom: var(--hair) solid var(--line-soft);
+}
+.lc__lines { max-height: 188px; overflow: auto; padding: var(--space-1) var(--space-4) var(--space-2); }
+/* Roomier rows: more vertical padding + a faint separator so lines don't crowd. */
+.lc__ln {
+  font-size: var(--t-step); line-height: var(--lh-data); white-space: nowrap;
+  padding: var(--space-2) 0; border-bottom: var(--hair) solid var(--line-soft);
+}
+.lc__ln:last-child { border-bottom: 0; }
+.lc__t { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.lc__step { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.lc__src { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+/* Kind is a small neutral chip (affordance only, never a signal hue) so event
+   types are scannable without competing with the trace's reserved colors. */
+.lc__lv {
+  justify-self: start;
+  font-size: var(--t-label); color: var(--text-dim);
+  background: var(--inset); border: var(--hair) solid var(--line);
+  border-radius: var(--r-1); padding: 1px var(--space-2); line-height: 1.4;
+}
+.lc__msg { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; }
+/* Root line: amber left edge + emphasized source/output, marking it in the readout. */
+.lc__ln[data-flag='root'] { box-shadow: inset 3px 0 0 var(--root); margin: 0 calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
+.lc__ln[data-flag='root'] .lc__src, .lc__ln[data-flag='root'] .lc__msg { color: var(--root); }
+.lc__ln[data-flag='root'] .lc__lv { color: var(--root); border-color: color-mix(in srgb, var(--root) 40%, transparent); }
+.lc__ln[data-selected] { background: var(--inset); margin: 0 calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
+
+/* ---- Readout-bar runtime + trust-gate pills (spacing owned by flex gaps) ---- */
+.rb__trust { padding: 2px var(--space-2); border-radius: var(--r-1);
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
 .rb__trust--apply { color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
   background: color-mix(in srgb, var(--pass) 8%, transparent); }
 .rb__trust--escalate { color: var(--blast); border: 1px solid color-mix(in srgb, var(--blast) 35%, transparent);
   background: color-mix(in srgb, var(--blast) 8%, transparent); }
-.rb__runtime { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: var(--r-1);
+.rb__runtime { padding: 2px var(--space-2); border-radius: var(--r-1);
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
   color: var(--text-dim); border: 1px solid var(--line); background: var(--inset); }
 
