@@ -44,7 +44,7 @@ def main() -> None:
         from dotenv import load_dotenv
 
         load_dotenv()
-        from .otel import emit_trace
+        from ..otel import emit_trace
 
         backend = "arize" if use_arize else "phoenix"
         root_node = gold.raw.get("node")

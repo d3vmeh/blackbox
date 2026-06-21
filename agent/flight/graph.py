@@ -17,8 +17,8 @@ from typing import Any
 from eval.oracle import evaluate
 from shared.schema import Trace
 
-from .capture import Recorder
-from .llm import Think, make_think
+from ..capture import Recorder
+from ..llm import Think, make_think
 from .tools import browserbase_search, mock_browserbase_search
 
 INTENDED_DATE = "2026-07-12"
