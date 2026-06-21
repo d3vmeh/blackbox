@@ -17,8 +17,12 @@
 .tg__node[data-status='root'] { border-color: var(--root); box-shadow: var(--ring-root);
   background: linear-gradient(var(--root-glow), var(--root-glow)), var(--raised); }
 .tg__node[data-status='root'] .nl { color: var(--root); }
-.tg__node[data-status='blast'] { box-shadow: inset 2px 0 0 var(--blast); }
-.tg__node[data-status='blast'] .nl { color: var(--blast); }
+/* AFFECTED = carried the root's error but is individually correct (its own output
+   matches its reference). A quiet, dim "tainted" marker — a thin rose tick + a
+   muted label, slightly recessed — NOT alarm-red, so it never looks like the
+   culprit. The bright amber root dominates; this still heals to --pass on replay. */
+.tg__node[data-status='blast'] { box-shadow: inset 2px 0 0 var(--blast); opacity: .82; }
+.tg__node[data-status='blast'] .nl { color: var(--text-dim); }
 .tg__node[data-status='decoy'] { border-style: dashed; }
 .tg__node[data-status='pass'] { box-shadow: inset 2px 0 0 var(--pass); }
 .tg__node[data-status='pass'] .nl { color: var(--pass); }
