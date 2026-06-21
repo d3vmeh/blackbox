@@ -11,6 +11,8 @@
   gap: var(--space-2); padding: var(--space-2);
   background: var(--bg); color: var(--text);
 }
+/* Pending run: hide the left rail so no stale trace shows beside the await panel. */
+.dash--await { grid-template-columns: minmax(0, 1fr); }
 
 /* Hide scrollbars on the dashboard scroll panes (keep scrollability). */
 .mrail, .dash__spine-scroll, .insp, .insp__scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -59,6 +61,7 @@
 }
 .rb__verdict--fail { color: var(--blast); }
 .rb__verdict--pass { color: var(--pass); }
+.rb__verdict--ready { color: var(--text-faint); }
 
 /* ============================ Work area (spine | inspector) ============================ */
 .dash__work {
@@ -235,6 +238,31 @@
   color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
   background: color-mix(in srgb, var(--pass) 8%, transparent); }
 
+/* "Ready to run" — picked scenario differs from the loaded trace */
+.dash__await {
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-8) var(--space-4);
+}
+.dash__await-card {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  text-align: center; font-family: var(--font-mono);
+}
+.dash__await-eyebrow {
+  font-size: var(--t-label); letter-spacing: var(--track-upper);
+  text-transform: uppercase; color: var(--text-dim);
+}
+.dash__await-scn {
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-h3);
+  color: var(--text-bright); letter-spacing: var(--track-display);
+}
+.dash__await-hint { font-size: var(--t-step); color: var(--text-faint); max-width: 36ch; }
+.dash__spinner {
+  width: 22px; height: 22px; margin-bottom: var(--space-2); border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--root);
+  animation: dash-spin 0.8s linear infinite;
+}
+@keyframes dash-spin { to { transform: rotate(360deg); } }
+
 /* ---- Run bar (scenario picker + Run) — top toolbar ---- */
 .dash__run { display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-3) var(--space-4); background: var(--panel);
@@ -253,6 +281,10 @@
 .dash__btn:disabled { background: var(--raised); color: var(--text-dim);
   border-color: var(--line); cursor: default; }
 .dash__err { color: var(--blast); font-size: var(--t-step); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash__spinner { animation: none; }
+}
 
 /* ---- Rendered code output (syntax-highlighted, line-numbered) ---- */
 .insp__codewrap { margin-bottom: var(--space-3); }

@@ -67,7 +67,10 @@ export function useRun() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario, live }),
       })
-      if (!r.ok) throw new Error(`run failed (${r.status})`)
+      if (!r.ok) {
+        const detail = await r.json().catch(() => ({}))
+        throw new Error(typeof detail.detail === 'string' ? detail.detail : `run failed (${r.status})`)
+      }
       const body: RunResponse = await r.json()
       // use the backend's meta/monitor when present (coding runs); else the static defaults
       setData(toRunData(body.trace, body.attribution, body.replay, body.meta, body.monitor))

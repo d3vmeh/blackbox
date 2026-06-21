@@ -1,6 +1,6 @@
 // web/src/dashboard/Dashboard.test.tsx
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
 
 // The multi-agent stub (Accounts-Payable overpayment):
@@ -42,5 +42,60 @@ describe('Dashboard', () => {
     // verdict stays FAIL; the focused decoy step does not flip the outcome
     expect(await screen.findByText('FAIL')).toBeInTheDocument()
     expect(screen.queryByText('PASS')).not.toBeInTheDocument()
+  })
+})
+
+describe('Dashboard · pending run (Dev READY state)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString()
+      if (url.includes('/api/scenarios')) {
+        return {
+          ok: true,
+          json: async () => ([
+            { name: 'flight_langgraph', label: 'flight · langgraph' },
+            { name: 'acme_amount', label: 'claims · acme amount' },
+          ]),
+        } as Response
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shows READY and hides the stale graph when the picked scenario is not loaded', async () => {
+    render(<Dashboard />)
+    expect(screen.getByText('FAIL')).toBeInTheDocument()
+    expect(screen.getAllByText(/ocr_extract/).length).toBeGreaterThan(0)
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: /flight · langgraph/i })).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText('test'), { target: { value: 'flight_langgraph' } })
+
+    expect(screen.getByText('READY')).toBeInTheDocument()
+    expect(screen.getByText(/ready to run/i)).toBeInTheDocument()
+    expect(screen.queryByText(/ocr_extract/)).not.toBeInTheDocument()
+    expect(document.querySelector('.dash--await')).toBeTruthy()
+  })
+
+  it('restores the loaded trace when re-selecting the scenario that is already loaded', async () => {
+    render(<Dashboard />)
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: /flight · langgraph/i })).toBeInTheDocument()
+    })
+    fireEvent.change(screen.getByLabelText('test'), { target: { value: 'flight_langgraph' } })
+    expect(screen.getByText('READY')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('test'), { target: { value: 'acme_amount' } })
+
+    expect(screen.getByText('FAIL')).toBeInTheDocument()
+    expect(screen.getAllByText(/ocr_extract/).length).toBeGreaterThan(0)
+    await waitFor(() => {
+      expect(document.querySelector('.dash--await')).toBeFalsy()
+    })
   })
 })

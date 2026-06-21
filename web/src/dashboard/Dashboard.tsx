@@ -123,18 +123,23 @@ export function Dashboard() {
     return lines
   }, [phase, data.attribution, data.monitor.replay.n])
 
-  const verdict = phase === 'confirm' || data.trace.success ? 'PASS' : 'FAIL'
-  const trust = trustForPhase(phase)
-  const proving = phase === 'proving_decoy' || phase === 'proving_root'
+  // Picked scenario differs from the loaded run → show READY instead of a stale graph.
+  const loadedScenario = data.meta.scenario ?? data.trace.task
+  const pendingRun = picked !== loadedScenario
+  const pickedLabel = scenarios.find((s) => s.name === picked)?.label ?? picked
+  const verdict = pendingRun ? 'READY' as const
+    : phase === 'confirm' || data.trace.success ? 'PASS' : 'FAIL'
+  const trust = pendingRun ? 'untrusted' as const : trustForPhase(phase)
+  const proving = !pendingRun && (phase === 'proving_decoy' || phase === 'proving_root')
   const rate = proving ? 0 : data.monitor.replay.confirmation_rate
   const replayN = data.monitor.replay.n
-  const monitorLabel = phase === 'confirm' ? data.monitor.decision : null
+  const monitorLabel = !pendingRun && phase === 'confirm' ? data.monitor.decision : null
 
   // Keyboard-driven instrument: j/k (or ↓/↑) move the selection along the spine, r replays
   // the focused step. (DESIGN.md: blackbox is keyboard-first.)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (pendingRun || e.metaKey || e.ctrlKey || e.altKey) return
       const nodes = data.graph.nodes
       const idx = nodes.findIndex((n) => n.id === selectedId)
       if (e.key === 's' || e.key === 'S') {
@@ -155,32 +160,34 @@ export function Dashboard() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [data.graph.nodes, selectedId, selectedNode, onReplay, selectNode])
+  }, [data.graph.nodes, selectedId, selectedNode, onReplay, selectNode, pendingRun])
 
   return (
-    <div className="dash">
-      <MonitorRail
-        trace={data.trace}
-        attribution={data.attribution}
-        graph={data.graph}
-        phase={phase}
-        selectedId={selectedId}
-        onSelect={selectNode}
-        topology={topology}
-        selectedAgentId={selectedAgentId}
-        onSelectAgent={onSelectAgent}
-        monitor={data.monitor}
-      />
+    <div className={`dash${pendingRun ? ' dash--await' : ''}`}>
+      {!pendingRun && (
+        <MonitorRail
+          trace={data.trace}
+          attribution={data.attribution}
+          graph={data.graph}
+          phase={phase}
+          selectedId={selectedId}
+          onSelect={selectNode}
+          topology={topology}
+          selectedAgentId={selectedAgentId}
+          onSelectAgent={onSelectAgent}
+          monitor={data.monitor}
+        />
+      )}
       <div className="dash__tile">
         <ReadoutBar
-          runId={data.trace.id}
-          task={data.trace.task}
+          runId={pendingRun ? picked : data.trace.id}
+          task={pendingRun ? pickedLabel : data.trace.task}
           verdict={verdict}
-          meta={PHASE_STATUS[phase]}
+          meta={pendingRun ? 'awaiting run' : PHASE_STATUS[phase]}
           trust={trust}
-          rate={rate}
-          n={replayN}
-          runtime={data.meta.domain ?? data.meta.runtime}
+          rate={pendingRun ? undefined : rate}
+          n={pendingRun ? undefined : replayN}
+          runtime={pendingRun ? undefined : (data.meta.domain ?? data.meta.runtime)}
           monitorDecision={monitorLabel}
           statsOpen={statsOpen}
           onToggleStats={() => setStatsOpen((cur) => !cur)}
@@ -195,47 +202,70 @@ export function Dashboard() {
           </button>
           {error && <span className="dash__err">{error}</span>}
         </div>
-        <div className="dash__work">
-          <section className="dash__spine">
-            <div className="pane__head">
-              <span className="eyebrow">Topology · agent wiring</span>
-              <span className="pane__hint tnum">{topology.agents.length} agents · {topology.handoffs.length} handoffs</span>
+        {pendingRun ? (
+          <div className="dash__await">
+            <div className="dash__await-card">
+              {loading ? (
+                <>
+                  <span className="dash__spinner" aria-hidden="true" />
+                  <span className="dash__await-eyebrow">running on real Claude</span>
+                  <span className="dash__await-scn">{pickedLabel}</span>
+                  <span className="dash__await-hint">executing the pipeline on real Claude…</span>
+                </>
+              ) : (
+                <>
+                  <span className="dash__await-eyebrow">ready to run</span>
+                  <span className="dash__await-scn">{pickedLabel}</span>
+                  <span className="dash__await-hint">Press Run to execute this test and inspect its trace.</span>
+                </>
+              )}
             </div>
-            <Topology topology={topology} phase={phase} />
-            <div className="pane__head pane__head--spine">
-              <span className="eyebrow">Provenance · trace</span>
-              <span className="pane__hint tnum">{data.graph.nodes.length} actions · {data.trace.steps.length} steps</span>
+          </div>
+        ) : (
+          <>
+            <div className="dash__work">
+              <section className="dash__spine">
+                <div className="pane__head">
+                  <span className="eyebrow">Topology · agent wiring</span>
+                  <span className="pane__hint tnum">{topology.agents.length} agents · {topology.handoffs.length} handoffs</span>
+                </div>
+                <Topology topology={topology} phase={phase} />
+                <div className="pane__head pane__head--spine">
+                  <span className="eyebrow">Provenance · trace</span>
+                  <span className="pane__hint tnum">{data.graph.nodes.length} actions · {data.trace.steps.length} steps</span>
+                </div>
+                <div className="dash__spine-scroll">
+                  <TraceGraph
+                    graph={data.graph}
+                    status={data.status}
+                    phase={phase}
+                    selectedId={selectedId}
+                    onSelect={selectNode}
+                  />
+                </div>
+                <MonitorPanel open={monitorOpen} lines={monitorLines} trust={trust} onClose={() => setMonitorDismissed(true)} />
+              </section>
+              <aside className="dash__inspect">
+                <div className="pane__head">
+                  <span className="eyebrow">Inspector</span>
+                  {selectedNode && <span className="pane__hint tnum">{selectedNode.id}</span>}
+                </div>
+                <Inspector
+                  node={selectedNode}
+                  steps={data.trace.steps}
+                  attribution={data.attribution}
+                  runMeta={data.meta}
+                  monitor={data.monitor}
+                  onReplay={onReplay}
+                  nodes={data.graph.nodes}
+                  onSelect={selectNode}
+                  replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
+                />
+              </aside>
             </div>
-            <div className="dash__spine-scroll">
-              <TraceGraph
-                graph={data.graph}
-                status={data.status}
-                phase={phase}
-                selectedId={selectedId}
-                onSelect={selectNode}
-              />
-            </div>
-            <MonitorPanel open={monitorOpen} lines={monitorLines} trust={trust} onClose={() => setMonitorDismissed(true)} />
-          </section>
-          <aside className="dash__inspect">
-            <div className="pane__head">
-              <span className="eyebrow">Inspector</span>
-              {selectedNode && <span className="pane__hint tnum">{selectedNode.id}</span>}
-            </div>
-            <Inspector
-              node={selectedNode}
-              steps={data.trace.steps}
-              attribution={data.attribution}
-              runMeta={data.meta}
-              monitor={data.monitor}
-              onReplay={onReplay}
-              nodes={data.graph.nodes}
-              onSelect={selectNode}
-              replayResult={replayInfo && replayInfo.stepId === selectedStepId ? replayInfo.result : null}
-            />
-          </aside>
-        </div>
-        <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
+            <LogConsole steps={data.trace.steps} attribution={data.attribution} selectedStepId={selectedStepId} />
+          </>
+        )}
         <StatsOverlay open={statsOpen} stats={stats} onClose={() => setStatsOpen(false)} />
       </div>
     </div>
