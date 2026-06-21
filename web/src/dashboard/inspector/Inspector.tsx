@@ -1,12 +1,41 @@
 import type { Attribution, Json, Step } from '../../types'
 import type { ActionNode } from '../types'
-import { RawPayload, Section } from './sections'
+import { CodeBlock } from './CodeBlock'
+import { Field, RawPayload, Section } from './sections'
 import '../dashboard.css'
 
 function previewInputs(inputs: Record<string, Json>): string {
   return Object.entries(inputs)
     .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
     .join('  ·  ')
+}
+
+// Render an agent's output legibly: multi-line string fields (code, tests) as
+// syntax-highlighted blocks; scalars as key/value rows; the raw JSON stays one
+// click away (a <details> toggle) so nothing is hidden.
+function ProducedOutput({ output }: { output: Json }) {
+  if (output === null || typeof output !== 'object' || Array.isArray(output)) {
+    return <RawPayload value={output} />
+  }
+  const entries = Object.entries(output)
+  return (
+    <>
+      {entries.map(([k, v]) =>
+        typeof v === 'string' && (v.includes('\n') || k === 'code' || k === 'tests') ? (
+          <div key={k} className="insp__codewrap">
+            <div className="insp__codek">{k}</div>
+            <CodeBlock code={v} />
+          </div>
+        ) : (
+          <Field key={k} k={k} v={typeof v === 'object' ? JSON.stringify(v) : String(v)} />
+        ),
+      )}
+      <details className="insp__raw">
+        <summary>raw JSON</summary>
+        <RawPayload value={output} />
+      </details>
+    </>
+  )
 }
 
 const VERDICT_LABEL = { root: '● ROOT CAUSE', blast: '● AFFECTED', ok: 'OK' } as const
@@ -57,7 +86,7 @@ export function Inspector({ node, steps, attribution, onReplay }: {
       )}
 
       <Section title="what it produced" aside="output">
-        <RawPayload value={step.output} />
+        <ProducedOutput output={step.output} />
       </Section>
 
       <Section title="inputs" aside={`${step.parents.length} source(s)`}>
