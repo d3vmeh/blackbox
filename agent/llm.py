@@ -16,7 +16,10 @@ SUBJECT_MODEL = "claude-sonnet-4-6"
 Think = Callable[[str, str], Optional[str]]
 
 
-def make_think(use_real_llm: bool = False, model: str = SUBJECT_MODEL) -> Think:
+def make_think(use_real_llm: bool = False, model: str = SUBJECT_MODEL,
+               max_tokens: int = 400) -> Think:
+    """`max_tokens` defaults to 400 (short field answers, e.g. the flight agent); raise it
+    for tasks that emit longer output such as code generation, or replies get truncated."""
     client = None
     if use_real_llm:
         from dotenv import load_dotenv  # type: ignore
@@ -30,7 +33,7 @@ def make_think(use_real_llm: bool = False, model: str = SUBJECT_MODEL) -> Think:
             return None  # mock mode -> caller uses its deterministic fallback
         resp = client.messages.create(
             model=model,
-            max_tokens=400,
+            max_tokens=max_tokens,
             system=system + " Respond with ONLY the requested value, no preamble.",
             messages=[{"role": "user", "content": user}],
         )
