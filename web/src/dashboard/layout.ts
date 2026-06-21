@@ -13,15 +13,20 @@ import type { ActionGraph, ActionNode, Lane } from './types'
 import { isPoisonEdge, type StatusMap } from './nodeStatus'
 import { deriveBands } from './deriveBands'
 
-export const LANE_X: Record<Lane, number> = { reason: 14, tool: 232, parallel: 462 }
+// Lane x-offsets: each lane is NODE_W + a small gap apart so a sequential trace
+// fits a typical spine pane without clipping the root (a lone tool-lane node used
+// to push the graph wide enough to clip it). Adjacent lanes keep ≥ NODE_W clearance
+// so same-row (parallel) nodes never overlap.
+export const LANE_X: Record<Lane, number> = { reason: 14, tool: 168, parallel: 326 }
 export const STEP_Y = 58
 export const TOP = 24
-export const NODE_W = 190   // must match .tg__node width in dashboard.css
+export const NODE_W = 150   // must match .tg__node width in dashboard.css
 export const NODE_H = 50    // must match .tg__node min-height in dashboard.css
 // Extra vertical whitespace inserted before each band after the first (8pt grid).
 export const BAND_GAP = 30
-// Reserved left gutter holding the per-band agent label.
-export const GUTTER_W = 28
+// Reserved left gutter holding the per-band agent label — wide enough for a full
+// agent name (e.g. COVERAGE, ADJUSTER) so it is not clipped by the first node.
+export const GUTTER_W = 80
 
 export interface NodePos { id: string; x: number; y: number }
 export interface EdgePath { from: string; to: string; d: string; poison: boolean; longHop: boolean; crossAgent: boolean }
@@ -79,7 +84,12 @@ export function layout(graph: ActionGraph, status: StatusMap): GraphLayout {
     }
   })
 
-  const width = GUTTER_W + LANE_X.parallel + NODE_W + 40
+  // Size to the lanes actually used so an unused lane (e.g. `parallel` in a
+  // sequential trace) doesn't leave a band of dead space on the right.
+  const usedLaneX = graph.nodes.length
+    ? Math.max(...graph.nodes.map((n) => LANE_X[n.lane]))
+    : LANE_X.reason
+  const width = GUTTER_W + usedLaneX + NODE_W + 40
   const height = cursor + 20
   return { positions: graph.nodes.map((n) => pos.get(n.id)!), edges, bands: bandLayouts, separators, width, height }
 }

@@ -8,26 +8,28 @@
 .dash {
   height: 100vh; overflow: hidden; box-sizing: border-box;
   display: grid; grid-template-columns: var(--rail-nav) minmax(0, 1fr);
-  gap: var(--space-2); padding: var(--space-2);
+  gap: 0; padding: 0;
   background: var(--bg); color: var(--text);
 }
-/* Pending run: hide the left rail so no stale trace shows beside the await panel. */
-.dash--await { grid-template-columns: minmax(0, 1fr); }
+/* Pending run: the left rail stays visible (it owns the run switcher); only its
+   trace sections collapse away, so the await panel sits beside a live switcher. */
+.dash--await { grid-template-columns: var(--rail-nav) minmax(0, 1fr); }
 
 /* Hide scrollbars on the dashboard scroll panes (keep scrollability). */
 .mrail, .dash__spine-scroll, .insp, .insp__scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .mrail::-webkit-scrollbar, .dash__spine-scroll::-webkit-scrollbar,
 .insp::-webkit-scrollbar, .insp__scroll::-webkit-scrollbar { width: 0; height: 0; }
 
-/* The work-area tile: the only elevated surface at the page level. */
+/* The work area: a continuous full-bleed surface, divided from the rail by a
+   single hairline (Linear nav│content) — not a floating card. The faint --panel
+   tone-step + hairline read as one instrument, so nothing looks detached. */
 .dash__tile {
   position: relative;
   min-width: 0; min-height: 0; overflow: hidden;
   display: grid;
-  grid-template-rows: var(--h-bar) var(--h-toolbar) minmax(0, 1fr);
+  grid-template-rows: var(--h-bar) minmax(0, 1fr);
   background: var(--panel);
-  border: var(--hair) solid var(--line);
-  border-radius: var(--r-4);
+  border-left: var(--hair) solid var(--line);
 }
 
 /* Scrollable main column: work area + log console share the third grid row. */
@@ -104,7 +106,7 @@
 /* position: relative so the floating MonitorPanel anchors bottom-right over it. */
 .dash__spine {
   position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  padding: var(--space-5) var(--space-5) var(--space-3);
 }
 .pane__head--spine { margin-top: var(--space-4); }
 .dash__spine-scroll { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
@@ -113,15 +115,18 @@
 .tg__edges { position: absolute; inset: 0; pointer-events: none; }
 /* Edges transition stroke color when healing blast→pass (same timing as nodes). */
 .tg__edges path { transition: stroke 280ms var(--ease-out); }
-/* Per-agent grouping: a mono UPPERCASE label in the reserved left gutter (28px,
-   = GUTTER_W in layout.ts), centered on the band. Neutral --text-dim; the band
-   that owns the localized root cause earns --root (its reserved meaning). */
+/* Per-agent grouping: a mono UPPERCASE label in the reserved left gutter (80px,
+   = GUTTER_W in layout.ts), centered on the band. Wide enough for a full agent
+   name; longer names ellipsize inside the gutter rather than being covered by a
+   node. Neutral --text-dim; the band that owns the localized root cause earns
+   --root (its reserved meaning). */
 .tg__band-label {
-  position: absolute; left: 0; width: 28px;
+  position: absolute; left: 0; width: 80px;
   font-family: var(--font-mono); font-size: var(--t-label);
   letter-spacing: var(--track-upper); text-transform: uppercase;
   color: var(--text-dim); text-align: center; line-height: var(--lh-data);
   transform: translateY(-50%); pointer-events: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .tg__band-label[data-root='true'] { color: var(--root); }
 /* Band separator: surface-step + hairline rule (--line-soft at --hair), never a hue. */
@@ -130,9 +135,9 @@
   background: var(--line-soft); pointer-events: none;
 }
 .tg__node {
-  position: absolute; width: 190px; min-height: 50px; display: flex; flex-direction: column;
+  position: absolute; width: 150px; min-height: 50px; display: flex; flex-direction: column;
   justify-content: center; gap: 3px; padding: var(--space-2) var(--space-3);
-  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-3);
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-1);
   cursor: pointer;
   transition: box-shadow 280ms var(--ease-out), opacity 280ms var(--ease-out),
               outline-color var(--dur-micro) var(--ease-out);
@@ -150,10 +155,10 @@
   background: linear-gradient(var(--root-glow), var(--root-glow)), var(--raised); }
 .tg__node[data-status='root'] .nl { color: var(--root); }
 /* AFFECTED = carried the root's error but is individually correct (its own output
-   matches its reference). A quiet, dim "tainted" marker — a thin rose tick + a
-   muted label, slightly recessed — NOT alarm-red, so it never looks like the
-   culprit. The bright amber root dominates; this still heals to --pass on replay. */
-.tg__node[data-status='blast'] { box-shadow: inset 2px 0 0 var(--blast); opacity: .82; }
+   matches its reference). A thin, dim left-edge bar — quiet evidence, not alarm —
+   plus a muted label and a slight recede. The bright amber root dominates; this
+   still heals to --pass on replay. */
+.tg__node[data-status='blast'] { box-shadow: inset 1.5px 0 0 color-mix(in srgb, var(--blast) 70%, transparent); opacity: .88; }
 .tg__node[data-status='blast'] .nl { color: var(--text-dim); }
 .tg__node[data-status='decoy'] { border-style: dashed; }
 /* Heal animation: plays automatically when data-status flips to 'pass'.
@@ -192,7 +197,7 @@
 /* ============================ Inspector (right) ============================ */
 .dash__inspect {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  padding: var(--space-4); border-left: var(--hair) solid var(--line-soft); background: var(--panel);
+  padding: var(--space-5); border-left: var(--hair) solid var(--line-soft); background: var(--panel);
 }
 /* Inspector = scrollable content + a pinned action footer (Replay always visible). */
 .insp { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
@@ -272,13 +277,13 @@
 .lc__ln[data-selected] { background: var(--inset); }
 
 /* ---- Readout-bar runtime + trust-gate pills ---- */
-.rb__trust { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: 999px;
+.rb__trust { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: var(--r-1);
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
 .rb__trust--apply { color: var(--pass); border: 1px solid color-mix(in srgb, var(--pass) 35%, transparent);
   background: color-mix(in srgb, var(--pass) 8%, transparent); }
 .rb__trust--escalate { color: var(--blast); border: 1px solid color-mix(in srgb, var(--blast) 35%, transparent);
   background: color-mix(in srgb, var(--blast) 8%, transparent); }
-.rb__runtime { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: 999px;
+.rb__runtime { margin-left: var(--space-2); padding: 2px var(--space-2); border-radius: var(--r-1);
   font-size: var(--t-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
   color: var(--text-dim); border: 1px solid var(--line); background: var(--inset); }
 

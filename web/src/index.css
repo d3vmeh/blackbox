@@ -28,9 +28,9 @@
 
   /* ---- Three reserved SEMANTIC signals (the product's whole point: WHERE the
      failure is). Applied as thin edge + text only — never tinted fills or glows. ---- */
-  --root:         #d9954a;  /* ROOT CAUSE   muted amber */
-  --blast:        #d75c6c;  /* BLAST RADIUS dusty rose */
-  --pass:         #4fb98c;  /* CONFIRMED    sage emerald */
+  --root:         #e6a12e;  /* ROOT CAUSE   sharp gold/amber */
+  --blast:        #e23d52;  /* BLAST RADIUS clean crimson */
+  --pass:         #46c08a;  /* CONFIRMED    emerald */
   --root-glow:    transparent;  /* glows removed — flat */
   --blast-glow:   transparent;
   --pass-glow:    transparent;
@@ -93,10 +93,9 @@
   --sel-line:   rgba(255, 255, 255, 0.12);
 
   /* ---- Dashboard rails & bars ---- */
-  --rail-nav:   240px;   /* left: monitor rail (on bare bg, outside the tile) */
+  --rail-nav:   300px;   /* left: monitor rail (on bare bg, outside the tile) — holds run switcher + collapsible sections */
   --rail-insp:  460px;   /* right: inspector (split compare) — wider for readable code diffs */
   --h-bar:      48px;    /* readout header height */
-  --h-toolbar:  52px;    /* scenario picker row */
 
   --glyph:      13px;    /* status-ring glyph */
 

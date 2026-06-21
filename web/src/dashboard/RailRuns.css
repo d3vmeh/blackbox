@@ -1,39 +1,33 @@
-/* Scenario picker toolbar — sits below the readout bar, above the work area.
-   Custom menu (not native <select>) so overflow:hidden ancestors never clip it. */
+/* Agent-team run switcher — the top block of the left rail (below the brand).
+   Vertical layout: eyebrow → full-width trigger → full-width Run button. The
+   menu floats below the trigger. Interactive accent (--accent) only; the 3
+   signal hues stay reserved for the trace. */
 
-.scn-bar {
+.rruns {
   position: relative;
-  z-index: calc(var(--z-inspector) + 1);
+  z-index: var(--z-inspector);
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--h-toolbar);
-  padding: 0 var(--space-4);
-  border-bottom: var(--hair) solid var(--line);
-  background: var(--inset);
-  font-family: var(--font-mono);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  border-bottom: var(--hair) solid var(--line-soft);
 }
 
-.scn-bar__label {
-  flex: 0 0 auto;
+.rruns__eyebrow {
+  font-family: var(--font-mono);
   font-size: var(--t-label);
   letter-spacing: var(--track-upper);
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-.scn-bar__pick {
-  position: relative;
-  flex: 1 1 280px;
-  min-width: 0;
-  max-width: 520px;
-}
+.rruns__pick { position: relative; }
 
-.scn-bar__trigger {
+.rruns__trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-2) var(--space-3);
   background: var(--raised);
@@ -44,10 +38,10 @@
   text-align: left;
   transition: border-color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out);
 }
-.scn-bar__trigger:hover { border-color: var(--sel-line); background: var(--sel-bg); }
-.scn-bar__trigger:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rruns__trigger:hover { border-color: var(--sel-line); background: var(--sel-bg); }
+.rruns__trigger:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-.scn-bar__trigger-text {
+.rruns__trigger-text {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -55,22 +49,24 @@
   flex: 1;
 }
 
-.scn-bar__name {
+.rruns__name {
+  font-family: var(--font-mono);
   font-size: var(--t-step);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.scn-bar__chev {
+.rruns__chev {
   flex: 0 0 auto;
   color: var(--text-dim);
   transition: transform var(--dur-micro) var(--ease-out);
 }
-.scn-bar__trigger[aria-expanded='true'] .scn-bar__chev { transform: rotate(180deg); }
+.rruns__trigger[aria-expanded='true'] .rruns__chev { transform: rotate(180deg); }
 
-.scn-bar__tier {
+.rruns__tier {
   flex: 0 0 auto;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: var(--track-upper);
@@ -80,14 +76,16 @@
   border: var(--hair) solid var(--line);
   color: var(--text-dim);
 }
-.scn-bar__tier--hero { color: var(--root); border-color: color-mix(in srgb, var(--root) 35%, var(--line)); }
-.scn-bar__tier--research { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
-.scn-bar__tier--sponsor { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 35%, var(--line)); }
-.scn-bar__tier--ops { color: var(--blast); border-color: color-mix(in srgb, var(--blast) 35%, var(--line)); }
-.scn-bar__tier--coding { color: var(--coding); border-color: color-mix(in srgb, var(--coding) 35%, var(--line)); }
-.scn-bar__tier--team { color: var(--team); border-color: color-mix(in srgb, var(--team) 35%, var(--line)); }
+/* Tier chips are CATEGORY metadata, not failure signals — kept neutral so the
+   reserved hues (root/blast/pass) only ever mean WHERE the failure is. */
+.rruns__tier--hero,
+.rruns__tier--research,
+.rruns__tier--sponsor,
+.rruns__tier--ops,
+.rruns__tier--coding,
+.rruns__tier--team { color: var(--text-dim); border-color: var(--line); }
 
-.scn-bar__menu {
+.rruns__menu {
   position: absolute;
   top: calc(100% + var(--space-1));
   left: 0;
@@ -100,11 +98,11 @@
   border: var(--hair) solid var(--line);
   border-radius: var(--r-3);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-  max-height: min(360px, 50vh);
+  max-height: min(420px, 60vh);
   overflow: auto;
 }
 
-.scn-bar__opt {
+.rruns__opt {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
@@ -118,36 +116,28 @@
   text-align: left;
   transition: background var(--dur-micro) var(--ease-out);
 }
-.scn-bar__opt:hover { background: var(--sel-bg); }
-.scn-bar__opt--active { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--accent); }
+.rruns__opt:hover { background: var(--sel-bg); }
+.rruns__opt--active { background: var(--sel-bg); box-shadow: inset 2px 0 0 var(--accent); }
 
-.scn-bar__opt-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.scn-bar__opt-label {
-  font-size: var(--t-step);
-  color: var(--text-bright);
-}
-
-.scn-bar__opt-hint {
+.rruns__opt-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rruns__opt-label { font-size: var(--t-step); color: var(--text-bright); }
+.rruns__opt-hint {
   font-size: var(--t-label);
   line-height: var(--lh-body);
   color: var(--text-faint);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.scn-bar__run {
-  flex: 0 0 auto;
+.rruns__run {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
+  width: 100%;
   padding: var(--space-2) var(--space-4);
   font-family: var(--font-mono);
   font-size: var(--t-step);
@@ -159,8 +149,8 @@
   cursor: pointer;
   transition: opacity var(--dur-micro) var(--ease-out);
 }
-.scn-bar__run:hover { opacity: 0.9; }
-.scn-bar__run:disabled {
+.rruns__run:hover { opacity: 0.9; }
+.rruns__run:disabled {
   opacity: 1;
   background: var(--raised);
   color: var(--text-dim);
@@ -168,10 +158,9 @@
   cursor: default;
 }
 
-.scn-bar__status {
-  flex: 0 1 auto;
+.rruns__status {
+  font-family: var(--font-mono);
   font-size: var(--t-label);
-  white-space: nowrap;
 }
-.scn-bar__status--ready { color: var(--text-dim); }
-.scn-bar__status--err { color: var(--blast); overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.rruns__status--ready { color: var(--text-dim); }
+.rruns__status--err { color: var(--blast); overflow-wrap: anywhere; }

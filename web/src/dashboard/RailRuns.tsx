@@ -1,7 +1,13 @@
+// web/src/dashboard/RailRuns.tsx
+// The agent-team RUN SWITCHER — the top of the left rail. This is where you
+// switch between different agent-team runs (scenarios). A full-width trigger
+// shows the current run (tier badge + label); the menu lists every run; a Run /
+// Re-run button executes the picked one. Custom menu (not native <select>) so an
+// overflow:hidden rail ancestor never clips it.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Play } from 'lucide-react'
 import { SCENARIO_MANIFEST } from '../scenarios/manifest'
-import './ScenarioToolbar.css'
+import './RailRuns.css'
 
 const TIER_LABEL: Record<string, string> = {
   hero: 'Hero',
@@ -26,7 +32,7 @@ const tierOf = (name: string): string =>
 const hintOf = (name: string): string | undefined =>
   MANIFEST_BY_ID[name]?.tagline ?? TIER_HINT[tierOf(name)]
 
-export interface ScenarioToolbarProps {
+export interface RailRunsProps {
   scenarios: { name: string; label: string }[]
   picked: string
   loaded: string
@@ -36,15 +42,7 @@ export interface ScenarioToolbarProps {
   error: string | null
 }
 
-export function ScenarioToolbar({
-  scenarios,
-  picked,
-  loaded,
-  onPick,
-  onRun,
-  loading,
-  error,
-}: ScenarioToolbarProps) {
+export function RailRuns({ scenarios, picked, loaded, onPick, onRun, loading, error }: RailRunsProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const pickedLabel = scenarios.find((s) => s.name === picked)?.label ?? picked
@@ -69,29 +67,29 @@ export function ScenarioToolbar({
   }, [open, close])
 
   return (
-    <div className="scn-bar" ref={rootRef}>
-      <span className="scn-bar__label">Scenario</span>
+    <section className="rruns" ref={rootRef}>
+      <span className="rruns__eyebrow">Agent-team run</span>
 
-      <div className="scn-bar__pick">
+      <div className="rruns__pick">
         <button
           type="button"
-          className="scn-bar__trigger"
+          className="rruns__trigger"
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-label="Choose scenario"
           onClick={() => setOpen((v) => !v)}
         >
-          <span className="scn-bar__trigger-text">
-            <span className={`scn-bar__tier scn-bar__tier--${tierOf(picked)}`}>
+          <span className="rruns__trigger-text">
+            <span className={`rruns__tier rruns__tier--${tierOf(picked)}`}>
               {TIER_LABEL[tierOf(picked)] ?? tierOf(picked)}
             </span>
-            <span className="scn-bar__name">{pickedLabel}</span>
+            <span className="rruns__name">{pickedLabel}</span>
           </span>
-          <ChevronDown className="scn-bar__chev" aria-hidden="true" size={14} strokeWidth={1.75} />
+          <ChevronDown className="rruns__chev" aria-hidden="true" size={14} strokeWidth={1.75} />
         </button>
 
         {open && (
-          <ul className="scn-bar__menu" role="listbox" aria-label="Scenarios">
+          <ul className="rruns__menu" role="listbox" aria-label="Agent-team runs">
             {scenarios.map((s) => {
               const tier = tierOf(s.name)
               const hint = hintOf(s.name)
@@ -100,15 +98,15 @@ export function ScenarioToolbar({
                 <li key={s.name} role="option" aria-selected={active}>
                   <button
                     type="button"
-                    className={`scn-bar__opt${active ? ' scn-bar__opt--active' : ''}`}
+                    className={`rruns__opt${active ? ' rruns__opt--active' : ''}`}
                     onClick={() => { onPick(s.name); close() }}
                   >
-                    <span className={`scn-bar__tier scn-bar__tier--${tier}`}>
+                    <span className={`rruns__tier rruns__tier--${tier}`}>
                       {TIER_LABEL[tier] ?? tier}
                     </span>
-                    <span className="scn-bar__opt-body">
-                      <span className="scn-bar__opt-label">{s.label}</span>
-                      {hint && <span className="scn-bar__opt-hint">{hint}</span>}
+                    <span className="rruns__opt-body">
+                      <span className="rruns__opt-label">{s.label}</span>
+                      {hint && <span className="rruns__opt-hint">{hint}</span>}
                     </span>
                   </button>
                 </li>
@@ -118,20 +116,15 @@ export function ScenarioToolbar({
         )}
       </div>
 
-      <button
-        type="button"
-        className="scn-bar__run"
-        onClick={onRun}
-        disabled={loading}
-      >
+      <button type="button" className="rruns__run" onClick={onRun} disabled={loading}>
         <Play size={13} strokeWidth={2} aria-hidden="true" />
         {loading ? 'Running…' : pending ? 'Run scenario' : 'Re-run'}
       </button>
 
       {pending && !loading && (
-        <span className="scn-bar__status scn-bar__status--ready">Not loaded — press Run</span>
+        <span className="rruns__status rruns__status--ready">Not loaded — press Run</span>
       )}
-      {error && <span className="scn-bar__status scn-bar__status--err">{error}</span>}
-    </div>
+      {error && <span className="rruns__status rruns__status--err">{error}</span>}
+    </section>
   )
 }

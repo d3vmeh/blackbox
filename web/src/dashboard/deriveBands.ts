@@ -18,20 +18,11 @@ import type { ActionGraph, AgentBand } from './types'
  * Pure function — no React, no time_index lookup (time order is the node order).
  */
 
-/** Short mono UPPERCASE band labels for known agents; fallback = first 5 chars. */
-const LABELS: Record<string, string> = {
-  extractor: 'EXTR',
-  matcher: 'MATCH',
-  fraud: 'FRAUD',
-  approver: 'APPR',
-  payment: 'PAY',
-}
-
+/** Full mono UPPERCASE band label from the agentId (the gutter fits a full name;
+ *  longer names ellipsize in CSS). Matches the agent names shown in the roster. */
 function labelFor(agentId: AgentId | null): string {
   if (!agentId) return 'AGENT'
-  const known = LABELS[agentId]
-  if (known) return known
-  return agentId.slice(0, 5).toUpperCase()
+  return agentId.toUpperCase()
 }
 
 /**
