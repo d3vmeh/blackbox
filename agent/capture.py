@@ -44,5 +44,83 @@ class Recorder:
                      gold_root_step_id=gold_root_step_id)
 
 
-def to_trace(spans: list[Any], checkpoints: list[Any]) -> Trace:
-    raise NotImplementedError("P1 (live path): build Trace from OTel spans + LangGraph checkpoints")
+def to_trace(app: Any, config: dict, *, task: str, trace_id: str) -> Trace:
+    """Convert LangGraph checkpoint history to a canonical Trace.
+
+    Works on ANY LangGraph agent — no Recorder needed inside the agent.
+    Each checkpoint is a state snapshot after one node ran; we reconstruct
+    Steps from consecutive diffs.
+
+    Limitations vs Recorder:
+    - `kind` is inferred from node name (best-effort)
+    - `parents` assumes sequential execution (linear graph)
+    - `inputs` = state keys that existed before this node ran
+    - `output` = state keys that changed in this node
+    """
+    history = list(app.get_state_history(config))
+    if not history:
+        raise ValueError(f"No checkpoints found for thread {config}")
+
+    # LangGraph returns newest-first; reverse for chronological order
+    history = list(reversed(history))
+
+    # Infer step kind from node name (best-effort)
+    def _kind(node_name: str) -> str:
+        n = node_name.lower()
+        if any(x in n for x in ("result", "output", "response")):
+            return "tool_result"
+        if any(x in n for x in ("call", "search", "fetch", "send", "book", "pay")):
+            return "tool_call"
+        if any(x in n for x in ("final", "finish", "done", "complete")):
+            return "final"
+        if any(x in n for x in ("decide", "select", "choose", "pick")):
+            return "decision"
+        return "reason"
+
+    steps: list[Step] = []
+    prev_vals: dict = {}
+
+    for snapshot in history:
+        node = snapshot.metadata.get("source", "")
+        writes = snapshot.metadata.get("writes") or {}
+        if not writes:
+            # Initial state snapshot — no node ran yet
+            prev_vals = {k: v for k, v in snapshot.values.items()
+                         if not k.startswith("__")}
+            continue
+
+        node_name = next(iter(writes), node)
+        curr_vals = {k: v for k, v in snapshot.values.items()
+                     if not k.startswith("__")}
+
+        # inputs = what was in state before this node
+        inputs = dict(prev_vals)
+        # output = what changed (new or different values)
+        output = {k: curr_vals[k] for k in curr_vals
+                  if curr_vals.get(k) != prev_vals.get(k)}
+        if not output:
+            output = dict(curr_vals)
+
+        sid = f"s{len(steps) + 1}"
+        parents = [steps[-1].id] if steps else []
+
+        steps.append(Step(
+            id=sid,
+            index=len(steps),
+            kind=_kind(node_name),
+            inputs=inputs,
+            output=output,
+            state=dict(curr_vals),
+            parents=parents,
+            raw={"node": node_name},
+        ))
+
+        prev_vals = curr_vals
+
+    if not steps:
+        raise ValueError("Checkpoint history had no node executions")
+
+    steps[-1] = steps[-1].model_copy(update={"kind": "final"})
+    final_output = steps[-1].output
+
+    return Trace(id=trace_id, task=task, steps=steps, final_output=final_output)
