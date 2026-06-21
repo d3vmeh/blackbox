@@ -57,8 +57,13 @@ export function Inspector({ node, steps, attribution, onReplay }: {
       )}
 
       <div className="insp__actions">
+        {/* Replay the FOCUSED step, not always the root — so replaying a decoy/ordinary
+            candidate yields a visible non-flip (the rejection beat), and only the true
+            root flips fail→pass. */}
         <button type="button" className="insp__btn insp__btn--primary"
-          onClick={() => onReplay(attribution.root_step_id)}>↻ Replay with fix</button>
+          onClick={() => onReplay(focusId)}>
+          {isRoot ? '↻ Replay with fix' : '↻ Replay candidate'}
+        </button>
       </div>
     </div>
   )
