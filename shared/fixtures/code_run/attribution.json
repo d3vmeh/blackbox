@@ -1,0 +1,29 @@
+{
+  "trace_id": "code_run",
+  "root_step_id": "s1",
+  "blast_radius": [
+    "s2",
+    "s3",
+    "s4"
+  ],
+  "candidates": [
+    {
+      "step_id": "s1",
+      "suspicion": 0.92,
+      "reason": "spec_interpreter set unit='minutes'; should be 'seconds'"
+    },
+    {
+      "step_id": "s2",
+      "suspicion": 0.3,
+      "reason": "inherited the wrong value"
+    },
+    {
+      "step_id": "s3",
+      "suspicion": 0.3,
+      "reason": "inherited the wrong value"
+    }
+  ],
+  "rationale": "The spec_interpreter set unit='minutes' (should be 'seconds'); every downstream step inherited it and the acceptance test failed.",
+  "suggested_fix": null,
+  "confidence": 0.0
+}
