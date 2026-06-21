@@ -68,9 +68,11 @@
 .rb__verdict { font-family: var(--font-display); font-weight: 700; font-size: var(--t-h2);
   letter-spacing: var(--track-verdict); }
 .rb__verdict--fail { color: var(--blast); } .rb__verdict--pass { color: var(--pass); }
-.dash__body { display: grid; grid-template-columns: 1.4fr 1fr; flex: 1; min-height: 0; }
-.dash__graph { padding: var(--space-5) var(--space-4); overflow: auto; display: flex; justify-content: center; }
-.dash__inspect { padding: var(--space-4); border-left: 1px solid var(--line); }
+/* minmax(0,…) + min-width:0 stop a wide inspector payload (long code in a <pre>)
+   from collapsing the graph column — the long line scrolls inside the inspector. */
+.dash__body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); flex: 1; min-height: 0; }
+.dash__graph { padding: var(--space-5) var(--space-4); overflow: auto; display: flex; justify-content: center; min-width: 0; }
+.dash__inspect { padding: var(--space-4); border-left: 1px solid var(--line); min-width: 0; }
 
 /* ---- Run bar (scenario picker + Run) — top toolbar ---- */
 .dash__run { display: flex; align-items: center; gap: var(--space-3);
