@@ -21,6 +21,27 @@ from .capture import Recorder
 from .code_scenarios import AGENTS, DEFAULT, CodeScenario
 from .llm import Think
 
+# the one field each agent "decides" that we let a real model set (kept tiny for Phase 1)
+_THINK_FIELD = {"spec_interpreter": "unit"}     # other agents stay reference-only in Phase 1
+_THINK_PROMPT = {
+    "spec_interpreter": ("You convert a coding requirement into a structured spec. "
+                         "What unit must parse_duration RETURN? Answer one word.",
+                         "Requirement:\n{requirement}"),
+}
+
+
+def _apply_think(think, agent: str, scn, up: dict, out: dict) -> dict:
+    """If a real model is wired and this agent has a thinkable field, override it."""
+    field = _THINK_FIELD.get(agent)
+    if think is None or field is None:
+        return out
+    system, user_tmpl = _THINK_PROMPT[agent]
+    text = think(system, user_tmpl.format(requirement=scn.requirement))
+    if text:
+        out = {**out, field: text.strip().lower()}
+    return out
+
+
 PARENTS: dict[str, list[str]] = {
     "spec_interpreter": [],
     "implementer": ["spec_interpreter"],
@@ -45,8 +66,7 @@ class CodeContext:
 def _agent_output(ctx: CodeContext, agent: str) -> tuple[dict, bool, dict]:
     """Reference output (correct), then real-LLM override if available, then fault."""
     correct = ctx.scn.reference[agent](ctx.scn, ctx.up)
-    out = dict(correct)
-    # (real-LLM override is wired in Task 6; mock mode uses the reference as-is)
+    out = _apply_think(ctx.think, agent, ctx.scn, ctx.up, dict(correct))
     fault = ctx.scn.fault
     is_fault = bool(fault and fault.agent == agent)
     if is_fault:
