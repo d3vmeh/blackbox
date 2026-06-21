@@ -170,68 +170,10 @@ def replay_run(fork_node: str, override: dict, *, use_real_llm: bool = False) ->
     return _run(ctx, "flight_replay", fork_node=fork_node, override=override)
 
 
-# Module-level registry: thread_id → Recorder.
-# The Recorder is not JSON-serializable so it lives here, outside LangGraph state.
-_RUN_REC: dict[str, Recorder] = {}
-
-
-def build_graph(*, use_real_llm: bool = False, use_browserbase: bool = False):
-    """LangGraph StateGraph wrapping NODES with MemorySaver checkpoints.
-
-    Replay can fork at any checkpoint via graph.update_state() and resume
-    forward — no need to re-run from the beginning or repeat side effects."""
-    from langgraph.graph import StateGraph, END
-    from langgraph.checkpoint.memory import MemorySaver
-
-    think_fn = make_think(use_real_llm)
-    search_fn = browserbase_search if use_browserbase else mock_browserbase_search
-
-    def _wrap(node_fn):
-        def lg_node(state: dict) -> dict:
-            thread_id = state["__thread_id__"]
-            rec = _RUN_REC[thread_id]
-            ctx = RunContext(think=think_fn, search=search_fn, rec=rec)
-            ctx.state = {k: v for k, v in state.items() if not k.startswith("__")}
-            ctx.last = state.get("__last__", {})
-            node_fn(ctx)
-            return {**ctx.state, "__last__": ctx.last, "__thread_id__": thread_id}
-        lg_node.__name__ = node_fn.__name__
-        return lg_node
-
-    builder = StateGraph(dict)
-    for fn in NODES:
-        builder.add_node(fn.__name__, _wrap(fn))
-
-    names = [fn.__name__ for fn in NODES]
-    builder.set_entry_point(names[0])
-    for a, b in zip(names, names[1:]):
-        builder.add_edge(a, b)
-    builder.add_edge(names[-1], END)
-
-    return builder.compile(checkpointer=MemorySaver())
-
-
-def run_agent_graph(*, use_real_llm: bool = False, use_browserbase: bool = False,
-                    dest: str = "AUS", date: str = INTENDED_DATE,
-                    trace_id: str = "lg_flight") -> tuple[Trace, Any]:
-    """Run the agent through LangGraph. Returns (Trace, app) so the caller can
-    fork at any checkpoint: app.update_state(config, {state_key: fix}, as_node=node)."""
-    app = build_graph(use_real_llm=use_real_llm, use_browserbase=use_browserbase)
-    rec = Recorder(trace_id, DEFAULT_TASK)
-    _RUN_REC[trace_id] = rec
-
-    config = {"configurable": {"thread_id": trace_id}}
-    try:
-        final_state = app.invoke(
-            {"dest": dest, "date": date, "__thread_id__": trace_id, "__last__": {}},
-            config,
-        )
-    finally:
-        _RUN_REC.pop(trace_id, None)
-
-    final_output = final_state.get("final_output", {})
-    trace = rec.finish(final_output=final_output, success=evaluate(final_output, DEFAULT_TASK))
-    return trace, app
+def build_graph():
+    """Live path: a checkpointed LangGraph wrapping NODES so replay can fork via real
+    checkpoints. Future work — the deterministic re-execution above is the demo path."""
+    raise NotImplementedError("P1 (live path): wrap NODES in a checkpointed LangGraph")
 
 
 if __name__ == "__main__":
