@@ -1,12 +1,83 @@
 import { agentOf } from '../../types'
-import type { Attribution, Step } from '../../types'
+import type { Attribution, Json, MonitorDecision, ReplayResult, Step } from '../../types'
 import type { ActionNode } from '../types'
-import { ProvenanceList, RawPayload, Section } from './sections'
+import type { RunMeta } from '../data/loadMeta'
+import { CodeBlock } from './CodeBlock'
+import { Field, ProvenanceList, RawPayload, Section } from './sections'
 import type { ParentLink } from './sections'
 import '../dashboard.css'
 import './Inspector.css'
 
-export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect }: {
+function ReplayOutcome({ result, agent, output }: {
+  result: ReplayResult; agent: string; output: Json
+}) {
+  const injected = result.injected_value
+  const fields = injected && typeof injected === 'object' && !Array.isArray(injected)
+    ? Object.entries(injected) : []
+  const before = (k: string) =>
+    output && typeof output === 'object' && !Array.isArray(output) ? output[k] : undefined
+  const passed = result.outcomes.filter(Boolean).length
+  const names = fields.map(([k]) => k).join(', ') || 'output'
+  return (
+    <div className={`insp__replay insp__replay--${result.flipped ? 'pass' : 'reject'}`}>
+      <div className="insp__replayhd">{result.flipped ? '✓ FIX CONFIRMED' : '✗ NOT THE CAUSE'}</div>
+      {fields.length > 0 && (
+        <div className="insp__fix">
+          {fields.map(([k, v]) =>
+            typeof v === 'string' && (v.includes('\n') || k === 'code' || k === 'tests') ? (
+              <div key={k} className="insp__fixcode">
+                <div className="insp__codek">corrected {k}</div>
+                <CodeBlock code={v} />
+              </div>
+            ) : (
+              <div key={k} className="insp__fixrow">
+                <span className="insp__fixk">{k}</span>
+                <span className="insp__fixbefore">{String(before(k))}</span>
+                <span className="insp__fixarrow">→</span>
+                <span className="insp__fixafter">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+      {result.flipped && result.explanation && (
+        <p className="insp__replayexpl">{result.explanation}</p>
+      )}
+      <p className="insp__replaywhy">
+        {result.flipped
+          ? `Re-ran with ${agent}'s ${names} corrected → the run flipped FAIL → PASS (${passed}/${result.n} replays). That intervention proves ${agent} is the root cause.`
+          : `Re-ran with ${agent}'s output corrected → no change, still FAIL (${passed}/${result.n}). That proves ${agent} is not the cause.`}
+      </p>
+    </div>
+  )
+}
+
+function ProducedOutput({ output }: { output: Json }) {
+  if (output === null || typeof output !== 'object' || Array.isArray(output)) {
+    return <RawPayload value={output} />
+  }
+  const entries = Object.entries(output)
+  return (
+    <>
+      {entries.map(([k, v]) =>
+        typeof v === 'string' && (v.includes('\n') || k === 'code' || k === 'tests') ? (
+          <div key={k} className="insp__codewrap">
+            <div className="insp__codek">{k}</div>
+            <CodeBlock code={v} />
+          </div>
+        ) : (
+          <Field key={k} k={k} v={typeof v === 'object' ? JSON.stringify(v) : String(v)} />
+        ),
+      )}
+      <details className="insp__raw">
+        <summary>raw JSON</summary>
+        <RawPayload value={output} />
+      </details>
+    </>
+  )
+}
+
+export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect, runMeta, monitor, replayResult }: {
   node: ActionNode | null
   steps: Step[]
   attribution: Attribution
@@ -15,12 +86,18 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect 
   nodes?: ActionNode[]
   /** jump to another action node (e.g. a cross-agent producer) by node id */
   onSelect?: (nodeId: string) => void
+  /** runtime metadata — drives the LangGraph / multi-agent provenance sections when present */
+  runMeta?: RunMeta
+  /** the trust-gate decision — shown on the root step when present */
+  monitor?: MonitorDecision
+  /** the last replay outcome for this step (before → after + flip) */
+  replayResult?: ReplayResult | null
 }) {
   if (!node) {
     return <div className="insp insp--empty">Select a node to inspect its telemetry.</div>
   }
   const byId = new Map(steps.map((s) => [s.id, s]))
-  const focusId = node.stepIds[node.stepIds.length - 1] // the result step
+  const focusId = node.stepIds[node.stepIds.length - 1]
   const step = byId.get(focusId)
   if (!step) return <div className="insp insp--empty">Step {focusId} not found.</div>
 
@@ -65,8 +142,31 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect 
         </Section>
       )}
 
-      <Section title="output">
-        <RawPayload value={step.output} tone={isRoot || isBlast ? 'bad' : undefined} />
+      {runMeta?.runtime === 'langgraph' && (
+        <Section title="LangGraph" aside={runMeta.engine}>
+          <Field k="apis" v={(runMeta.apis ?? []).join(' · ')} />
+          <Field k="checkpoints" v={`${runMeta.checkpoints ?? 0} saved`} />
+          <Field k="capture" v={runMeta.capture_path ?? '—'} />
+          {isRoot && runMeta.fork_node && (
+            <Field k="fork replay" v={`update_state(as_node=${runMeta.fork_node}) → invoke`} tone="good" />
+          )}
+        </Section>
+      )}
+
+      {runMeta?.runtime === 'multi-agent' && (
+        <Section title="multi-agent hand-off" aside={runMeta.engine}>
+          <Field k="agent" v={String(step.raw.display ?? step.raw.agent ?? '—')} />
+          {runMeta.parallel_agents && (
+            <Field k="parallel" v={runMeta.parallel_agents.join(' ∥ ')} />
+          )}
+          {isRoot && runMeta.fork_agent && (
+            <Field k="fork replay" v={`inject at ${runMeta.fork_agent} → re-run pipeline`} tone="good" />
+          )}
+        </Section>
+      )}
+
+      <Section title="what it produced" aside="output">
+        <ProducedOutput output={step.output} />
       </Section>
 
       {Object.keys(step.inputs).length > 0 && (
@@ -84,6 +184,14 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect 
         <ProvenanceList parents={parentLinks} onJump={onSelect} />
       </Section>
 
+      {isRoot && monitor && (
+        <Section title="supervise · trust gate" aside={monitor.decision}>
+          <Field k="trusted" v={monitor.trusted ? 'yes' : 'no'} tone={monitor.trusted ? 'good' : undefined} />
+          <Field k="decision" v={monitor.decision} tone={monitor.trusted ? 'good' : undefined} />
+          <Field k="confirmation" v={`${Math.round(monitor.replay.confirmation_rate * 100)}% over n=${monitor.replay.n}`} />
+        </Section>
+      )}
+
       {isRoot && (
         <Section title="why it's the root cause">
           <p className="insp__rationale">{attribution.rationale}</p>
@@ -92,17 +200,18 @@ export function Inspector({ node, steps, attribution, onReplay, nodes, onSelect 
 
       </div>
       <div className="insp__actions">
-        {/* Replay the FOCUSED step, not always the root — so replaying a decoy/ordinary
-            candidate yields a visible non-flip (the rejection beat), and only the true
-            root flips fail→pass. */}
         <button type="button" className="insp__btn insp__btn--primary"
           onClick={() => onReplay(focusId)}>
           {isRoot ? '↻ Replay with fix' : '↻ Replay candidate'}
         </button>
         <span className="insp__hint">
-          fork at <b className="tnum">{focusId}</b> · inject corrected value · replay ×5
+          {isRoot
+            ? <>fork at <b className="tnum">{focusId}</b> · inject the fix · re-run → expect FAIL → PASS</>
+            : <>fork at <b className="tnum">{focusId}</b> · re-run → expect no change (not the cause)</>}
         </span>
       </div>
+
+      {replayResult && <ReplayOutcome result={replayResult} agent={node.label} output={step.output} />}
     </div>
   )
 }

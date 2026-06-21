@@ -2,7 +2,7 @@
 
 For the demo the deterministic pipeline in graph.py records directly via `Recorder`
 (str step ids "s1".."sN", true `parents` edges, a JSON-serializable `state` snapshot per
-step). `to_trace()` is the live-path adapter (spans + checkpoints) and is future work.
+step). `to_trace()` adapts LangGraph checkpoint history into the same Trace shape.
 """
 
 from __future__ import annotations

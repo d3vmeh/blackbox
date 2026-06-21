@@ -5,15 +5,24 @@ import type { TrustState } from './types'
 import './dashboard.css'
 import './ReadoutBar.css'
 
-export function ReadoutBar({ runId, task, verdict, meta, trust = 'untrusted', rate, n, statsOpen = false, onToggleStats }: {
-  runId: string; task: string; verdict: 'FAIL' | 'PASS'; meta: string
+export function ReadoutBar({ runId, task, verdict, meta, trust = 'untrusted', rate, n, statsOpen = false, onToggleStats, runtime, monitorDecision }: {
+  runId: string; task: string; verdict: 'FAIL' | 'PASS' | 'READY'; meta: string
   trust?: TrustState; rate?: number; n?: number
   statsOpen?: boolean; onToggleStats?: () => void
+  runtime?: string
+  monitorDecision?: 'auto_apply' | 'escalate' | null
 }) {
   return (
     <header className="rb">
       <span className="rb__id tnum">{runId}</span>
       <span className="rb__task">{task}</span>
+      {runtime && <span className="rb__runtime">{runtime}</span>}
+      {monitorDecision === 'auto_apply' && (
+        <span className="rb__trust rb__trust--apply">trust gate · auto_apply</span>
+      )}
+      {monitorDecision === 'escalate' && (
+        <span className="rb__trust rb__trust--escalate">trust gate · escalate</span>
+      )}
       <span className="rb__meta">{meta}</span>
       <span className="rb__spacer" />
       {onToggleStats && (

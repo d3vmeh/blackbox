@@ -1,8 +1,11 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Attribution, MonitorDecision, ReplayResult, Trace } from '../../types'
 import type { ActionGraph } from '../types'
 import { deriveActions } from '../deriveActions'
 import { nodeStatus, type StatusMap } from '../nodeStatus'
+import { loadRunMeta, type RunMeta } from './loadMeta'
+import { loadMonitorDecision } from './loadMonitor'
+import { nonFlip } from './replayMap'
 import { loadStubMultiAgentTrace, STUB_MULTI_ATTRIBUTION } from './stubMultiAgentTrace'
 import { STUB_MONITOR_DECISION } from './stubMonitor'
 
@@ -11,45 +14,75 @@ export interface RunData {
   attribution: Attribution
   graph: ActionGraph
   status: StatusMap
+  meta: RunMeta
   monitor: MonitorDecision
+  replays: Record<string, ReplayResult>
 }
 
-/**
- * Build a replay outcome for a forked step. The monitor's confirmed root replay
- * (STUB_MONITOR_DECISION) flips fail→pass; every other step is a decoy/ordinary
- * candidate whose correction does NOT flip the run (a valid, expected non-flip).
- *
- * Async shape so the SSE swap later is a drop-in (no caller change). The renderer
- * stays generic: swap the loader back to the single-agent fixture and the same
- * pipeline (deriveActions → nodeStatus → replay) still works.
- */
-function replayFor(monitor: MonitorDecision, stepId: string, value: unknown): ReplayResult {
-  if (stepId === monitor.root_step_id) return monitor.replay
-  return {
-    trace_id: monitor.trace_id,
-    step_id: stepId,
-    injected_value: value as ReplayResult['injected_value'],
-    n: monitor.replay.n,
-    flipped: false,
-    confirmation_rate: 0,
-    outcomes: Array.from({ length: monitor.replay.n }, () => false),
-  }
+interface RunResponse {
+  trace: Trace; attribution: Attribution; replay: Record<string, ReplayResult>
+  meta?: RunMeta; monitor?: MonitorDecision   // the coding backend supplies these; claims fixtures don't
 }
 
-export function useRun(): {
-  data: RunData
-  replay: (stepId: string, value: unknown) => Promise<ReplayResult>
-} {
-  const data = useMemo<RunData>(() => {
-    const trace = loadStubMultiAgentTrace()
-    const attribution = STUB_MULTI_ATTRIBUTION
-    const graph = deriveActions(trace)
-    const status = nodeStatus(graph, attribution)
-    return { trace, attribution, graph, status, monitor: STUB_MONITOR_DECISION }
+function toRunData(
+  trace: Trace,
+  attribution: Attribution,
+  replays: Record<string, ReplayResult>,
+  meta: RunMeta = loadRunMeta(),
+  monitor: MonitorDecision = loadMonitorDecision(),
+): RunData {
+  const graph = deriveActions(trace)
+  return { trace, attribution, graph, status: nodeStatus(graph, attribution), meta, monitor, replays }
+}
+
+// First paint shows the multi-agent demo trace (the redesign's topology view); the
+// monitor's confirmed root replay is the only step that flips, every other fork is a
+// non-flipping decoy. Picking a scenario + Run swaps in a live backend run below.
+const FALLBACK_REPLAYS: Record<string, ReplayResult> = {
+  [STUB_MONITOR_DECISION.root_step_id]: STUB_MONITOR_DECISION.replay,
+}
+const FALLBACK: RunData = toRunData(
+  loadStubMultiAgentTrace(), STUB_MULTI_ATTRIBUTION, FALLBACK_REPLAYS,
+  loadRunMeta(), STUB_MONITOR_DECISION,
+)
+const FALLBACK_SCENARIOS = [{ name: 'acme_amount', label: 'claims · acme amount' }]
+
+export function useRun() {
+  const [data, setData] = useState<RunData>(FALLBACK)
+  const [scenarios, setScenarios] = useState<{ name: string; label: string }[]>(FALLBACK_SCENARIOS)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/scenarios')
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(setScenarios)
+      .catch(() => { /* backend off → keep the fallback list */ })
   }, [])
 
-  const replay = (stepId: string, value: unknown) =>
-    Promise.resolve(replayFor(data.monitor, stepId, value))
+  const run = useCallback(async (scenario: string, live = true) => {
+    setLoading(true); setError(null)
+    try {
+      const r = await fetch('/api/run', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario, live }),
+      })
+      if (!r.ok) throw new Error(`run failed (${r.status})`)
+      const body: RunResponse = await r.json()
+      // use the backend's meta/monitor when present (coding runs); else the static defaults
+      setData(toRunData(body.trace, body.attribution, body.replay, body.meta, body.monitor))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'run failed')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  return { data, replay }
+  const replay = useCallback(
+    (stepId: string, _value: unknown) => Promise.resolve(data.replays[stepId] ?? nonFlip(stepId)),
+    [data.replays],
+  )
+
+  return useMemo(() => ({ data, scenarios, loading, error, run, replay }),
+                 [data, scenarios, loading, error, run, replay])
 }

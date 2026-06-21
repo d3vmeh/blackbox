@@ -12,7 +12,7 @@
       "output": {
         "signature": "def parse_duration(s: str) -> int",
         "unit": "minutes",
-        "summary": "sum h/m/s components into a total number of seconds"
+        "summary": "parse a duration string like '1h2m3s', '90s', or '2m' (h/m/s = hours/minutes/seconds) and return the total elapsed time as an int"
       },
       "state": {
         "up": {}
@@ -27,7 +27,7 @@
       "correct_output": {
         "signature": "def parse_duration(s: str) -> int",
         "unit": "seconds",
-        "summary": "sum h/m/s components into a total number of seconds"
+        "summary": "parse a duration string like '1h2m3s', '90s', or '2m' (h/m/s = hours/minutes/seconds) and return the total elapsed time as an int"
       }
     },
     {
@@ -47,7 +47,7 @@
           "spec_interpreter": {
             "signature": "def parse_duration(s: str) -> int",
             "unit": "minutes",
-            "summary": "sum h/m/s components into a total number of seconds"
+            "summary": "parse a duration string like '1h2m3s', '90s', or '2m' (h/m/s = hours/minutes/seconds) and return the total elapsed time as an int"
           }
         }
       },
@@ -81,7 +81,7 @@
           "spec_interpreter": {
             "signature": "def parse_duration(s: str) -> int",
             "unit": "minutes",
-            "summary": "sum h/m/s components into a total number of seconds"
+            "summary": "parse a duration string like '1h2m3s', '90s', or '2m' (h/m/s = hours/minutes/seconds) and return the total elapsed time as an int"
           },
           "implementer": {
             "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n"
@@ -121,7 +121,7 @@
           "spec_interpreter": {
             "signature": "def parse_duration(s: str) -> int",
             "unit": "minutes",
-            "summary": "sum h/m/s components into a total number of seconds"
+            "summary": "parse a duration string like '1h2m3s', '90s', or '2m' (h/m/s = hours/minutes/seconds) and return the total elapsed time as an int"
           },
           "implementer": {
             "code": "import re\ndef parse_duration(s):\n    total = 0\n    for value, unit in re.findall(r'(\\d+)([hms])', s):\n        total += int(value) * {'h': 3600, 'm': 60, 's': 1}[unit]\n    return total // 60\n"

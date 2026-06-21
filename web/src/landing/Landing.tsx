@@ -46,7 +46,7 @@ export function Landing() {
         </div>
         <div className="nav__cta">
           <a className="nav__signin" href="#login">Sign in</a>
-          <button className="btn btn--solid" type="button">Start free</button>
+          <button className="btn btn--solid" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
         </div>
       </nav>
 
@@ -71,12 +71,11 @@ export function Landing() {
         <motion.div className="code" variants={reveal} aria-hidden="true">
           <div className="code__bar"><span className="code__file tnum">quickstart.py</span></div>
           <pre className="code__body">
-<span className="c-dim">$ pip install blackbox</span>{'\n\n'}
-<span className="c-key">from</span> blackbox <span className="c-key">import</span> supervise{'\n\n'}
-<span className="c-key">with</span> supervise(team):       <span className="c-dim"># records every hand-off</span>{'\n'}
-{'    '}team.run(invoice)       <span className="c-dim"># your agents, unchanged</span>{'\n\n'}
-<span className="c-dim"># a run failed? localize the agent + prove the fix:</span>{'\n'}
-<span className="c-dim">$ blackbox replay ap_7c2 --confirm</span>
+<span className="c-dim">$ pip install blackbox langgraph</span>{'\n\n'}
+<span className="c-key">from</span> agent.ap.export_run <span className="c-key">import</span> build_artifacts{'\n\n'}
+build_artifacts()  <span className="c-dim"># INTAKE → COVERAGE ∥ FRAUD → PAYOUT</span>{'\n'}
+<span className="c-dim"># on FAIL: localize root + replay-confirm before trust gate:</span>{'\n'}
+<span className="c-dim">$ python -m agent.ap.export_run && open /#dashboard</span>
           </pre>
         </motion.div>
       </motion.section>
@@ -114,7 +113,7 @@ export function Landing() {
           Stop guessing which agent failed.<br />Start proving it.
         </motion.h2>
         <motion.div className="hero__actions" variants={reveal}>
-          <button className="btn btn--solid btn--lg" type="button">Start free</button>
+          <button className="btn btn--solid btn--lg" type="button" onClick={() => { window.location.hash = 'dashboard' }}>Start free</button>
           <a className="btn btn--ghost btn--lg" href="#docs">Read the docs</a>
         </motion.div>
         <motion.p className="hero__note" variants={reveal}>

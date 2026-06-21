@@ -9,6 +9,7 @@
  *   Candidate    -> a ranked suspect step (localized)
  *   Attribution  -> root cause + blast radius (localized + sliced)
  *   ReplayResult -> intervention outcome (confirmed or rejected)
+ *   MonitorDecision -> trust gate (auto_apply or escalate)
  */
 
 /** Any JSON-serializable value. Mirrors Pydantic `Any` over the wire without `any`. */
@@ -126,6 +127,8 @@ export interface ReplayResult {
   confirmation_rate: number
   /** per-run pass/fail */
   outcomes: boolean[]
+  /** plain-English "why this fix works" (optional; LLM-generated live, template in mock) */
+  explanation?: string | null
 }
 
 /**
