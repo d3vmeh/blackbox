@@ -90,10 +90,9 @@
   --sel-line:   rgba(255, 255, 255, 0.12);
 
   /* ---- Dashboard rails & bars ---- */
-  --rail-nav:   240px;   /* left: monitor rail (on bare bg, outside the tile) */
+  --rail-nav:   300px;   /* left: monitor rail (on bare bg, outside the tile) — holds run switcher + collapsible sections */
   --rail-insp:  460px;   /* right: inspector (split compare) — wider for readable code diffs */
   --h-bar:      48px;    /* readout header height */
-  --h-toolbar:  52px;    /* scenario picker row */
 
   --glyph:      13px;    /* status-ring glyph */
 

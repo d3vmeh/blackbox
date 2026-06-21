@@ -8,9 +8,7 @@ import { Topology } from './Topology'
 import { TraceGraph } from './graph/TraceGraph'
 import { Inspector } from './inspector/Inspector'
 import { MonitorPanel, type MonitorLine } from './MonitorPanel'
-import { StatsOverlay } from './StatsOverlay'
 import { LogConsole } from './console/LogConsole'
-import { ScenarioToolbar } from './ScenarioToolbar'
 import { deriveStats } from './deriveStats'
 import { deriveTopology } from './deriveTopology'
 import { phaseForReplay, PHASE_STATUS, trustForPhase, type Phase } from './phase'
@@ -35,8 +33,6 @@ export function Dashboard() {
   const [monitorDismissed, setMonitorDismissed] = useState(false)
   // Reduced motion: skip the cascade and render the localized view directly.
   const [phase, setPhase] = useState<Phase>(reduce ? 'analyze' : 'idle')
-  // The full-width statistics overlay (toggled from the readout bar / `s` key).
-  const [statsOpen, setStatsOpen] = useState(false)
   // The last replay outcome (what was injected + whether it flipped), shown in the inspector.
   const [replayInfo, setReplayInfo] = useState<{ stepId: string; result: ReplayResult } | null>(null)
 
@@ -151,12 +147,7 @@ export function Dashboard() {
       if (pendingRun || e.metaKey || e.ctrlKey || e.altKey) return
       const nodes = data.graph.nodes
       const idx = nodes.findIndex((n) => n.id === selectedId)
-      if (e.key === 's' || e.key === 'S') {
-        e.preventDefault()
-        setStatsOpen((cur) => !cur)
-      } else if (e.key === 'Escape') {
-        setStatsOpen(false)
-      } else if (e.key === 'j' || e.key === 'ArrowDown') {
+      if (e.key === 'j' || e.key === 'ArrowDown') {
         e.preventDefault()
         selectNode(nodes[Math.min(nodes.length - 1, Math.max(0, idx) + 1)]?.id ?? selectedId)
       } else if (e.key === 'k' || e.key === 'ArrowUp') {
@@ -173,20 +164,27 @@ export function Dashboard() {
 
   return (
     <div className={`dash${pendingRun ? ' dash--await' : ''}`}>
-      {!pendingRun && (
-        <MonitorRail
-          trace={data.trace}
-          attribution={data.attribution}
-          graph={data.graph}
-          phase={phase}
-          selectedId={selectedId}
-          onSelect={selectNode}
-          topology={topology}
-          selectedAgentId={selectedAgentId}
-          onSelectAgent={onSelectAgent}
-          monitor={data.monitor}
-        />
-      )}
+      <MonitorRail
+        scenarios={scenarios}
+        picked={picked}
+        loaded={loadedScenario}
+        onPick={setPicked}
+        onRun={() => run(picked)}
+        loading={loading}
+        error={error}
+        pending={pendingRun}
+        trace={data.trace}
+        attribution={data.attribution}
+        graph={data.graph}
+        phase={phase}
+        selectedId={selectedId}
+        onSelect={selectNode}
+        topology={topology}
+        selectedAgentId={selectedAgentId}
+        onSelectAgent={onSelectAgent}
+        monitor={data.monitor}
+        stats={stats}
+      />
       <div className="dash__tile">
         <ReadoutBar
           runId={pendingRun ? picked : data.trace.id}
@@ -198,17 +196,6 @@ export function Dashboard() {
           n={pendingRun ? undefined : replayN}
           runtime={pendingRun ? undefined : (data.meta.domain ?? data.meta.runtime)}
           monitorDecision={monitorLabel}
-          statsOpen={statsOpen}
-          onToggleStats={() => setStatsOpen((cur) => !cur)}
-        />
-        <ScenarioToolbar
-          scenarios={scenarios}
-          picked={picked}
-          loaded={loadedScenario}
-          onPick={setPicked}
-          onRun={() => run(picked)}
-          loading={loading}
-          error={error}
         />
         <div className="dash__body">
         {pendingRun ? (
@@ -276,7 +263,6 @@ export function Dashboard() {
           </>
         )}
         </div>
-        <StatsOverlay open={statsOpen} stats={stats} onClose={() => setStatsOpen(false)} />
       </div>
     </div>
   )
