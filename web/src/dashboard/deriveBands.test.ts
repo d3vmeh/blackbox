@@ -28,10 +28,10 @@ describe('deriveBands — multi-agent stub', () => {
     expect(banded).toHaveLength(graph.nodes.length)
   })
 
-  it('derives short mono UPPERCASE labels from agentId', () => {
-    expect(bands.find((b) => b.agentId === 'intake')?.label).toBe('INTAK')
-    expect(bands.find((b) => b.agentId === 'coverage')?.label).toBe('COVER')
-    expect(bands.find((b) => b.agentId === 'payout')?.label).toBe('PAYOU')
+  it('derives full mono UPPERCASE labels from agentId', () => {
+    expect(bands.find((b) => b.agentId === 'intake')?.label).toBe('INTAKE')
+    expect(bands.find((b) => b.agentId === 'coverage')?.label).toBe('COVERAGE')
+    expect(bands.find((b) => b.agentId === 'payout')?.label).toBe('PAYOUT')
   })
 })
 
@@ -63,7 +63,7 @@ describe('deriveBands — parallel pair within a band', () => {
     expect(bands[0].parallelGroupIds).toEqual([['a1', 'a2']])
   })
 
-  it('uses the generic first-5-chars uppercased label fallback', () => {
+  it('uses the full uppercased agentId as the label', () => {
     expect(bands[0].label).toBe('SOLO')
   })
 })
